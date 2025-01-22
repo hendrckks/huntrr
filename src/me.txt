@@ -1,0 +1,797 @@
+// ===== types.ts =====
+export enum UserRole {
+  TENANT_UNVERIFIED = 'tenant_unverified',
+  TENANT = 'tenant',
+  LANDLORD_UNVERIFIED = 'landlord_unverified',
+  LANDLORD_VERIFIED = 'landlord_verified',
+  ADMIN = 'admin'
+}
+
+export enum VerificationStatus {
+  PENDING = 'pending',
+  VERIFIED = 'verified',
+  REJECTED = 'rejected'
+}
+
+export enum AuthErrorCode {
+  SESSION_EXPIRED = 'session_expired',
+  INVALID_ROLE = 'invalid_role',
+  KYC_REQUIRED = 'kyc_required',
+  RATE_LIMIT_EXCEEDED = 'rate_limit_exceeded',
+  AUTHENTICATION_FAILED = 'authentication_failed',
+  REGISTRATION_FAILED = 'registration_failed'
+}
+
+export interface UserSession {
+  sessionId: string;
+  userId: string;
+  role: UserRole;
+  deviceInfo: {
+    userAgent: string;
+    ip: string;
+    lastActive: Date;
+  };
+  createdAt: Date;
+  expiresAt: Date;
+  isValid: boolean;
+}
+
+export interface BaseUser {
+  id: string;
+  email: string;
+  emailVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  role: UserRole;
+  customClaims?: {
+    role: UserRole;
+    email_verified: boolean;
+    [key: string]: any;
+  };
+}
+
+export interface Tenant extends BaseUser {
+  profile: {
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+  };
+}
+
+export interface Landlord extends BaseUser {
+  profile: {
+    businessName?: string;
+    phoneNumber: string;
+    verificationStatus: VerificationStatus;
+    kycSubmissionDate?: Date;
+    kycExpirationDate?: Date;
+  };
+  documents: KYCDocument[];
+}
+
+export interface KYCDocument {
+  id: string;
+  documentType: 'id' | 'license' | 'business_registration';
+  fileUrl: string;
+  uploadedAt: Date;
+  expiresAt?: Date;
+}
+
+export interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: AuthErrorCode | string;
+    message: string;
+    details?: any;
+  };
+}
+
+export interface AuditLog {
+  timestamp: Date;
+  userId: string;
+  adminId?: string;
+  action: string;
+  metadata?: any;
+  ipAddress?: string;
+  userAgent?: string;
+  _archiveDate: Date;
+}
+
+// ===== firebase-config.ts =====
+import firebase from 'firebase/app';
+import 'firebase/auth';
+import 'firebase/firestore';
+import 'firebase/storage';
+import 'firebase/functions';
+
+const firebaseConfig = {
+  // Your Firebase configuration object
+};
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+export const auth = firebase.auth();
+export const firestore = firebase.firestore();
+export const storage = firebase.storage();
+export const functions = firebase.functions();
+
+// Enable Firestore offline persistence
+firestore.enablePersistence()
+  .catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+    } else if (err.code === 'unimplemented') {
+      console.warn('The current browser does not support persistence.');
+    }
+  });
+
+export default firebase;
+
+// ===== sessionService.ts =====
+import { UserSession, UserRole, APIResponse, AuthErrorCode } from './types';
+import { firestore } from './firebase-config';
+import { v4 as uuidv4 } from 'uuid';
+import NodeCache from 'node-cache';
+
+export class SessionService {
+  private readonly sessionsCollection = firestore.collection('sessions');
+  private readonly SESSION_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
+  private readonly UNVERIFIED_TTL = 3600; // 1 hour in seconds
+  private readonly cache = new NodeCache({ stdTTL: 300, checkperiod: 60 }); // 5 minutes cache
+
+  async createSession(userId: string, role: UserRole, deviceInfo: any): Promise<APIResponse<UserSession>> {
+    try {
+      const sessionId = uuidv4();
+      const ttl = role.includes('unverified') ? this.UNVERIFIED_TTL : this.SESSION_TTL;
+      const expiresAt = new Date(Date.now() + ttl * 1000);
+
+      const session: UserSession = {
+        sessionId,
+        userId,
+        role,
+        deviceInfo: {
+          ...deviceInfo,
+          lastActive: new Date()
+        },
+        createdAt: new Date(),
+        expiresAt,
+        isValid: true
+      };
+
+      await this.sessionsCollection.doc(sessionId).set({
+        ...session,
+        _ttl: firestore.Timestamp.fromDate(expiresAt)
+      });
+
+      this.cache.set(sessionId, session);
+
+      return { success: true, data: session };
+    } catch (error) {
+      return {
+        success: false,
+        error: { 
+          code: AuthErrorCode.AUTHENTICATION_FAILED, 
+          message: 'Failed to create session',
+          details: error instanceof Error ? error.message : undefined
+        }
+      };
+    }
+  }
+
+  async validateSession(sessionId: string): Promise<APIResponse<UserSession>> {
+    try {
+      const cachedSession = this.cache.get<UserSession>(sessionId);
+      if (cachedSession) {
+        if (!cachedSession.isValid || new Date() > cachedSession.expiresAt) {
+          this.cache.del(sessionId);
+          return {
+            success: false,
+            error: { code: AuthErrorCode.SESSION_EXPIRED, message: 'Session expired or revoked' }
+          };
+        }
+        return { success: true, data: cachedSession };
+      }
+
+      const doc = await this.sessionsCollection.doc(sessionId).get();
+      
+      if (!doc.exists) {
+        return {
+          success: false,
+          error: { code: AuthErrorCode.SESSION_EXPIRED, message: 'Session not found' }
+        };
+      }
+
+      const session = doc.data() as UserSession;
+
+      if (!session?.isValid || new Date() > session.expiresAt) {
+        return {
+          success: false,
+          error: { code: AuthErrorCode.SESSION_EXPIRED, message: 'Session expired or revoked' }
+        };
+      }
+
+      await this.sessionsCollection.doc(sessionId).update({
+        'deviceInfo.lastActive': new Date()
+      });
+
+      this.cache.set(sessionId, session);
+
+      return { success: true, data: session };
+    } catch (error) {
+      return {
+        success: false,
+        error: { 
+          code: AuthErrorCode.AUTHENTICATION_FAILED, 
+          message: 'Session validation failed',
+          details: error instanceof Error ? error.message : undefined
+        }
+      };
+    }
+  }
+
+  async revokeAllSessions(userId: string): Promise<APIResponse<void>> {
+    try {
+      const query = await this.sessionsCollection
+        .where('userId', '==', userId)
+        .where('isValid', '==', true)
+        .get();
+
+      const batch = firestore.batch();
+      query.docs.forEach(doc => {
+        batch.update(doc.ref, { 
+          isValid: false,
+          _ttl: firestore.Timestamp.fromDate(new Date()) // Immediate expiration
+        });
+        this.cache.del(doc.id);
+      });
+      await batch.commit();
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: { 
+          code: AuthErrorCode.AUTHENTICATION_FAILED, 
+          message: 'Failed to revoke sessions',
+          details: error instanceof Error ? error.message : undefined
+        }
+      };
+    }
+  }
+}
+
+// ===== auditService.ts =====
+import { firestore } from './firebase-config';
+import { AuditLog, APIResponse, AuthErrorCode } from './types';
+
+export class AuditService {
+  private readonly logsCollection = firestore.collection('audit_logs');
+  private readonly ARCHIVE_PERIOD = 180 * 24 * 60 * 60 * 1000; // 6 months in milliseconds
+
+  async logAction(
+    action: string,
+    userId: string,
+    metadata: any,
+    adminId?: string
+  ): Promise<APIResponse<void>> {
+    try {
+      const auditLog: AuditLog = {
+        timestamp: new Date(),
+        userId,
+        adminId,
+        action,
+        metadata,
+        ipAddress: metadata.ipAddress,
+        userAgent: metadata.userAgent,
+        _archiveDate: new Date(Date.now() + this.ARCHIVE_PERIOD)
+      };
+
+      await this.logsCollection.add(auditLog);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: { 
+          code: 'AUDIT_LOG_FAILED', 
+          message: 'Failed to create audit log',
+          details: error instanceof Error ? error.message : undefined
+        }
+      };
+    }
+  }
+}
+
+// ===== authService.ts =====
+import { auth, firestore, storage } from './firebase-config';
+import { BaseUser, Tenant, Landlord, UserRole, VerificationStatus, APIResponse, AuthErrorCode } from './types';
+import { SessionService } from './sessionService';
+import { AuditService } from './auditService';
+import NodeCache from 'node-cache';
+
+export class AuthService {
+  private readonly usersCollection = firestore.collection('users');
+  private readonly sessionService = new SessionService();
+  private readonly auditService = new AuditService();
+  private readonly cache = new NodeCache({ stdTTL: 300, checkperiod: 60 }); // 5 minutes cache
+
+  async registerTenant(email: string, password: string): Promise<APIResponse<Tenant>> {
+    try {
+      const userCred = await auth.createUserWithEmailAndPassword(email, password);
+      const user = userCred.user!;
+
+      const tenant: Tenant = {
+        id: user.uid,
+        email: user.email!,
+        emailVerified: false,
+        role: UserRole.TENANT_UNVERIFIED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        profile: { firstName: '', lastName: '' }
+      };
+
+      await this.usersCollection.doc(user.uid).set(tenant);
+      await user.sendEmailVerification();
+      await this.auditService.logAction('TENANT_REGISTRATION', user.uid, { email });
+
+      this.cache.set(`user_${user.uid}`, tenant);
+
+      return { success: true, data: tenant };
+    } catch (error) {
+      return this.handleAuthError(error, AuthErrorCode.REGISTRATION_FAILED);
+    }
+  }
+
+  async registerLandlord(
+    email: string,
+    password: string,
+    businessName: string,
+    phoneNumber: string
+  ): Promise<APIResponse<Landlord>> {
+    try {
+      const userCred = await auth.createUserWithEmailAndPassword(email, password);
+      const user = userCred.user!;
+
+      const landlord: Landlord = {
+        id: user.uid,
+        email: user.email!,
+        emailVerified: false,
+        role: UserRole.LANDLORD_UNVERIFIED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        profile: {
+          businessName,
+          phoneNumber,
+          verificationStatus: VerificationStatus.PENDING
+        },
+        documents: []
+      };
+
+      await this.usersCollection.doc(user.uid).set(landlord);
+      await user.sendEmailVerification();
+      await this.auditService.logAction('LANDLORD_REGISTRATION', user.uid, { email, businessName });
+
+      this.cache.set(`user_${user.uid}`, landlord);
+
+      return { success: true, data: landlord };
+    } catch (error) {
+      return this.handleAuthError(error, AuthErrorCode.REGISTRATION_FAILED);
+    }
+  }
+
+  async handleEmailVerification(userId: string): Promise<APIResponse<void>> {
+    try {
+      const userDoc = await this.usersCollection.doc(userId).get();
+      const userData = userDoc.data() as BaseUser;
+      
+      const newRole = userData.role === UserRole.TENANT_UNVERIFIED
+        ? UserRole.TENANT
+        : userData.role === UserRole.LANDLORD_UNVERIFIED
+          ? UserRole.LANDLORD_UNVERIFIED // Landlords still need KYC
+          : userData.role;
+
+      await this.usersCollection.doc(userId).update({
+        emailVerified: true,
+        role: newRole,
+        updatedAt: new Date()
+      });
+      
+      await this.sessionService.revokeAllSessions(userId);
+      await this.auditService.logAction('EMAIL_VERIFIED', userId, { newRole });
+
+      this.cache.del(`user_${userId}`);
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: { 
+          code: AuthErrorCode.AUTHENTICATION_FAILED, 
+          message: 'Email verification failed',
+          details: error instanceof Error ? error.message : undefined
+        }
+      };
+    }
+  }
+
+  async handleGDPRDeletion(userId: string): Promise<APIResponse<void>> {
+    try {
+      const batch = firestore.batch();
+      
+      // Delete user document
+      batch.delete(this.usersCollection.doc(userId));
+      
+      // Delete all sessions
+      const sessions = await firestore.collection('sessions')
+        .where('userId', '==', userId)
+        .get();
+      sessions.forEach(doc => batch.delete(doc.ref));
+      
+      // Delete audit logs (or mark as anonymized)
+      const auditLogs = await firestore.collection('audit_logs')
+        .where('userId', '==', userId)
+        .get();
+      auditLogs.forEach(doc => {
+        batch.update(doc.ref, {
+          userId: 'ANONYMIZED',
+          metadata: { note: 'Data removed per user request' }
+        });
+      });
+
+      await batch.commit();
+      
+      // Delete from Storage
+      const bucket = storage.bucket();
+      await bucket.deleteFiles({
+        prefix: `users/${userId}/`
+      });
+      
+      // Delete from Auth
+      await auth.deleteUser(userId);
+      
+      await this.auditService.logAction('GDPR_DELETION', userId, { deletionTimestamp: new Date() });
+
+      this.cache.del(`user_${userId}`);
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: { 
+          code: 'GDPR_DELETION_FAILED', 
+          message: 'Failed to delete user data',
+          details: error instanceof Error ? error.message : undefined
+        }
+      };
+    }
+  }
+
+  private handleAuthError(error: any, code: AuthErrorCode): APIResponse<never> {
+    return {
+      success: false,
+      error: {
+        code,
+        message: error instanceof Error ? error.message : 'Authentication error'
+      }
+    };
+  }
+}
+
+// ===== firestore.rules =====
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function hasRole(role) {
+      return request.auth.token.role == role;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || hasRole('admin'));
+      allow update: if isAuthenticated() && (isOwner(userId) || hasRole('admin'));
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow delete: if hasRole('admin');
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid;
+        
+      allow update: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid;
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if hasRole('admin');
+      allow write: if hasRole('admin');
+    }
+  }
+}
+
+// ===== functions/src/index.ts =====
+import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
+import { UserRole, VerificationStatus } from './types';
+import * as rateLimit from 'express-rate-limit';
+
+admin.initializeApp();
+
+// Rate limiting middleware
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: 'Too many login attempts, please try again later',
+  keyGenerator: (req) => req.ip, // IP-based limiting
+  skipSuccessfulRequests: true,
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many requests',
+      code: AuthErrorCode.RATE_LIMIT_EXCEEDED
+    });
+  }
+});
+
+// Role change handler
+export const onUserUpdate = functions.firestore
+  .document('users/{userId}')
+  .onUpdate(async (change, context) => {
+    const previous = change.before.data();
+    const current = change.after.data();
+
+    if (previous.role !== current.role || previous.emailVerified !== current.emailVerified) {
+      await admin.auth().setCustomUserClaims(context.params.userId, {
+        role: current.role,
+        email_verified: current.emailVerified
+      });
+
+      // Revoke all sessions on role change
+      const sessions = await admin.firestore()
+        .collection('sessions')
+        .where('userId', '==', context.params.userId)
+        .where('isValid', '==', true)
+        .get();
+
+      const batch = admin.firestore().batch();
+      sessions.docs.forEach(doc => {
+        batch.update(doc.ref, { 
+          isValid: false,
+          _ttl: admin.firestore.Timestamp.fromDate(new Date())
+        });
+      });
+      await batch.commit();
+    }
+  });
+
+// KYC expiration checker
+export const checkKYCExpiration = functions.pubsub
+  .schedule('every 24 hours')
+  .onRun(async (context) => {
+    const expiredKYC = await admin.firestore()
+      .collection('users')
+      .where('role', '==', UserRole.LANDLORD_VERIFIED)
+      .where('profile.kycExpirationDate', '<=', new Date())
+      .get();
+
+    const batch = admin.firestore().batch();
+    for (const doc of expiredKYC.docs) {
+      batch.update(doc.ref, {
+        role: UserRole.LANDLORD_UNVERIFIED,
+        'profile.verificationStatus': VerificationStatus.PENDING
+      });
+
+      // Update custom claims
+      await admin.auth().setCustomUserClaims(doc.id, {
+        role: UserRole.LANDLORD_UNVERIFIED,
+        email_verified: true
+      });
+
+      // Log the automatic role change
+      await admin.firestore().collection('audit_logs').add({
+        timestamp: new Date(),
+        userId: doc.id,
+        action: 'KYC_EXPIRED_ROLE_CHANGE',
+        metadata: {
+          previousRole: UserRole.LANDLORD_VERIFIED,
+          newRole: UserRole.LANDLORD_UNVERIFIED
+        },
+        _archiveDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000) // 6 months
+      });
+    }
+
+    await batch.commit();
+  });
+
+// Archive old audit logs
+export const archiveAuditLogs = functions.pubsub
+  .schedule('every 24 hours')
+  .onRun(async (context) => {
+    const oldLogs = await admin.firestore()
+      .collection('audit_logs')
+      .where('_archiveDate', '<=', new Date())
+      .get();
+
+    // Export to Cloud Storage
+    const bucket = admin.storage().bucket();
+    const archiveDate = new Date().toISOString().split('T')[0];
+    
+    if (oldLogs.size > 0) {
+      const logsData = oldLogs.docs.map(doc => doc.data());
+      const file = bucket.file(`audit_archives/${archiveDate}.json`);
+      await file.save(JSON.stringify(logsData), {
+        contentType: 'application/json',
+        metadata: {
+          count: oldLogs.size.toString(),
+          archiveDate
+        }
+      });
+
+      // Delete archived logs
+      const batch = admin.firestore().batch();
+      oldLogs.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+    }
+  });
+
+// Rate-limited login function
+export const login = functions.https.onRequest(async (req, res) => {
+  limiter(req, res, async () => {
+    try {
+      // Validate request
+      if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+      }
+
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Missing credentials' });
+      }
+
+      // Authenticate user
+      const user = await admin.auth().getUserByEmail(email);
+      const isPasswordValid = await admin.auth()
+        .verifyPassword(user.uid, password);
+
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      // Check verification status
+      const userDoc = await admin.firestore().doc(`users/${user.uid}`).get();
+      const userData = userDoc.data() as BaseUser;
+
+      if (userData.role === UserRole.TENANT_UNVERIFIED && !user.emailVerified) {
+        return res.status(403).json({ 
+          error: 'Email verification required',
+          code: AuthErrorCode.KYC_REQUIRED
+        });
+      }
+
+      // Create session
+      const sessionService = new SessionService();
+      const deviceInfo = {
+        ip: req.ip,
+        userAgent: req.get('User-Agent') || 'unknown'
+      };
+
+      const session = await sessionService.createSession(
+        user.uid,
+        userData.role,
+        deviceInfo
+      );
+
+      if (!session.success) {
+        return res.status(500).json(session.error);
+      }
+
+      // Return session ID
+      res.status(200).json({
+        sessionId: session.data!.sessionId,
+        expiresAt: session.data!.expiresAt
+      });
+
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({
+        error: 'Authentication failed',
+        code: AuthErrorCode.AUTHENTICATION_FAILED,
+        details: error instanceof Error ? error.message : undefined
+      });
+    }
+  });
+});
+
+// ===== client/authClient.ts =====
+import { auth } from './firebase-config';
+import { SessionService } from './sessionService';
+import { APIResponse, UserSession, AuthErrorCode } from './types';
+
+export class AuthClient {
+  private sessionService = new SessionService();
+
+  async login(email: string, password: string): Promise<APIResponse<UserSession>> {
+    try {
+      const userCred = await auth.signInWithEmailAndPassword(email, password);
+      const idTokenResult = await userCred.user!.getIdTokenResult();
+      
+      const session = await this.sessionService.createSession(
+        userCred.user!.uid,
+        idTokenResult.claims.role,
+        {
+          userAgent: navigator.userAgent,
+          ip: await this.getClientIP()
+        }
+      );
+
+      if (session.success) {
+        localStorage.setItem('sessionId', session.data!.sessionId);
+      }
+
+      return session;
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: AuthErrorCode.AUTHENTICATION_FAILED,
+          message: error instanceof Error ? error.message : 'Login failed'
+        }
+      };
+    }
+  }
+
+  async logout(): Promise<APIResponse<void>> {
+    try {
+      const sessionId = localStorage.getItem('sessionId');
+      if (sessionId) {
+        const user = auth.currentUser;
+        if (user) {
+          await this.sessionService.revokeAllSessions(user.uid);
+        }
+        localStorage.removeItem('sessionId');
+      }
+      await auth.signOut();
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: AuthErrorCode.AUTHENTICATION_FAILED,
+          message: error instanceof Error ? error.message : 'Logout failed'
+        }
+      };
+    }
+  }
+
+  async validateSession(): Promise<APIResponse<UserSession | null>> {
+    const sessionId = localStorage.getItem('sessionId');
+    if (!sessionId) {
+      return { success: true, data: null };
+    }
+    
+    return await this.sessionService.validateSession(sessionId);
+  }
+
+  private async getClientIP(): Promise<string> {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      return 'unknown';
+    }
+  }
+}
+
+// End of the refactored codebase
