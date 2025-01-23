@@ -1,4 +1,3 @@
-// authUtils.ts
 import { User, getAuth } from "firebase/auth";
 
 export type UserClaims = {

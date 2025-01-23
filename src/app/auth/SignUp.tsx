@@ -3,7 +3,7 @@ import { User, KeyRound, Mail } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Quote } from "lucide-react";
 import { signInWithGoogle, signUp } from "../../lib/firebase/auth";
-import { SignUpInput, SignUpRole } from "../../lib/types/types";
+import { SignUpInput, SignUpRole } from "../../lib/types/auth";
 import { toast } from "../../hooks/useToast";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -200,7 +200,7 @@ const SignUp = () => {
                   to="/login"
                   className="ml-1.5 text-gray-900 underline hover:text-gray-800"
                 >
-                  Sign In
+                  Login
                 </Link>
               </div>
 

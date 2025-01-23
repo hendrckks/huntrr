@@ -34,7 +34,7 @@ const RoleSelectionDialog = () => {
             className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-b from-[#637257] to-[#4b5942] hover:from-[#4b5942] hover:to-[#3c4735] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#637257]"
           >
             <User className="h-5 w-5" />
-            Register as Tenant
+            Sign Up as Tenant
           </button>
 
           <button
@@ -42,7 +42,7 @@ const RoleSelectionDialog = () => {
             className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-b from-[#637257] to-[#4b5942] hover:from-[#4b5942] hover:to-[#3c4735] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#637257]"
           >
             <Home className="h-5 w-5" />
-            Register as Landlord
+            Sign Up as Landlord
           </button>
 
           <div className="relative">

@@ -88,7 +88,7 @@ const SignIn = () => {
           <div className="w-full max-w-md p-4 lg:p-6">
             <div className="mb-6 text-center">
               <h2 className="text-xl font-medium text-textBlack">
-                Sign in to your account
+                Login to your account
               </h2>
             </div>
 
@@ -139,13 +139,13 @@ const SignIn = () => {
                 className="w-full rounded-md bg-gradient-to-b from-[#637257] to-[#4b5942] px-4 py-2 text-sm font-medium text-white hover:from-[#4b5942] hover:to-[#3c4735] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Sign In
+                Login
               </button>
 
               <div className="text-center text-sm">
                 <span className="text-gray-500">Don't have an account?</span>
                 <Link
-                  to="/signup"
+                  to="/role-dialog"
                   className="ml-1.5 text-gray-900 underline hover:text-gray-800"
                 >
                   Sign Up

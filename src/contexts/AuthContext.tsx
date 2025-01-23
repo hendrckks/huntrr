@@ -4,7 +4,7 @@ import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase/clientApp";
 import { checkSession } from "../lib/firebase/auth";
-import type { UserRole } from "../lib/types/types";
+import type { UserRole } from "../lib/types/auth";
 
 interface User extends FirebaseUser {
   createdAt?: string;
@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             if (mounted) {
               const userWithMetadata: User = {
                 ...firebaseUser,
-                role: userRole,
+                role: userRole || userData?.role,
                 createdAt: userData?.createdAt?.toDate().toISOString(),
               };
               setUser(userWithMetadata);

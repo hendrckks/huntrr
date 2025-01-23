@@ -40,7 +40,7 @@ import {
   resetPasswordSchema,
   passwordChangeSchema,
   UserRole,
-} from "../types/types";
+} from "../types/auth";
 import { auth, db } from "./clientApp";
 
 // Configuration

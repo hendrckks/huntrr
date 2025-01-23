@@ -1,4 +1,3 @@
-// router.tsx
 import { createBrowserRouter } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import MainLayout from "../app/MainLayout";
@@ -11,6 +10,10 @@ import TenantDashboard from "../components/dashboards/TenantDashboard";
 import LandloardDashboard from "../components/dashboards/LandloardDashboard";
 import ProtectedRoute from "./ProtectedRoute";
 import Unauthorized from "../components/Unauthorized";
+import EditAccount from "../app/pages/EditAccount";
+import AdminAuthPage from "../components/admin/Auth";
+import AdminDashboard from "../components/dashboards/AdminDashboard";
+import { Navigate } from "react-router-dom";
 
 export const router = createBrowserRouter([
   {
@@ -27,15 +30,27 @@ export const router = createBrowserRouter([
       },
       {
         path: "/role-dialog",
+        element: <RoleSelectionDialog />,
+      },
+      {
+        path: "/edit-account",
+        element: <EditAccount />,
+      },
+      {
+        path: "/admin",
+        element: <AdminAuthPage />,
+      },
+      {
+        path: "/admin-dashboard",
         element: (
-            <RoleSelectionDialog />
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
         ),
       },
       {
         path: "/unauthorized",
-        element: (
-            <Unauthorized />
-        ),
+        element: <Unauthorized />,
       },
       {
         path: "/login",
@@ -56,7 +71,9 @@ export const router = createBrowserRouter([
       {
         path: "/dashboard",
         element: (
-          <ProtectedRoute allowedRoles={["landlord_verified", "landlord_unverified"]}>
+          <ProtectedRoute
+            allowedRoles={["landlord_verified", "landlord_unverified"]}
+          >
             <LandloardDashboard />
           </ProtectedRoute>
         ),
@@ -76,6 +93,10 @@ export const router = createBrowserRouter([
             <ResetPassword />
           </ProtectedRoute>
         ),
+      },
+      {
+        path: "*",
+        element: <Navigate to="/" replace />,
       },
     ],
   },

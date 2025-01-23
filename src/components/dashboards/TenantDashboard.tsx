@@ -1,5 +1,7 @@
+import { Link } from "react-router-dom";
+
 const TenantDashboard = () => {
-  return <div className="p-10 text-2xl font-semibold">PROFILE</div>;
+  return <Link to="/edit-account" className="p-10 text-xl font-semibold"><div className="p-4 border rounded-md w-fit">Edit Account</div></Link>;
 };
 
 export default TenantDashboard;
