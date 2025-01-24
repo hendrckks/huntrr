@@ -37,6 +37,7 @@ const EditAccount: React.FC = () => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        console.log(user)
         setFormData((prevState) => ({
           ...prevState,
           displayName: currentUser.displayName || "",

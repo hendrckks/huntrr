@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { KeyRound, Mail, Loader2 } from "lucide-react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Quote } from "lucide-react";
 import { login, signInWithGoogle } from "../../lib/firebase/auth";
 import { useAuth } from "../../contexts/AuthContext";
@@ -13,7 +13,7 @@ const SignIn = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const location = useLocation();
   const [_message, setMessage] = useState<string | null>(null);
   const { setUser } = useAuth();
@@ -36,8 +36,8 @@ const SignIn = () => {
 
     try {
       await login({ email, password }, setUser);
-      const from = (location.state as any)?.from?.pathname || "/";
-      navigate(from, { replace: true });
+      // const from = (location.state as any)?.from?.pathname || "/profile";
+      // navigate(from, { replace: true });
       toast({
         title: "",
         variant: "success",
@@ -71,8 +71,8 @@ const SignIn = () => {
         new Promise((resolve) => setTimeout(resolve, 500)),
       ]);
 
-      const from = (location.state as any)?.from?.pathname || "/";
-      navigate(from, { replace: true });
+      // const from = (location.state as any)?.from?.pathname || "/profile";
+      // navigate(from, { replace: true });
     } catch (error: any) {
       setError(error.message);
     } finally {
