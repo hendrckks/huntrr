@@ -10,17 +10,18 @@ const LazyHome = lazy(() => import("../app/pages/Home"));
 const LazySignUp = lazy(() => import("../app/auth/SignUp"));
 const LazySignIn = lazy(() => import("../app/auth/SignIn"));
 const LazyResetPassword = lazy(() => import("../app/auth/ResetPasword"));
-const LazyRoleSelectionDialog = lazy(() =>
-  import("../components/RoleSelectioDialog")
+const LazyRoleSelectionDialog = lazy(
+  () => import("../components/RoleSelectioDialog")
 );
-const LazyTenantDashboard = lazy(() =>
-  import("../components/dashboards/TenantDashboard")
+const LazyTenantDashboard = lazy(
+  () => import("../components/dashboards/TenantDashboard")
 );
-const LazyLandlordDashboard = lazy(() =>
-  import("../components/dashboards/LandloardDashboard")
+
+const LazyLandlordDashboard = lazy(
+  () => import("../components/dashboards/LandloardDashboard")
 );
-const LazyAdminDashboard = lazy(() =>
-  import("../components/dashboards/AdminDashboard")
+const LazyAdminDashboard = lazy(
+  () => import("../components/dashboards/AdminDashboard")
 );
 const LazyUnauthorized = lazy(() => import("../components/Unauthorized"));
 const LazyEditAccount = lazy(() => import("../app/pages/EditAccount"));
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
+
       {
         path: "/edit-account",
         element: (
