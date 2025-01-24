@@ -43,6 +43,7 @@ async function createFirstAdminUser() {
       role: "admin",
       displayName: adminDisplayName,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastLoggedIn: admin.firestore.FieldValue.serverTimestamp(), // Add this line
     });
 
     console.log(`First admin user created successfully: ${adminEmail}`);

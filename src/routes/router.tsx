@@ -12,8 +12,12 @@ import ProtectedRoute from "./ProtectedRoute";
 import Unauthorized from "../components/Unauthorized";
 import EditAccount from "../app/pages/EditAccount";
 import AdminAuthPage from "../components/admin/Auth";
-import AdminDashboard from "../components/dashboards/AdminDashboard";
+import { lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
+
+const LazyAdminDashboard = lazy(
+  () => import("../components/dashboards/AdminDashboard")
+);
 
 export const router = createBrowserRouter([
   {
@@ -43,8 +47,10 @@ export const router = createBrowserRouter([
       {
         path: "/admin-dashboard",
         element: (
-          <ProtectedRoute>
-            <AdminDashboard />
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <Suspense fallback={<div>Loading...</div>}>
+              <LazyAdminDashboard />
+            </Suspense>
           </ProtectedRoute>
         ),
       },

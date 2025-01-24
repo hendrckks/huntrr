@@ -63,7 +63,7 @@ interface LoginAttempts {
 }
 
 // Auth State Manager
-class AuthStateManager {
+export class AuthStateManager {
   private static instance: AuthStateManager;
   private loginAttempts: LoginAttempts = {};
   private sessionTimeout: NodeJS.Timeout | null = null;
@@ -125,7 +125,6 @@ class AuthStateManager {
   }
 
   async startSessionTimeout() {
-    // Remove 'user: User' parameter
     this.clearSessionTimeout();
     await setPersistence(auth, browserSessionPersistence);
     const expirationTime = Date.now() + CONFIG.SESSION_DURATION;

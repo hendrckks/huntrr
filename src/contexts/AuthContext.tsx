@@ -1,20 +1,26 @@
-import type React from "react";
-import { createContext, useState, useEffect, useContext } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase/clientApp";
 import { checkSession } from "../lib/firebase/auth";
-import type { UserRole } from "../lib/types/auth";
+
+type UserRole =
+  | "user"
+  | "admin"
+  | "landlord_unverified"
+  | "landlord_verified"
+  | undefined;
 
 interface User extends FirebaseUser {
   createdAt?: string;
-  role?: string;
+  role?: UserRole;
+  lastLoggedIn?: Date;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  setUser: (user: User | null) => void;
   isRefreshing: boolean;
   refreshToken: () => Promise<void>;
   isAuthenticated: () => boolean;
@@ -69,18 +75,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (firebaseUser) {
           const isSessionValid = await checkSession();
           if (isSessionValid) {
+            // Get the token result first
+            const idTokenResult = await firebaseUser.getIdTokenResult(true);
             const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
             const userData = userDoc.data();
-
-            const idTokenResult = await firebaseUser.getIdTokenResult();
-            const userRole = idTokenResult.claims.role as UserRole | undefined;
 
             if (mounted) {
               const userWithMetadata: User = {
                 ...firebaseUser,
-                role: userRole || userData?.role,
+                // Explicitly set role from token claims
+                role: idTokenResult.claims.role as UserRole,
                 createdAt: userData?.createdAt?.toDate().toISOString(),
+                lastLoggedIn: userData?.lastLoggedIn?.toDate(),
               };
+              console.log(
+                "Setting user with role from claims:",
+                userWithMetadata.role
+              );
               setUser(userWithMetadata);
               localStorage.setItem("user", JSON.stringify(userWithMetadata));
             }
@@ -116,20 +127,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        setUser,
-        isRefreshing,
-        refreshToken,
-        isAuthenticated: () => !!user && !loading && !isRefreshing,
-        isAuthReady: () => !loading && !isRefreshing,
-        isInitialized,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const isAuthenticated = () => {
+    console.log("Checking authentication - user:", user?.role);
+    return !!user && !loading && !isRefreshing;
+  };
+
+  const isAuthReady = () => !loading && !isRefreshing;
+
+  const value: AuthContextType = {
+    user,
+    loading,
+    setUser,
+    isRefreshing,
+    refreshToken,
+    isAuthenticated,
+    isAuthReady,
+    isInitialized,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export default AuthProvider;
