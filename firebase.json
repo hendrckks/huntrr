@@ -35,6 +35,17 @@
         ]
       }
     ]
+  },
+  "emulators": {
+    "firestore": {
+      "port": 9090
+    },
+    "functions": {
+      "port": 5001
+    },
+    "hosting": {
+      "port": 5000
+    }
   }
 }
 

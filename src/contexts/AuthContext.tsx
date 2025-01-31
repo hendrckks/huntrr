@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { auth } from "../lib/firebase/clientApp";
-import { checkSession } from "../lib/firebase/auth";
+import { checkSession, getAuthStateManager } from "../lib/firebase/auth";
+// import { useLocation } from "react-router-dom";
 
 type UserRole =
   | "user"
@@ -16,26 +17,21 @@ interface User extends FirebaseUser {
   lastLoggedIn?: Date;
 }
 
-interface AuthContextType {
+interface AuthState {
   user: User | null;
-  loading: boolean;
-  setUser: (user: User | null) => void;
-  isAuthenticated: () => boolean;
-  isAuthReady: () => boolean;
+  isLoading: boolean;
   isInitialized: boolean;
+  error: Error | null;
+}
+
+interface AuthContextType extends AuthState {
+  setUser: (user: User | null) => void;
+  isAuthenticated: boolean;
+  hasRequiredRole: (requiredRoles?: UserRole[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === null) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
-
-// Debounce utility
 function debounce(func: Function, wait: number) {
   let timeout: NodeJS.Timeout;
   return (...args: any[]) => {
@@ -47,62 +43,114 @@ function debounce(func: Function, wait: number) {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    isLoading: true,
+    isInitialized: false,
+    error: null,
+  });
+  // const location = useLocation();
 
   const debouncedCheckSession = debounce(async () => {
-    const isSessionValid = await checkSession();
-    if (!isSessionValid) {
-      setUser(null);
-      localStorage.removeItem("user");
+    try {
+      const isSessionValid = await checkSession();
+      if (!isSessionValid) {
+        setAuthState((prev) => ({
+          ...prev,
+          user: null,
+          error: new Error("Session expired"),
+        }));
+        localStorage.removeItem("user");
+      }
+    } catch (error) {
+      setAuthState((prev) => ({
+        ...prev,
+        error: error as Error,
+      }));
     }
   }, 300);
 
   useEffect(() => {
+    // Initialize auth state from localStorage if available
     const cachedUser = localStorage.getItem("user");
     if (cachedUser) {
-      setUser(JSON.parse(cachedUser));
-      setLoading(false);
+      setAuthState((prev) => ({
+        ...prev,
+        user: JSON.parse(cachedUser),
+        isLoading: false,
+      }));
     }
 
+    // Set up auth state listener
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        await debouncedCheckSession();
-        const idTokenResult = await firebaseUser.getIdTokenResult(true);
-        const role = idTokenResult.claims.role as UserRole;
+      try {
+        if (firebaseUser) {
+          await debouncedCheckSession();
+          const idTokenResult = await firebaseUser.getIdTokenResult(true);
+          const role = idTokenResult.claims.role as UserRole;
 
-        const userData: User = { ...firebaseUser, role };
-        setUser(userData);
-        localStorage.setItem("user", JSON.stringify(userData));
-      } else {
-        setUser(null);
-        localStorage.removeItem("user");
+          const userData: User = { ...firebaseUser, role };
+          setAuthState({
+            user: userData,
+            isLoading: false,
+            isInitialized: true,
+            error: null,
+          });
+          localStorage.setItem("user", JSON.stringify(userData));
+        } else {
+          setAuthState({
+            user: null,
+            isLoading: false,
+            isInitialized: true,
+            error: null,
+          });
+          localStorage.removeItem("user");
+        }
+      } catch (error) {
+        setAuthState({
+          user: null,
+          isLoading: false,
+          isInitialized: true,
+          error: error as Error,
+        });
       }
-      setLoading(false);
-      setIsInitialized(true);
     });
 
-    return () => unsubscribe();
+    // Set up session timeout checker
+    const sessionInterval = setInterval(debouncedCheckSession, 60000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(sessionInterval);
+      getAuthStateManager().cleanup();
+    };
   }, []);
 
-  const isAuthenticated = () => !!user && !loading;
-  const isAuthReady = () => !loading;
+  const hasRequiredRole = (requiredRoles?: UserRole[]): boolean => {
+    if (!requiredRoles || requiredRoles.length === 0) return true;
+    return (
+      !!authState.user?.role && requiredRoles.includes(authState.user.role)
+    );
+  };
+
+  const contextValue: AuthContextType = {
+    ...authState,
+    setUser: (user: User | null) => setAuthState((prev) => ({ ...prev, user })),
+    isAuthenticated: !!authState.user && !authState.isLoading,
+    hasRequiredRole,
+  };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        setUser,
-        isAuthenticated,
-        isAuthReady,
-        isInitialized,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };
 
 export default AuthProvider;

@@ -1,144 +1,148 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
-// import { AnimatePresence } from "framer-motion";
 import ProtectedRoute from "./ProtectedRoute";
 import SkeletonLoader from "../components/SkeletonLoader";
+import { UserRole } from "../lib/types/auth";
+import { AuthProvider } from "../contexts/AuthContext";
 
 // Lazy load components
-const LazyMainLayout = lazy(() => import("../app/MainLayout"));
-const LazyHome = lazy(() => import("../app/pages/Home"));
-const LazySignUp = lazy(() => import("../app/auth/SignUp"));
-const LazySignIn = lazy(() => import("../app/auth/SignIn"));
-const LazyResetPassword = lazy(() => import("../app/auth/ResetPasword"));
-const LazyRoleSelectionDialog = lazy(
-  () => import("../components/RoleSelectioDialog")
-);
-const LazyTenantDashboard = lazy(
-  () => import("../components/dashboards/TenantDashboard")
-);
+const Components = {
+  MainLayout: lazy(() => import("../app/MainLayout")),
+  Home: lazy(() => import("../app/pages/Home")),
+  CreateListing: lazy(() => import("../app/pages/CreateListing")),
+  SignUp: lazy(() => import("../app/auth/SignUp")),
+  SignIn: lazy(() => import("../app/auth/SignIn")),
+  ResetPassword: lazy(() => import("../app/auth/ResetPasword")),
+  RoleSelectionDialog: lazy(() => import("../components/RoleSelectioDialog")),
+  TenantDashboard: lazy(
+    () => import("../components/dashboards/TenantDashboard")
+  ),
+  LandlordDashboard: lazy(
+    () => import("../components/dashboards/LandloardDashboard")
+  ),
+  AdminDashboard: lazy(() => import("../components/dashboards/AdminDashboard")),
+  Unauthorized: lazy(() => import("../components/Unauthorized")),
+  EditAccount: lazy(() => import("../app/pages/EditAccount")),
+  AdminAuthPage: lazy(() => import("../components/admin/Auth")),
+};
 
-const LazyLandlordDashboard = lazy(
-  () => import("../components/dashboards/LandloardDashboard")
+const createProtectedRoute = (
+  element: JSX.Element,
+  options?: {
+    requireAuth?: boolean;
+    requireUnauth?: boolean;
+    allowedRoles?: UserRole[];
+  }
+) => (
+  <ProtectedRoute {...options}>
+    <Suspense fallback={<SkeletonLoader />}>{element}</Suspense>
+  </ProtectedRoute>
 );
-const LazyAdminDashboard = lazy(
-  () => import("../components/dashboards/AdminDashboard")
-);
-const LazyUnauthorized = lazy(() => import("../components/Unauthorized"));
-const LazyEditAccount = lazy(() => import("../app/pages/EditAccount"));
-const LazyAdminAuthPage = lazy(() => import("../components/admin/Auth"));
 
 export const router = createBrowserRouter([
   {
     path: "/",
     element: (
-      <Suspense fallback={<SkeletonLoader />}>
-        <LazyMainLayout />
-      </Suspense>
+      <AuthProvider>
+        <div className={`antialiased min-h-screen bg-background font-athauss`}>
+          <Suspense fallback={<SkeletonLoader />}>
+            <Components.MainLayout />
+          </Suspense>
+        </div>
+      </AuthProvider>
     ),
     children: [
       {
         index: true,
         element: (
           <Suspense fallback={<SkeletonLoader />}>
-            <LazyHome />
+            <Components.Home />
           </Suspense>
         ),
       },
+      // Public routes
       {
-        path: "/role-dialog",
+        path: "role-dialog",
+        element: createProtectedRoute(<Components.RoleSelectionDialog />, {
+          requireAuth: false,
+          requireUnauth: true,
+        }),
+      },
+      {
+        path: "login",
+        element: createProtectedRoute(<Components.SignIn />, {
+          requireAuth: false,
+          requireUnauth: true,
+        }),
+      },
+      {
+        path: "signup",
+        element: createProtectedRoute(<Components.SignUp />, {
+          requireAuth: false,
+          requireUnauth: true,
+        }),
+      },
+      {
+        path: "reset-password",
+        element: createProtectedRoute(<Components.ResetPassword />, {
+          requireAuth: false,
+          requireUnauth: true,
+        }),
+      },
+      {
+        path: "unauthorized",
         element: (
           <Suspense fallback={<SkeletonLoader />}>
-            <LazyRoleSelectionDialog />
+            <Components.Unauthorized />
           </Suspense>
         ),
       },
 
+      // Protected routes for all authenticated users
       {
-        path: "/edit-account",
-        element: (
-          <Suspense fallback={<SkeletonLoader />}>
-            <LazyEditAccount />
-          </Suspense>
-        ),
+        path: "edit-account",
+        element: createProtectedRoute(<Components.EditAccount />, {
+          requireAuth: true,
+        }),
       },
       {
-        path: "/admin",
-        element: (
-          <Suspense fallback={<SkeletonLoader />}>
-            <LazyAdminAuthPage />
-          </Suspense>
-        ),
+        path: "add-listing",
+        element: createProtectedRoute(<Components.CreateListing />, {
+          requireAuth: true,
+          allowedRoles: ["landlord_unverified"],
+        }),
+      },
+
+      // Role-specific routes
+      {
+        path: "profile",
+        element: createProtectedRoute(<Components.TenantDashboard />, {
+          requireAuth: true,
+          allowedRoles: ["user"],
+        }),
       },
       {
-        path: "/admin-dashboard",
-        element: (
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <Suspense fallback={<SkeletonLoader />}>
-              <LazyAdminDashboard />
-            </Suspense>
-          </ProtectedRoute>
-        ),
+        path: "dashboard",
+        element: createProtectedRoute(<Components.LandlordDashboard />, {
+          requireAuth: true,
+          allowedRoles: ["landlord_verified", "landlord_unverified"],
+        }),
       },
       {
-        path: "/unauthorized",
-        element: (
-          <Suspense fallback={<SkeletonLoader />}>
-            <LazyUnauthorized />
-          </Suspense>
-        ),
+        path: "admin",
+        element: createProtectedRoute(<Components.AdminAuthPage />, {
+          requireAuth: false,
+        }),
       },
       {
-        path: "/login",
-        element: (
-          <ProtectedRoute requireAuth={false} requireUnauth={true}>
-            <Suspense fallback={<SkeletonLoader />}>
-              <LazySignIn />
-            </Suspense>
-          </ProtectedRoute>
-        ),
+        path: "admin-dashboard",
+        element: createProtectedRoute(<Components.AdminDashboard />, {
+          requireAuth: true,
+          allowedRoles: ["admin"],
+        }),
       },
-      {
-        path: "/profile",
-        element: (
-          <ProtectedRoute allowedRoles={["user"]}>
-            <Suspense fallback={<SkeletonLoader />}>
-              <LazyTenantDashboard />
-            </Suspense>
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "/dashboard",
-        element: (
-          <ProtectedRoute
-            allowedRoles={["landlord_verified", "landlord_unverified"]}
-          >
-            <Suspense fallback={<SkeletonLoader />}>
-              <LazyLandlordDashboard />
-            </Suspense>
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "/signup",
-        element: (
-          <ProtectedRoute requireAuth={false} requireUnauth={true}>
-            <Suspense fallback={<SkeletonLoader />}>
-              <LazySignUp />
-            </Suspense>
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "/reset-password",
-        element: (
-          <ProtectedRoute requireAuth={false} requireUnauth={true}>
-            <Suspense fallback={<SkeletonLoader />}>
-              <LazyResetPassword />
-            </Suspense>
-          </ProtectedRoute>
-        ),
-      },
+
+      // Fallback route
       {
         path: "*",
         element: <Navigate to="/" replace />,

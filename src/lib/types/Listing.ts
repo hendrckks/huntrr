@@ -1,14 +1,17 @@
 import { z } from "zod";
+import type { Timestamp } from "firebase/firestore";
 
-// Enums
+// Base Enums
 export const PropertyType = z.enum(["apartment", "house", "studio", "villa"]);
 export type PropertyType = z.infer<typeof PropertyType>;
 
 export const ListingStatus = z.enum([
   "draft",
-  "awaiting_verification",
+  "pending_review",
   "published",
   "archived",
+  "recalled",
+  "denied",
 ]);
 export type ListingStatus = z.infer<typeof ListingStatus>;
 
@@ -47,248 +50,196 @@ export const CarrierCoverage = z.enum([
 ]);
 export type CarrierCoverage = z.infer<typeof CarrierCoverage>;
 
-// Enhanced text normalization function
-const normalizeText = (text: string): string => {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s]/g, "") // Remove special characters
-    .replace(/\s+/g, " "); // Normalize spaces
-};
+// Flag schemas
+export const FlagReason = z.enum([
+  "scam",
+  "inappropriate",
+  "misleading",
+  "wrong_information",
+  "other",
+]);
+export type FlagReason = z.infer<typeof FlagReason>;
 
-// Enhanced search keyword generation
-export const generateSearchKeywords = (listing: Partial<Listing>): string[] => {
-  const keywords = new Set<string>();
+export const flagSchema = z.object({
+  id: z.string().optional(),
+  userId: z.string(),
+  reason: FlagReason,
+  description: z.string().min(1).max(500),
+  createdAt: z.date(),
+  resolved: z.boolean().default(false),
+  resolvedBy: z.string().optional(),
+  resolvedAt: z.date().optional(),
+});
+export type Flag = z.infer<typeof flagSchema>;
 
-  // Helper function to add normalized terms
-  const addTerms = (text: string | undefined) => {
-    if (!text) return;
-    const normalized = normalizeText(text);
+// Photo schema
+export const photoSchema = z.object({
+  id: z.string(),
+  url: z.string().url(),
+  caption: z.string().optional(),
+  isPrimary: z.boolean(),
+});
+export type Photo = z.infer<typeof photoSchema>;
 
-    // Add full term
-    keywords.add(normalized);
+// Location schema
+export const locationSchema = z.object({
+  address: z.string().min(1, "Address is required"),
+  area: z.string().min(1, "Area is required"),
+  neighborhood: z.string().min(1, "Neighborhood is required"),
+  city: z.string().min(1, "City is required"),
+});
+export type Location = z.infer<typeof locationSchema>;
 
-    // Add individual words
-    const words = normalized.split(" ");
-    words.forEach((word) => {
-      if (word.length >= 2) {
-        keywords.add(word);
-      }
-    });
+// Utilities schema
+export const utilitiesSchema = z.object({
+  carrierCoverage: CarrierCoverage,
+  waterAvailability: WaterAvailability,
+  includedUtilities: z.array(z.string().trim().min(1)),
+});
+export type Utilities = z.infer<typeof utilitiesSchema>;
 
-    // Add consecutive word pairs
-    for (let i = 0; i < words.length - 1; i++) {
-      keywords.add(`${words[i]} ${words[i + 1]}`);
-    }
+// Security schema
+export const securitySchema = z.object({
+  hasGuard: z.boolean(),
+  hasCCTV: z.boolean(),
+  hasSecureParking: z.boolean(),
+  additionalSecurity: z.array(z.string()).optional(),
+});
+export type Security = z.infer<typeof securitySchema>;
 
-    // Add consecutive word triplets
-    for (let i = 0; i < words.length - 2; i++) {
-      keywords.add(`${words[i]} ${words[i + 1]} ${words[i + 2]}`);
-    }
-
-    // Add partial matches (substrings of 2 or more characters)
-    words.forEach((word) => {
-      for (let i = 0; i < word.length - 1; i++) {
-        for (let j = i + 2; j <= word.length; j++) {
-          keywords.add(word.slice(i, j));
-        }
-      }
-    });
-  };
-
-  // Process various listing fields
-  if (listing.title) addTerms(listing.title);
-  if (listing.description) addTerms(listing.description);
-  if (listing.location?.address) addTerms(listing.location.address);
-  if (listing.location?.area) addTerms(listing.location.area);
-  if (listing.location?.neighborhood) addTerms(listing.location.neighborhood);
-  if (listing.location?.city) addTerms(listing.location.city);
-
-  // Add property type
-  if (listing.type) keywords.add(listing.type.toLowerCase());
-
-  // Add bedroom-specific keywords
-  if (listing.bedrooms !== undefined) {
-    keywords.add(`${listing.bedrooms}br`);
-    keywords.add(`${listing.bedrooms}bed`);
-    keywords.add(`${listing.bedrooms}bedroom`);
-    keywords.add(`${listing.bedrooms} br`);
-    keywords.add(`${listing.bedrooms} bed`);
-    keywords.add(`${listing.bedrooms} bedroom`);
-  }
-
-  // Add price ranges
-  if (listing.price) {
-    const priceRanges = [
-      `under${Math.ceil(listing.price / 1000)}k`,
-      `${Math.floor(listing.price / 1000)}kto${Math.ceil(
-        listing.price / 1000
-      )}k`,
-      `price${Math.floor(listing.price / 1000)}k`,
-      `${Math.floor(listing.price / 1000)}k`,
-    ];
-    priceRanges.forEach((range) => keywords.add(range));
-  }
-
-  // Add condition keywords
-  if (listing.condition) {
-    keywords.add(listing.condition.toLowerCase());
-    keywords.add(listing.condition.replace(/_/g, " ").toLowerCase());
-  }
-
-  // Add amenity-based keywords
-  if (listing.utilities?.includedUtilities) {
-    listing.utilities.includedUtilities.forEach((utility) => {
-      keywords.add(normalizeText(utility));
-    });
-  }
-
-  return Array.from(keywords);
-};
+// Terms schema
+export const termsSchema = z.object({
+  depositAmount: z.number().nonnegative(),
+  leaseLength: z.number().positive(),
+  petsAllowed: z.boolean(),
+  smokingAllowed: z.boolean(),
+  utilityResponsibilities: z.array(z.string()),
+  additionalRules: z.array(z.string()).optional(),
+});
+export type Terms = z.infer<typeof termsSchema>;
 
 // Main listing schema
 export const listingSchema = z.object({
-  // Basic Information
-  id: z.string().uuid(),
-  productId: z.string().min(1, "Product ID is required"),
-  title: z.string().min(1, "Title is required").max(100),
+  id: z.string(),
+  imageUrls: z.array(z.string()).optional(),
+  photos: z.array(photoSchema).optional(),
+  title: z.string().min(5).max(100),
   type: PropertyType,
-  price: z.number().positive("Price must be positive"),
-  searchKeywords: z.array(z.string()).optional(),
-
-  // Property Details
+  price: z.number().positive(),
   bedrooms: z.number().int().min(0),
   bathrooms: z.number().positive(),
-  description: z.string().min(10, "Description must be at least 10 characters"),
+  description: z.string().min(20),
   condition: PropertyCondition,
+  squareFootage: z.number().positive(),
 
-  // Location & Accessibility
-  location: z.object({
-    address: z.string(),
-    area: z.string(),
-    neighborhood: z.string(),
-    city: z.string(),
-  }),
-
-  // Amenities & Features
-  utilities: z.object({
-    carrierCoverage: CarrierCoverage,
-    waterAvailability: WaterAvailability,
-    includedUtilities: z.array(z.string()),
-  }),
-
-  // Security & Environment
-  security: z.object({
-    hasGuard: z.boolean(),
-    hasCCTV: z.boolean(),
-    hasSecureParking: z.boolean(),
-    additionalSecurity: z.array(z.string()).optional(),
-  }),
+  location: locationSchema,
+  utilities: utilitiesSchema,
+  security: securitySchema,
   noiseLevel: NoiseLevel,
+  terms: termsSchema,
 
-  // Transportation
-  publicTransport: z.object({
-    busStopDistance: z.number().optional(),
-    trainStationDistance: z.number().optional(),
-    nearbyRoutes: z.array(z.string()).optional(),
-  }),
-
-  // Media
-  photos: z
-    .array(
-      z.object({
-        id: z.string(),
-        url: z.string().url(),
-        caption: z.string().optional(),
-        isPrimary: z.boolean(),
-      })
-    )
-    .min(1, "At least one photo is required")
-    .max(8, "Maximum 8 photos allowed"),
-
-  // Owner/Landlord Information
-  landlord: z.object({
-    uid: z.string(),
-    firstName: z.string(),
-    contactNumber: z
-      .string()
-      .regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
+  landlordId: z.string(),
+  landlordName: z.string(),
+  landlordContact: z.object({
+    phone: z.string(),
     email: z.string().email().optional(),
-    showEmail: z.boolean().default(false),
-  }),
-
-  // Terms & Conditions
-  terms: z.object({
-    depositAmount: z.number().nonnegative(),
-    leaseLength: z.number().positive(),
-    petsAllowed: z.boolean(),
-    smokingAllowed: z.boolean(),
-    utilityResponsibilities: z.array(z.string()),
-    additionalRules: z.array(z.string()).optional(),
+    showEmail: z.boolean(),
   }),
 
   // Metadata
-  metadata: z
-    .object({
-      views: z.number().int().default(0),
-      favoriteCount: z.number().int().default(0),
-      lastViewedAt: z.string().datetime().optional(),
-      createdAt: z.string().datetime(),
-      updatedAt: z.string().datetime(),
-      status: z
-        .enum(["draft", "published", "under_review", "archived"])
-        .default("draft"),
-    })
-    .optional(),
+  status: ListingStatus,
+  flags: z.array(flagSchema),
+  flagCount: z.number().min(0),
+  bookmarkCount: z.number().min(0),
+  viewCount: z.number().min(0),
 
-  //Listing status
-  status: ListingStatus.default("draft"),
-  verificationDate: z.date().optional(),
+  // Timestamps
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  verifiedAt: z.date().nullable(),
+  verifiedBy: z.string().nullable(),
+
+  // Configuration
+  FLAG_THRESHOLD: z.number().int().min(1).default(5),
 });
 
 export type Listing = z.infer<typeof listingSchema>;
 
-export interface ListingNotification {
-  id: string;
-  listingId: string;
-  landlordId: string;
-  message: string;
-  type: "verification" | "publication" | "draft" | "deletion";
-  createdAt: Date;
-  read: boolean;
+// schema for the form data
+export const listingFormSchema = z.object({
+  title: z.string().min(5).max(100),
+  type: PropertyType,
+  price: z.number().positive(),
+  bedrooms: z.number().int().min(0),
+  bathrooms: z.number().positive(),
+  description: z.string().min(20),
+  condition: PropertyCondition,
+  squareFootage: z.number().positive(),
+
+  location: locationSchema,
+  utilities: utilitiesSchema,
+  security: securitySchema,
+  noiseLevel: NoiseLevel,
+  terms: termsSchema,
+
+  landlordName: z.string(),
+  landlordContact: z.object({
+    phone: z.string(),
+    email: z.string().email().optional(),
+    showEmail: z.boolean(),
+  }),
+});
+
+// Bookmark schema
+export const bookmarkSchema = z.object({
+  id: z.string().optional(),
+  userId: z.string(),
+  listingId: z.string(),
+  createdAt: z.date(),
+});
+export type Bookmark = z.infer<typeof bookmarkSchema>;
+
+// Admin notification schema
+export const notificationSchema = z.object({
+  id: z.string().optional(),
+  type: z.enum([
+    "new_listing",
+    "flag_threshold_reached",
+    "listing_updated",
+    "listing_deleted",
+    "other",
+  ]),
+  title: z.string(),
+  message: z.string(),
+  relatedListingId: z.string().optional(),
+  createdAt: z.date(),
+  read: z.boolean().default(false),
+  readAt: z.date().optional(),
+});
+export type AdminNotification = z.infer<typeof notificationSchema>;
+
+// Firestore document types
+export interface ListingDocument
+  extends Omit<
+    Listing,
+    "createdAt" | "updatedAt" | "publishedAt" | "archivedAt" | "verifiedAt"
+  > {
+  photos?: Photo[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  publishedAt: Timestamp | null;
+  archivedAt: Timestamp | null;
+  verifiedAt: Timestamp | null;
+  verifiedBy: string | null;
 }
 
-// Query interface for filtering listings
-export interface ListingQuery {
-  minPrice?: number;
-  maxPrice?: number;
-  bedrooms?: number;
-  propertyType?: PropertyType;
-  area?: string;
-  condition?: PropertyCondition;
-  sortBy?: "price" | "createdAt" | "bedrooms";
-  sortOrder?: "asc" | "desc";
-  limit?: number;
-  offset?: number;
-  lastVisible?: any;
-  filters?: {
-    type?: PropertyType;
-    minPrice?: number;
-    maxPrice?: number;
-    bedrooms?: number;
-    status?: string;
-  };
-  sort?: {
-    field: string;
-    direction: "asc" | "desc";
-  };
+export type ListingFormData = Omit<Listing, "id">;
+export interface BookmarkDocument extends Omit<Bookmark, "createdAt"> {
+  createdAt: Timestamp;
 }
 
-// Helper function to format listing title
-export const formatListingTitle = (
-  bedrooms: number,
-  area: string,
-  ownerFirstName: string
-): string => {
-  return `${bedrooms}BR in ${area}, ${ownerFirstName}`;
-};
+export interface AdminNotificationDocument
+  extends Omit<AdminNotification, "createdAt" | "readAt"> {
+  createdAt: Timestamp;
+  readAt?: Timestamp;
+}

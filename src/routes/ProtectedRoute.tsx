@@ -1,4 +1,3 @@
-import type React from "react";
 import { useMemo } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -9,6 +8,8 @@ interface ProtectedRouteProps {
   requireAuth?: boolean;
   requireUnauth?: boolean;
   allowedRoles?: UserRole[];
+  redirectPath?: string;
+  loadingComponent?: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
@@ -16,61 +17,108 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireAuth = true,
   requireUnauth = false,
   allowedRoles = [],
+  redirectPath,
+  loadingComponent = (
+    <div className="flex items-center justify-center h-screen">
+      <div className="space-y-4">
+        <div className="w-32 h-2 bg-gray-200 rounded-full animate-pulse" />
+        <div className="w-24 h-2 bg-gray-200 rounded-full animate-pulse" />
+      </div>
+    </div>
+  ),
 }) => {
-  const { user, loading, isAuthenticated, isInitialized } = useAuth();
+  const { user, isLoading, isInitialized, isAuthenticated, hasRequiredRole } =
+    useAuth();
   const location = useLocation();
 
   const authState = useMemo(() => {
-    const isAuth = isAuthenticated();
-    const userRole = user?.role;
-    const hasAllowedRole =
-      allowedRoles.length === 0 ||
-      (userRole && allowedRoles.includes(userRole as UserRole));
-
-    let redirectPath = "/";
-    if (isAuth && user) {
-      switch (user.role) {
-        case "admin":
-          redirectPath = "/admin-dashboard";
-          break;
-        case "user":
-          redirectPath = "/profile";
-          break;
-        case "landlord_verified":
-        case "landlord_unverified":
-          redirectPath = "/dashboard";
-          break;
-      }
+    // Don't make any decisions until auth is initialized
+    if (!isInitialized) {
+      return { shouldRender: false, redirect: null };
     }
 
-    return { isAuth, userRole, hasAllowedRole, redirectPath };
-  }, [isAuthenticated, user, allowedRoles]);
+    // Handle loading state
+    if (isLoading) {
+      return { shouldRender: false, redirect: null };
+    }
 
-  if (loading || !isInitialized) {
-    return (
-      <div
-        role="status"
-        aria-live="polite"
-        className="flex items-center justify-center h-screen"
-      >
-        Loading...
-      </div>
-    );
-  }
+    // Handle authentication requirements
+    if (requireAuth && !isAuthenticated) {
+      const loginPath = location.pathname.startsWith("/admin-dashboard")
+        ? "/admin"
+        : "/login";
+      return {
+        shouldRender: false,
+        redirect: {
+          to: loginPath,
+          state: { from: location, intended: true },
+        },
+      };
+    }
 
-  if (requireAuth && !authState.isAuth) {
-    const redirectPath = location.pathname.startsWith("/admin-dashboard")
-      ? "/admin"
-      : "/role-dialog";
-    return <Navigate to={redirectPath} state={{ from: location }} replace />;
-  }
+    // Handle unauthenticated route requirements
+    if (requireUnauth && isAuthenticated) {
+      const defaultRedirectPath = user?.role
+        ? (() => {
+            switch (user.role) {
+              case "admin":
+                return "/admin-dashboard";
+              case "landlord_verified":
+              case "landlord_unverified":
+                return "/dashboard";
+              case "user":
+                return "/profile";
+              default:
+                return "/";
+            }
+          })()
+        : "/";
 
-  if (requireUnauth && authState.isAuth) {
-    return <Navigate to={authState.redirectPath} replace />;
-  }
+      return {
+        shouldRender: false,
+        redirect: {
+          to: redirectPath || defaultRedirectPath,
+          state: { from: location },
+        },
+      };
+    }
 
-  if (authState.isAuth && !authState.hasAllowedRole) {
-    return <Navigate to="/unauthorized" replace />;
+    // Handle role-based access
+    if (isAuthenticated && !hasRequiredRole(allowedRoles)) {
+      return {
+        shouldRender: false,
+        redirect: {
+          to: "/unauthorized",
+          state: { from: location, role: user?.role },
+        },
+      };
+    }
+
+    return { shouldRender: true, redirect: null };
+  }, [
+    isInitialized,
+    isLoading,
+    isAuthenticated,
+    requireAuth,
+    requireUnauth,
+    user,
+    redirectPath,
+    location,
+    hasRequiredRole,
+    allowedRoles,
+  ]);
+
+  if (!authState.shouldRender) {
+    if (authState.redirect) {
+      return (
+        <Navigate
+          to={authState.redirect.to}
+          state={authState.redirect.state}
+          replace
+        />
+      );
+    }
+    return <>{loadingComponent}</>;
   }
 
   return <>{children}</>;

@@ -334,7 +334,7 @@ export const signUp = async (userData: SignUpInput) => {
 
 export const signInWithGoogle = async (
   setUser: (user: User | null) => void,
-  role?: UserRole // Add this parameter
+  role?: UserRole // Optional role parameter only used during signup
 ) => {
   const authManager = AuthStateManager.getInstance();
 
@@ -345,13 +345,35 @@ export const signInWithGoogle = async (
 
     const user = result.user;
     const userRef = doc(db, "users", user.uid);
-
     const userDoc = await getDoc(userRef);
     const userData = userDoc.data();
 
-    // Use the provided role or default to 'user'
-    const defaultRole: UserRole = role || "user";
+    // If user already exists, preserve their existing role and data
+    if (userDoc.exists()) {
+      const idTokenResult = await user.getIdTokenResult(true);
+      const existingRole = idTokenResult.claims.role as UserRole;
 
+      const userWithMetadata: User = {
+        ...user,
+        role: existingRole,
+        createdAt:
+          userData?.createdAt instanceof Timestamp
+            ? userData.createdAt.toDate().toISOString()
+            : undefined,
+      };
+
+      // Just update lastLogin
+      await updateUserData(userRef, {
+        lastLogin: serverTimestamp(),
+      });
+
+      await authManager.startSessionTimeout();
+      setUser(userWithMetadata);
+      return userWithMetadata;
+    }
+
+    // For new users during signup, set the provided role or default to 'user'
+    const defaultRole: UserRole = role || "user";
     const functions = getFunctions();
     const setCustomClaims = httpsCallable(functions, "setCustomClaims");
     await setCustomClaims({ uid: user.uid, role: defaultRole });
@@ -361,13 +383,10 @@ export const signInWithGoogle = async (
       email: user.email,
       provider: "google",
       role: defaultRole,
+      createdAt: serverTimestamp(),
     };
 
-    if (!userData?.createdAt) {
-      userUpdateData.createdAt = serverTimestamp();
-    }
-
-    await updateUserData(userRef, userUpdateData);
+    await updateUserData(userRef, userUpdateData, false);
 
     const updatedUserDoc = await getDoc(userRef);
     const updatedUserData = updatedUserDoc.data();
@@ -380,7 +399,6 @@ export const signInWithGoogle = async (
 
     await authManager.startSessionTimeout();
     setUser(userWithMetadata);
-
     return userWithMetadata;
   } catch (error) {
     return handleAuthError(error);

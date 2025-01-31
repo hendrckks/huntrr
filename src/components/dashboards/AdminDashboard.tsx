@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { signOut } from "../../lib/firebase/auth";
 import { toast } from "../../hooks/useToast";
 
@@ -30,6 +30,12 @@ const AdminDashboard = () => {
         >
           Sign Out
         </button>
+        <Link
+          to="/add-listing"
+          className="bg-gradient-to-b text-sm from-[#637257] to-[#4b5942] text-textWhite py-2 px-4 rounded"
+        >
+          Add Listing
+        </Link>
       </div>
     </div>
   );

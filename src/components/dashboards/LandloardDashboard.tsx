@@ -33,6 +33,9 @@ const LandlordDashboard = () => {
         >
           Sign out
         </button>
+        <Link to="/add-listing" className="mt-4 text-xl">
+          <div className="p-4 mt-4 border rounded-md w-fit">add listing</div>
+        </Link>
       </div>
     </div>
   );

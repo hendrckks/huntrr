@@ -82,7 +82,7 @@ const SignUp = () => {
     setError(null);
     try {
       await signInWithGoogle(setUser, userRole);
-      navigate("/");
+      // navigate("/");
       toast({
         title: "Success",
         description: "Sign In successful",
