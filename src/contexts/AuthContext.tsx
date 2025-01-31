@@ -86,8 +86,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         if (firebaseUser) {
           await debouncedCheckSession();
-          const idTokenResult = await firebaseUser.getIdTokenResult(true);
-          const role = idTokenResult.claims.role as UserRole;
+          let role: UserRole | undefined;
+
+          // Wait until role is assigned properly
+          for (let i = 0; i < 10; i++) {
+            const idTokenResult = await firebaseUser.getIdTokenResult(true);
+            role = idTokenResult.claims.role as UserRole;
+
+            if (role && role !== "user") break; // Exit loop if correct role is assigned
+            await new Promise((res) => setTimeout(res, 1000)); // Wait 1s before checking again
+          }
 
           const userData: User = { ...firebaseUser, role };
           setAuthState({

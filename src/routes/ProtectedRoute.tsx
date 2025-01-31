@@ -27,8 +27,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     </div>
   ),
 }) => {
-  const { user, isLoading, isInitialized, isAuthenticated, hasRequiredRole } =
-    useAuth();
+  const { user, isLoading, isInitialized, isAuthenticated, hasRequiredRole } = useAuth();
   const location = useLocation();
 
   const authState = useMemo(() => {
@@ -51,35 +50,29 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         shouldRender: false,
         redirect: {
           to: loginPath,
-          state: { from: location, intended: true },
-        },
+          state: { from: location, intended: true }
+        }
       };
     }
 
     // Handle unauthenticated route requirements
     if (requireUnauth && isAuthenticated) {
-      const defaultRedirectPath = user?.role
-        ? (() => {
-            switch (user.role) {
-              case "admin":
-                return "/admin-dashboard";
-              case "landlord_verified":
-              case "landlord_unverified":
-                return "/dashboard";
-              case "user":
-                return "/profile";
-              default:
-                return "/";
-            }
-          })()
-        : "/";
+      const defaultRedirectPath = user?.role ? (() => {
+        switch (user.role) {
+          case "admin": return "/admin-dashboard";
+          case "landlord_verified":
+          case "landlord_unverified": return "/dashboard";
+          case "user": return "/profile";
+          default: return "/";
+        }
+      })() : "/";
 
       return {
         shouldRender: false,
         redirect: {
           to: redirectPath || defaultRedirectPath,
-          state: { from: location },
-        },
+          state: { from: location }
+        }
       };
     }
 
@@ -89,8 +82,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         shouldRender: false,
         redirect: {
           to: "/unauthorized",
-          state: { from: location, role: user?.role },
-        },
+          state: { from: location, role: user?.role }
+        }
       };
     }
 
@@ -105,18 +98,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     redirectPath,
     location,
     hasRequiredRole,
-    allowedRoles,
+    allowedRoles
   ]);
 
   if (!authState.shouldRender) {
     if (authState.redirect) {
-      return (
-        <Navigate
-          to={authState.redirect.to}
-          state={authState.redirect.state}
-          replace
-        />
-      );
+      return <Navigate to={authState.redirect.to} state={authState.redirect.state} replace />;
     }
     return <>{loadingComponent}</>;
   }
