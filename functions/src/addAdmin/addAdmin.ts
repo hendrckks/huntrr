@@ -73,3 +73,41 @@ export const createAdminUser = onCall<{
     }
   }
 );
+
+// async function addAdminUser(
+//   email: string,
+//   displayName: string,
+//   password: string
+// ) {
+//   try {
+//     // Create user in Firebase Authentication
+//     const userRecord = await admin.auth().createUser({
+//       email,
+//       password,
+//       displayName,
+//     });
+
+//     // Set admin custom claim
+//     await admin.auth().setCustomUserClaims(userRecord.uid, { role: "admin" });
+
+//     // Create user document in Firestore
+//     await admin.firestore().collection("users").doc(userRecord.uid).set({
+//       email,
+//       role: "admin",
+//       displayName,
+//       createdAt: admin.firestore.FieldValue.serverTimestamp(),
+//       lastLoggedIn: admin.firestore.FieldValue.serverTimestamp(),
+//     });
+
+//     console.log(`Admin user added successfully: ${email}`);
+//     return userRecord.uid;
+//   } catch (error) {
+//     console.error("Error adding admin user:", error);
+//     throw error;
+//   }
+// }
+
+// // Example usage: Replace with actual values
+// addAdminUser("samueltetenga@gmail.com", "sam tetenga", "Master321!")
+//   .then(() => process.exit(0))
+//   .catch(() => process.exit(1));

@@ -3,14 +3,22 @@ import { cert } from "firebase-admin/app";
 import * as dotenv from "dotenv";
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: "../.env" });
+
+// Debugging: Print values
+console.log("FB_PROJECT_ID:", process.env.FB_PROJECT_ID);
+console.log("FB_CLIENT_EMAIL:", process.env.FB_CLIENT_EMAIL);
+console.log(
+  "FB_PRIVATE_KEY:",
+  process.env.FB_PRIVATE_KEY ? "Loaded" : "Not Loaded"
+);
 
 // Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: cert({
     projectId: process.env.FB_PROJECT_ID,
     clientEmail: process.env.FB_CLIENT_EMAIL,
-    privateKey: process.env.FB_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    privateKey: process.env.FB_PRIVATE_KEY?.replace(/\\n/g, "\n"), 
   }),
 });
 
