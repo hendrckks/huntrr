@@ -13,7 +13,7 @@ const TenantDashboard = () => {
       toast({
         title: "",
         variant: "success",
-        description: "Admin Sign Out successful",
+        description: "Sign Out successful",
         duration: 5000,
       });
     } catch (error) {
