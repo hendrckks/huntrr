@@ -62,14 +62,17 @@ interface LoginAttempts {
   };
 }
 
-// Auth State Manager
+type LoginAttempt = LoginAttempts[string];
 export class AuthStateManager {
   private static instance: AuthStateManager;
-  private loginAttempts: LoginAttempts = {};
-  private sessionTimeout: NodeJS.Timeout | null = null;
-  private sessionCheckInterval: NodeJS.Timeout | null = null;
+  private loginAttempts: Map<string, LoginAttempt>;
+  private sessionTimeout: NodeJS.Timeout | null;
+  private sessionCheckInterval: NodeJS.Timeout | null;
 
   private constructor() {
+    this.loginAttempts = new Map();
+    this.sessionTimeout = null;
+    this.sessionCheckInterval = null;
     this.initializeSessionCheck();
   }
 
@@ -81,6 +84,11 @@ export class AuthStateManager {
   }
 
   private initializeSessionCheck() {
+    // Clean up any existing interval
+    if (this.sessionCheckInterval) {
+      clearInterval(this.sessionCheckInterval);
+    }
+
     this.sessionCheckInterval = setInterval(() => {
       this.cleanupExpiredLockouts();
     }, CONFIG.SESSION_CHECK_INTERVAL);
@@ -88,76 +96,102 @@ export class AuthStateManager {
 
   private cleanupExpiredLockouts() {
     const now = Date.now();
-    Object.keys(this.loginAttempts).forEach((email) => {
-      const attempt = this.loginAttempts[email];
+    for (const [email, attempt] of this.loginAttempts.entries()) {
       if (attempt.lockoutUntil && now > attempt.lockoutUntil) {
-        delete this.loginAttempts[email];
+        this.loginAttempts.delete(email);
       }
-    });
+    }
   }
 
   isUserLockedOut(email: string): boolean {
-    const attempt = this.loginAttempts[email];
+    const attempt = this.loginAttempts.get(email);
     if (!attempt?.lockoutUntil) return false;
     return Date.now() <= attempt.lockoutUntil;
   }
 
   recordLoginAttempt(email: string, success: boolean) {
     if (success) {
-      delete this.loginAttempts[email];
+      this.loginAttempts.delete(email);
       return;
     }
 
-    if (!this.loginAttempts[email]) {
-      this.loginAttempts[email] = {
-        count: 1,
-        lastAttempt: Date.now(),
-      };
-    } else {
-      this.loginAttempts[email].count++;
-      this.loginAttempts[email].lastAttempt = Date.now();
+    const attempt = this.loginAttempts.get(email) || {
+      count: 0,
+      lastAttempt: Date.now(),
+    };
 
-      if (this.loginAttempts[email].count >= CONFIG.MAX_LOGIN_ATTEMPTS) {
-        this.loginAttempts[email].lockoutUntil =
-          Date.now() + CONFIG.LOCKOUT_DURATION;
-      }
+    attempt.count++;
+    attempt.lastAttempt = Date.now();
+
+    if (attempt.count >= CONFIG.MAX_LOGIN_ATTEMPTS) {
+      attempt.lockoutUntil = Date.now() + CONFIG.LOCKOUT_DURATION;
     }
+
+    this.loginAttempts.set(email, attempt);
   }
 
   async startSessionTimeout() {
     this.clearSessionTimeout();
+
+    // Set Firebase persistence
     await setPersistence(auth, browserSessionPersistence);
-    const expirationTime = Date.now() + CONFIG.SESSION_DURATION;
-    localStorage.setItem("sessionExpiration", expirationTime.toString());
+
+    // Store only the session expiration time and minimal session info
+    const sessionData = {
+      expiresAt: Date.now() + CONFIG.SESSION_DURATION,
+      // Only store non-sensitive data if absolutely necessary
+      uid: auth.currentUser?.uid, // only if needed
+    };
+
+    // Use sessionStorage for session management
+    sessionStorage.setItem(
+      "sessionExpiration",
+      sessionData.expiresAt.toString()
+    );
+
+    // If you absolutely need the UID, store it separately
+    if (sessionData.uid) {
+      sessionStorage.setItem("sessionUID", sessionData.uid);
+    }
+
+    // Set timeout for session expiration
     this.sessionTimeout = setTimeout(
       () => this.signOut(),
       CONFIG.SESSION_DURATION
     );
   }
+
   clearSessionTimeout() {
     if (this.sessionTimeout) {
       clearTimeout(this.sessionTimeout);
       this.sessionTimeout = null;
     }
-    localStorage.removeItem("sessionExpiration");
+    // Clear all session-related items individually
+    sessionStorage.removeItem("sessionExpiration");
+    sessionStorage.removeItem("sessionUID");
   }
-
   async checkSession(): Promise<boolean> {
-    const expirationTime = localStorage.getItem("sessionExpiration");
-    if (expirationTime) {
-      if (Date.now() > parseInt(expirationTime)) {
-        await this.signOut();
-        return false;
-      }
-      return true;
+    const expirationTime = sessionStorage.getItem("sessionExpiration");
+
+    if (!expirationTime) {
+      return false;
     }
-    return false;
+
+    const hasExpired = Date.now() > parseInt(expirationTime);
+
+    if (hasExpired) {
+      await this.signOut();
+      return false;
+    }
+
+    return true;
   }
 
   async signOut() {
     try {
       await auth.signOut();
       this.clearSessionTimeout();
+      sessionStorage.clear(); // Clear all session data
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -169,6 +203,7 @@ export class AuthStateManager {
       clearInterval(this.sessionCheckInterval);
       this.sessionCheckInterval = null;
     }
+    this.loginAttempts.clear();
   }
 }
 

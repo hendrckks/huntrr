@@ -178,7 +178,7 @@ const EditAccount: React.FC = () => {
               <img
                 src={user?.photoURL || "/api/placeholder/48/48"}
                 alt="Profile"
-                className="w-16 h-16 rounded-full object-cover"
+                className="w-16 h-16 rounded-full object-cover border border-gray-300"
               />
               <input
                 type="file"
