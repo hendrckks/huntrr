@@ -369,7 +369,7 @@ export const signUp = async (userData: SignUpInput) => {
 
 export const signInWithGoogle = async (
   setUser: (user: User | null) => void,
-  role?: UserRole // Optional role parameter only used during signup
+  role?: UserRole
 ) => {
   const authManager = AuthStateManager.getInstance();
 
@@ -382,6 +382,18 @@ export const signInWithGoogle = async (
     const userRef = doc(db, "users", user.uid);
     const userDoc = await getDoc(userRef);
     const userData = userDoc.data();
+
+    // Get ID token result to check custom claims
+    const idTokenResult = await user.getIdTokenResult(true);
+    const existingRole = idTokenResult.claims.role as UserRole;
+
+    // Block admin login at authentication level for Google Sign-In
+    if (existingRole === "admin") {
+      await auth.signOut(); // Immediately sign out
+      throw new Error(
+        "Access denied. Admin login requires a specialized authentication method."
+      );
+    }
 
     // If user already exists, preserve their existing role and data
     if (userDoc.exists()) {
@@ -453,19 +465,6 @@ export const login = async (
       throw new Error("Account is temporarily locked. Please try again later.");
     }
 
-    const usersRef = collection(db, "users");
-    const emailQuery = query(
-      usersRef,
-      where("email", "==", validatedData.email.toLowerCase())
-    );
-    const querySnapshot = await getDocs(emailQuery);
-
-    if (querySnapshot.empty) {
-      throw new Error(
-        "This email is not registered. Please sign up to use it."
-      );
-    }
-
     const userCredential: UserCredential = await withRetry(() =>
       signInWithEmailAndPassword(
         auth,
@@ -481,13 +480,22 @@ export const login = async (
       throw new Error("Please verify your email before logging in.");
     }
 
+    // Get ID token result to check custom claims
+    const idTokenResult = await user.getIdTokenResult();
+    const role = idTokenResult.claims.role as UserRole;
+
+    // Block admin login at authentication level
+    if (role === "admin") {
+      await auth.signOut(); // Immediately sign out
+      throw new Error(
+        "Access denied. Admin login requires a specialized authentication method."
+      );
+    }
+
     authManager.recordLoginAttempt(validatedData.email, true);
 
     const userDoc = await getDoc(doc(db, "users", user.uid));
     const userData = userDoc.data();
-
-    const idTokenResult = await user.getIdTokenResult();
-    const role = idTokenResult.claims.role as UserRole;
 
     const userWithMetadata: User = {
       ...user,

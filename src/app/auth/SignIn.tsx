@@ -13,7 +13,7 @@ const SignIn = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const location = useLocation();
-  const [_message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const { setUser } = useAuth();
 
   useEffect(() => {
@@ -23,9 +23,10 @@ const SignIn = () => {
     }
     if (state?.message) {
       setMessage(state.message);
+      console.log(message)
     }
     window.history.replaceState({}, document.title);
-  }, [location]);
+  }, [location, message]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +42,14 @@ const SignIn = () => {
         duration: 5000,
       });
     } catch (error: any) {
-      setError(error.message);
+      // Specifically handle admin login attempt
+      if (error.message.includes("Access denied")) {
+        setError(
+          "This account requires a specialized login method. Please contact support."
+        );
+      } else {
+        setError(error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -75,9 +83,7 @@ const SignIn = () => {
     <div className="h-screen flex items-center justify-center overflow-hidden bg-textBlack">
       <div className="w-full max-w-md p-6 bg-background rounded-2xl">
         <div className="mb-6 text-center">
-          <h2 className="text-2xl font-medium text-textBlack">
-          Welcome back!
-          </h2>
+          <h2 className="text-2xl font-medium text-textBlack">Welcome back!</h2>
         </div>
 
         {error && (
@@ -88,7 +94,9 @@ const SignIn = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Email Address</label>
+            <label className="text-sm font-medium text-gray-700">
+              Email Address
+            </label>
             <div className="relative">
               <input
                 type="email"
