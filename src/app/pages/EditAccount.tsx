@@ -13,6 +13,9 @@ import { doc, updateDoc } from "firebase/firestore";
 import { uploadImage } from "../../lib/actions/uploadImage";
 import { toast } from "../../hooks/useToast";
 
+// Default placeholder image path
+const DEFAULT_PROFILE_IMAGE = "/default image.webp";
+
 interface FormData {
   displayName: string;
   email: string;
@@ -25,6 +28,9 @@ const EditAccount: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
+  const [profileImage, setProfileImage] = useState<string>(
+    DEFAULT_PROFILE_IMAGE
+  );
   const [formData, setFormData] = useState<FormData>({
     displayName: "",
     email: "",
@@ -37,7 +43,18 @@ const EditAccount: React.FC = () => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        console.log(user)
+
+        // Determine profile image priority
+        const googleProfilePicture = currentUser.photoURL;
+        const storedCustomProfilePicture = currentUser.photoURL;
+
+        // Set profile image with fallback
+        setProfileImage(
+          googleProfilePicture ||
+            storedCustomProfilePicture ||
+            DEFAULT_PROFILE_IMAGE
+        );
+
         setFormData((prevState) => ({
           ...prevState,
           displayName: currentUser.displayName || "",
@@ -70,6 +87,7 @@ const EditAccount: React.FC = () => {
         await updateProfile(user, { photoURL: imageUrl });
         await updateDoc(doc(db, "users", user.uid), { photoURL: imageUrl });
         setUser({ ...user, photoURL: imageUrl });
+        setProfileImage(imageUrl);
         toast({
           title: "",
           variant: "success",
@@ -176,9 +194,10 @@ const EditAccount: React.FC = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-6">
             <div className="relative">
               <img
-                src={user?.photoURL || "/api/placeholder/48/48"}
+                src={profileImage}
                 alt="Profile"
                 className="w-16 h-16 rounded-full object-cover border border-gray-300"
+                onError={() => setProfileImage(DEFAULT_PROFILE_IMAGE)}
               />
               <input
                 type="file"
@@ -187,6 +206,10 @@ const EditAccount: React.FC = () => {
                 disabled={isLoading}
                 className="hidden"
                 id="profile-upload"
+              />
+              <label
+                htmlFor="profile-upload"
+                className="absolute inset-0 cursor-pointer"
               />
             </div>
             <label
