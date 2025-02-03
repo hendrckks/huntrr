@@ -3,7 +3,7 @@ import { cert } from "firebase-admin/app";
 import * as dotenv from "dotenv";
 
 // Load environment variables
-dotenv.config({ path: "../.env" });
+dotenv.config();
 
 // Debugging: Print values
 console.log("FB_PROJECT_ID:", process.env.FB_PROJECT_ID);
