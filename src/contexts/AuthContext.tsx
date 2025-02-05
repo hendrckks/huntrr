@@ -83,18 +83,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Set up auth state listener
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      // If a signup is in progress, ignore this auth change.
+      if (sessionStorage.getItem("suppressAuth") === "true") {
+        return;
+      }
+
       try {
         if (firebaseUser) {
           await debouncedCheckSession();
           let role: UserRole | undefined;
 
-          // Wait until role is assigned properly
+          // Optionally wait for proper role assignment
           for (let i = 0; i < 10; i++) {
             const idTokenResult = await firebaseUser.getIdTokenResult(true);
             role = idTokenResult.claims.role as UserRole;
-
-            if (role && role !== "user") break; // Exit loop if correct role is assigned
-            await new Promise((res) => setTimeout(res, 1000)); // Wait 1s before checking again
+            if (role && role !== "user") break;
+            await new Promise((res) => setTimeout(res, 1000));
           }
 
           const userData: User = { ...firebaseUser, role };

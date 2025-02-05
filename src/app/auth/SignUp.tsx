@@ -46,6 +46,10 @@ const SignUp = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Set a flag to suppress auth state updates during the signup process.
+    sessionStorage.setItem("suppressAuth", "true");
+
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -61,8 +65,17 @@ const SignUp = () => {
       const result = await signUp(signUpData);
 
       if (result?.success) {
+        toast({
+          title: "Verification Email Sent",
+          variant: "info",
+          description:
+            "A verification email has been sent to your email address. Please check your inbox and verify your account.",
+          duration: 5000,
+        });
         setSuccess(result.message);
         setTimeout(() => {
+          // Remove the flag before navigating to the login page.
+          sessionStorage.removeItem("suppressAuth");
           navigate("/login", {
             state: {
               email: formData.email,

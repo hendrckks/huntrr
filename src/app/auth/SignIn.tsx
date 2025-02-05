@@ -36,17 +36,23 @@ const SignIn = () => {
     try {
       await login({ email, password }, setUser);
       toast({
-        title: "",
+        title: "Success",
         variant: "success",
         description: "Sign In successful",
         duration: 5000,
       });
     } catch (error: any) {
-      // Specifically handle admin login attempt
-      if (error.message.includes("Access denied")) {
-        setError(
-          "This account requires a specialized login method. Please contact support."
-        );
+      if (error.message.includes("verify")) {
+        toast({
+          title: "Email Not Verified",
+          variant: "error",
+          description:
+            "Please verify your email before logging in. Check your inbox for the verification email.",
+          duration: 5000,
+        });
+        setError("Please verify your email before logging in.");
+      } else if (error.message.includes("Access denied")) {
+        setError("This account requires a specialized login method. Please contact support.");
       } else {
         setError(error.message);
       }
