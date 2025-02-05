@@ -381,21 +381,23 @@ export const signInWithGoogle = async (
     const user = result.user;
     const userRef = doc(db, "users", user.uid);
     const userDoc = await getDoc(userRef);
-    const userData = userDoc.data();
 
-    // Get ID token result to check custom claims
-    const idTokenResult = await user.getIdTokenResult(true);
-    const existingRole = idTokenResult.claims.role as UserRole;
+    // Check for admin role immediately, before any state updates
+    if (userDoc.exists()) {
+      const idTokenResult = await user.getIdTokenResult(true);
+      const existingRole = idTokenResult.claims.role as UserRole;
 
-    // Block admin login at authentication level for Google Sign-In
-    if (existingRole === "admin") {
-      await auth.signOut(); // Immediately sign out
-      throw new Error(
-        "Access denied. Admin login requires a specialized authentication method."
-      );
+      if (existingRole === "admin") {
+        await auth.signOut();
+        setUser(null); // Clear user state immediately
+        window.location.replace("/admin"); // Use replace to prevent back navigation
+        return null;
+      }
     }
 
-    // If user already exists, preserve their existing role and data
+    const userData = userDoc.data();
+
+    // Rest of the sign in logic for non-admin users
     if (userDoc.exists()) {
       const idTokenResult = await user.getIdTokenResult(true);
       const existingRole = idTokenResult.claims.role as UserRole;
@@ -409,7 +411,6 @@ export const signInWithGoogle = async (
             : undefined,
       };
 
-      // Just update lastLogin
       await updateUserData(userRef, {
         lastLogin: serverTimestamp(),
       });
@@ -419,7 +420,7 @@ export const signInWithGoogle = async (
       return userWithMetadata;
     }
 
-    // For new users during signup, set the provided role or default to 'user'
+    // For new users during signup
     const defaultRole: UserRole = role || "user";
     const functions = getFunctions();
     const setCustomClaims = httpsCallable(functions, "setCustomClaims");
