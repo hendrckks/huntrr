@@ -6,12 +6,15 @@ import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "../../hooks/useToast";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../lib/firebase/clientApp";
+import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const location = useLocation();
   const [message, setMessage] = useState<string | null>(null);
   const { setUser } = useAuth();
@@ -28,10 +31,40 @@ const SignIn = () => {
     window.history.replaceState({}, document.title);
   }, [location, message]);
 
+  const handleResendVerification = async () => {
+    if (resendLoading) return;
+    
+    setResendLoading(true);
+    try {
+      // Try to sign in again to get the user object
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await sendEmailVerification(userCredential.user);
+      
+      toast({
+        title: "Verification Email Sent",
+        variant: "success",
+        description: "A new verification email has been sent to your inbox.",
+        duration: 5000,
+      });
+    } catch (_error: any) {
+      toast({
+        title: "Error",
+        variant: "error",
+        description: "Failed to resend verification email. Please try again.",
+        duration: 5000,
+      });
+    } finally {
+      // Sign out immediately after sending verification email
+      await auth.signOut();
+      setResendLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+    setShowVerificationMessage(false);
 
     try {
       await login({ email, password }, setUser);
@@ -41,20 +74,39 @@ const SignIn = () => {
         description: "Sign In successful",
         duration: 5000,
       });
-    } catch (error: any) {
-      if (error.message.includes("verify")) {
+    } catch (_error: any) {
+      if (_error.code === "auth/too-many-requests") {
         toast({
-          title: "Email Not Verified",
+          title: "Too Many Attempts",
           variant: "error",
           description:
-            "Please verify your email before logging in. Check your inbox for the verification email.",
+            "You've made too many attempts. Please wait a few minutes before trying again.",
+          duration: 8000,
+        });
+        setError(
+          "Too many attempts. Please wait a few minutes before trying again."
+        );
+      } else if (_error.message.includes("has not been verified")) {
+        setShowVerificationMessage(true);
+        toast({
+          title: "Email Verification Required",
+          variant: "warning",
+          description: _error.message,
+          duration: 8000,
+        });
+        setError(_error.message);
+      } else if (_error.message.includes("Access denied")) {
+        setError(
+          "This account requires a specialized login method. Please contact support."
+        );
+      } else {
+        setError(_error.message);
+        toast({
+          title: "Error",
+          variant: "error",
+          description: _error.message,
           duration: 5000,
         });
-        setError("Please verify your email before logging in.");
-      } else if (error.message.includes("Access denied")) {
-        setError("This account requires a specialized login method. Please contact support.");
-      } else {
-        setError(error.message);
       }
     } finally {
       setLoading(false);
@@ -203,6 +255,35 @@ const SignIn = () => {
             Sign in with Google
           </button>
         </form>
+
+        {showVerificationMessage && (
+          <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-md">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">Verification Required</h3>
+                <div className="mt-2 text-sm text-yellow-700">
+                  <p>We've sent a verification email to {email}. Please check your inbox and spam folder.</p>
+                </div>
+                <div className="mt-4">
+                  <button
+                    onClick={handleResendVerification}
+                    disabled={resendLoading}
+                    className={`text-sm font-medium text-yellow-800 hover:text-yellow-900 underline ${
+                      resendLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {resendLoading ? 'Sending...' : 'Resend verification email'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

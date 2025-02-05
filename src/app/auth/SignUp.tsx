@@ -46,13 +46,11 @@ const SignUp = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Set a flag to suppress auth state updates during the signup process.
-    sessionStorage.setItem("suppressAuth", "true");
-
+    setError("");
     setLoading(true);
-    setError(null);
-    setSuccess(null);
+
+    // Set a flag to suppress auth state updates during the sign-in process
+    sessionStorage.setItem("suppressAuth", "true");
 
     try {
       const signUpData: SignUpInput = {
@@ -86,7 +84,22 @@ const SignUp = () => {
         }, 2000);
       }
     } catch (err: any) {
-      setError(err.message);
+      // Remove the suppression flag so that later auth events are processed normally
+      sessionStorage.removeItem("suppressAuth");
+      if (err.message.includes("verify")) {
+        toast({
+          title: "Email Not Verified",
+          variant: "error",
+          description:
+            "Please verify your email before logging in. Check your inbox for the verification email.",
+          duration: 5000,
+        });
+        setError("Please verify your email before logging in.");
+      } else if (err.message.includes("Access denied")) {
+        setError("This account requires a specialized login method. Please contact support.");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }

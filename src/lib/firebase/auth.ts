@@ -466,6 +466,10 @@ export const login = async (
       throw new Error("Account is temporarily locked. Please try again later.");
     }
 
+    // Suppress auth state changes during verification check
+    sessionStorage.setItem("suppressAuth", "true");
+
+    // First get the user credential
     const userCredential: UserCredential = await withRetry(() =>
       signInWithEmailAndPassword(
         auth,
@@ -476,21 +480,32 @@ export const login = async (
 
     const user = userCredential.user;
 
+    // Force reload user to get latest email verification status
+    await user.reload();
+
+    // Check email verification status immediately
     if (!user.emailVerified) {
+      // Sign out and clear any potential state
       await auth.signOut();
-      throw new Error("Please verify your email before logging in.");
+      setUser(null);
+      sessionStorage.removeItem("suppressAuth");
+      
+      // Send a new verification email
+      await sendEmailVerification(user);
+      
+      throw new Error("Your email address has not been verified. We've sent a new verification email - please check your inbox and spam folder. You'll need to verify your email before you can sign in.");
     }
 
-    // Get ID token result to check custom claims
+    // Remove suppression only after verification is confirmed
+    sessionStorage.removeItem("suppressAuth");
+
+    // Continue with the rest of the login process
     const idTokenResult = await user.getIdTokenResult();
     const role = idTokenResult.claims.role as UserRole;
 
-    // Block admin login at authentication level
     if (role === "admin") {
-      await auth.signOut(); // Immediately sign out
-      throw new Error(
-        "Access denied. Admin login requires a specialized authentication method."
-      );
+      await auth.signOut();
+      throw new Error("Access denied. Admin login requires a specialized authentication method.");
     }
 
     authManager.recordLoginAttempt(validatedData.email, true);
@@ -501,17 +516,19 @@ export const login = async (
     const userWithMetadata: User = {
       ...user,
       role,
-      createdAt:
-        userData?.createdAt instanceof Timestamp
-          ? userData.createdAt.toDate().toISOString()
-          : undefined,
+      createdAt: userData?.createdAt instanceof Timestamp
+        ? userData.createdAt.toDate().toISOString()
+        : undefined,
     };
 
     await authManager.startSessionTimeout();
     setUser(userWithMetadata);
 
     return userWithMetadata;
-  } catch (error: unknown) {
+  } catch (error) {
+    // Always clean up suppression in case of error
+    sessionStorage.removeItem("suppressAuth");
+    
     if (error instanceof ZodError) {
       throw new Error(getZodErrorMessage(error));
     }
@@ -524,7 +541,7 @@ export const login = async (
       authManager.recordLoginAttempt(loginData.email, false);
     }
 
-    return handleAuthError(error);
+    throw error;
   }
 };
 
