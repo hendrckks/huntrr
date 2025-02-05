@@ -23,7 +23,7 @@ const SignIn = () => {
     }
     if (state?.message) {
       setMessage(state.message);
-      console.log(message)
+      console.log(message);
     }
     window.history.replaceState({}, document.title);
   }, [location, message]);
@@ -61,6 +61,12 @@ const SignIn = () => {
 
     try {
       const user = await signInWithGoogle(setUser);
+
+      // Add null check for user
+      if (!user) {
+        throw new Error("Sign-in failed. Please try again.");
+      }
+
       await Promise.all([
         new Promise<void>((resolve) => {
           const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
