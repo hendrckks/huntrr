@@ -626,6 +626,10 @@ export const resendVerificationEmail = async (user: User) => {
 export const signOut = async () => {
   const authManager = AuthStateManager.getInstance();
   await authManager.signOut();
+  // Clear all storage
+  localStorage.removeItem("user");
+  localStorage.removeItem("sessionId");
+  sessionStorage.clear();
 };
 
 export const onAuthStateChanged = (cb: NextOrObserver<User>) => {

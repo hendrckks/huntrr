@@ -110,15 +110,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           });
           localStorage.setItem("user", JSON.stringify(userData));
         } else {
+          // Clear all storage when user signs out
+          localStorage.removeItem("user");
+          localStorage.removeItem("sessionId");
+          sessionStorage.clear();
+          
           setAuthState({
             user: null,
             isLoading: false,
             isInitialized: true,
             error: null,
           });
-          localStorage.removeItem("user");
         }
       } catch (error) {
+        // Clear storage on error as well
+        localStorage.removeItem("user");
+        localStorage.removeItem("sessionId");
+        sessionStorage.clear();
+        
         setAuthState({
           user: null,
           isLoading: false,
