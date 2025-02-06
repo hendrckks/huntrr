@@ -7,7 +7,7 @@ import { Toaster } from "./components/toast/Toaster";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <div className={`antialiased min-h-screen bg-background font-athauss`}>
+    <div className="antialiased min-h-screen bg-background font-clash">
       <RouterProvider router={router} />
       <Toaster />
     </div>

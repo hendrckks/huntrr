@@ -12,7 +12,7 @@ const MainLayout: React.FC = () => {
     <div className="min-h-screen flex flex-col">
       <ScrollToTop />
       {!shouldHideNavbar && <Navbar />}
-      <main className="flex-1 py-20">
+      <main className="flex-1 font-clash">
         <Outlet />
       </main>
     </div>

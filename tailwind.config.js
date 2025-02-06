@@ -51,7 +51,9 @@ export default {
   			}
   		},
   		fontFamily: {
-  			athauss: 'At Hauss Std TRIAL'
+  			athauss: 'At Hauss Std TRIAL',
+  			sans: ['ClashDisplay', 'sans-serif'],
+  			clash: 'ClashDisplay',
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

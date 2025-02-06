@@ -16,6 +16,13 @@ import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../lib/firebase/clientApp";
 import type { User } from "../../lib/types/auth";
 
+// Import shadcn components
+import { Input } from "../../components/ui/input";
+import { Button } from "../../components/ui/button";
+import { Card, CardHeader, CardContent } from "../../components/ui/card";
+import { Label } from "../../components/ui/label";
+import { Alert, AlertDescription } from "../../components/ui/alert";
+
 const AdminAuthFlow: React.FC = () => {
   const navigate = useNavigate();
   const { setUser } = useAuth();
@@ -30,20 +37,15 @@ const AdminAuthFlow: React.FC = () => {
     setLoading(true);
 
     try {
-      // Validate the login input
       const validatedData = loginSchema.parse({ email, password });
-
-      // Set session persistence to browser session
       await setPersistence(auth, browserSessionPersistence);
-
-      // Sign in using Firebase Authentication
+      
       const userCredential = await signInWithEmailAndPassword(
         auth,
         validatedData.email,
         validatedData.password
       );
 
-      // Fetch the ID token and validate admin role
       const idTokenResult = await userCredential.user.getIdTokenResult(true);
       console.log("Claims on Login:", idTokenResult.claims);
 
@@ -51,13 +53,11 @@ const AdminAuthFlow: React.FC = () => {
         throw new Error("You do not have admin privileges.");
       }
 
-      // Update last logged in timestamp
       const userRef = doc(db, "users", userCredential.user.uid);
       await updateDoc(userRef, {
         lastLoggedIn: serverTimestamp(),
       });
 
-      // Update user state with the role
       const userWithRole: User = {
         ...userCredential.user,
         role: idTokenResult.claims.role as UserRole,
@@ -65,7 +65,6 @@ const AdminAuthFlow: React.FC = () => {
 
       setUser(userWithRole);
 
-      // Start session timeout for admin users
       const authManager = AuthStateManager.getInstance();
       await authManager.startSessionTimeout();
 
@@ -98,62 +97,61 @@ const AdminAuthFlow: React.FC = () => {
 
   return (
     <div className="h-screen flex items-center bg-background md:mt-0 mt-20">
-      <div className="w-full h-full rounded-2xl bg-background flex items-center justify-center">
-        <div className="w-full max-w-md p-4 lg:p-6">
-          <div className="mb-6 text-center">
-            <h2 className="text-xl font-medium text-textBlack">Admin Login</h2>
-          </div>
-
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader className="space-y-1">
+          <h2 className="text-xl font-medium text-center">Admin Login</h2>
+        </CardHeader>
+        <CardContent>
           {error && (
-            <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded-md">
-              {error}
-            </div>
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Email</label>
+              <Label htmlFor="email">Email</Label>
               <div className="relative">
-                <input
+                <Input
+                  id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 pl-10 py-2 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   placeholder="example@email.com"
                   required
+                  className="pl-10"
                 />
-                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Password
-              </label>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
-                <input
+                <Input
+                  id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 pl-10 py-2 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   placeholder="••••••••"
                   required
+                  className="pl-10"
                 />
-                <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               </div>
             </div>
 
-            <button
-              type="submit"
+            <Button 
+              type="submit" 
               disabled={loading}
-              className="w-full rounded-md bg-gradient-to-b from-[#637257] to-[#4b5942] px-4 py-2 text-sm font-medium text-white hover:from-[#4b5942] hover:to-[#3c4735] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Login as Admin
-            </button>
+            </Button>
           </form>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

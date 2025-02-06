@@ -12,8 +12,8 @@ const Components = {
   CreateListing: lazy(() => import("../app/pages/CreateListing")),
   SignUp: lazy(() => import("../app/auth/SignUp")),
   SignIn: lazy(() => import("../app/auth/SignIn")),
-  ResetPassword: lazy(() => import("../app/auth/ResetPasword")),
-  RoleSelectionDialog: lazy(() => import("../components/RoleSelectioDialog")),
+  ResetPassword: lazy(() => import("../app/auth/ResetPassword")),
+  RoleSelectionDialog: lazy(() => import("../components/RoleSelectionDialog")),
   TenantDashboard: lazy(
     () => import("../components/dashboards/TenantDashboard")
   ),
