@@ -151,7 +151,7 @@ const SignIn = () => {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded-md">
+          <div className="mb-4 p-3 text-xs text-red-500 bg-red-50 border border-red-200 rounded-md">
             {error}
           </div>
         )}
@@ -257,7 +257,7 @@ const SignIn = () => {
         </form>
 
         {showVerificationMessage && (
-          <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-md">
+          <div className="mt-4 p-4 bg-yellow-50 TEXT-XS border-l-4 border-yellow-400 rounded-md">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -266,10 +266,10 @@ const SignIn = () => {
               </div>
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-yellow-800">Verification Required</h3>
-                <div className="mt-2 text-sm text-yellow-700">
+                <div className="mt-2 text-xs text-yellow-700">
                   <p>We've sent a verification email to {email}. Please check your inbox and spam folder.</p>
                 </div>
-                <div className="mt-4">
+                <div className="mt-2">
                   <button
                     onClick={handleResendVerification}
                     disabled={resendLoading}

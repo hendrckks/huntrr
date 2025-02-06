@@ -493,7 +493,7 @@ export const login = async (
       // Send a new verification email
       await sendEmailVerification(user);
       
-      throw new Error("Your email address has not been verified. We've sent a new verification email - please check your inbox and spam folder. You'll need to verify your email before you can sign in.");
+      throw new Error("Your email address has not been verified. Please check your inbox or spam folder to verfify.");
     }
 
     // Remove suppression only after verification is confirmed
