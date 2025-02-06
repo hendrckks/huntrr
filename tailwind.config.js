@@ -59,7 +59,12 @@ export default {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
-  		}
+  		},
+  		spacing: {
+  			'word-sm': '0.25em',
+  			'word-md': '0.5em',
+  			'word-lg': '1em',
+  		},
   	}
   },
   plugins: [require("tailwindcss-animate")],

@@ -111,3 +111,15 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .word-spacing-sm {
+    word-spacing: 0.25em;
+  }
+  .word-spacing-md {
+    word-spacing: 0.5em;
+  }
+  .word-spacing-lg {
+    word-spacing: 1em;
+  }
+}

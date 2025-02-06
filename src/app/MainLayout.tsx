@@ -9,10 +9,10 @@ const MainLayout: React.FC = () => {
   const shouldHideNavbar = hideNavbarPaths.includes(location.pathname);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col tracking-wide word-spacing-sm">
       <ScrollToTop />
       {!shouldHideNavbar && <Navbar />}
-      <main className="flex-1 font-clash">
+      <main className="flex-1 font-clash tracking-normal">
         <Outlet />
       </main>
     </div>
