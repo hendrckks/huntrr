@@ -22,7 +22,7 @@ const TenantDashboard = () => {
   };
 
   return (
-    <div>
+    <div className="py-20">
       <Link to="/edit-account" className="p-10 text-xl font-semibold">
         <div className="p-4 border rounded-md w-fit">Edit Account</div>
       </Link>

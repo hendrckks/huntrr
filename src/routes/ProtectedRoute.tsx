@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import type { UserRole } from "../lib/types/auth";
+import SpinningLoader from "../components/SpinningLoader";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -18,14 +19,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireUnauth = false,
   allowedRoles = [],
   redirectPath,
-  loadingComponent = (
-    <div className="flex items-center justify-center h-screen">
-      <div className="space-y-4">
-        <div className="w-32 h-2 bg-gray-200 rounded-full animate-pulse" />
-        <div className="w-24 h-2 bg-gray-200 rounded-full animate-pulse" />
-      </div>
-    </div>
-  ),
+  loadingComponent = <SpinningLoader />,
 }) => {
   const { user, isLoading, isInitialized, isAuthenticated, hasRequiredRole } = useAuth();
   const location = useLocation();

@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import ProtectedRoute from "./ProtectedRoute";
-import SkeletonLoader from "../components/SkeletonLoader";
+import SpinningLoader from "../components/SpinningLoader";
 import { UserRole } from "../lib/types/auth";
 import { AuthProvider } from "../contexts/AuthContext";
 
@@ -14,12 +14,8 @@ const Components = {
   SignIn: lazy(() => import("../app/auth/SignIn")),
   ResetPassword: lazy(() => import("../app/auth/ResetPassword")),
   RoleSelectionDialog: lazy(() => import("../components/RoleSelectionDialog")),
-  TenantDashboard: lazy(
-    () => import("../components/dashboards/TenantDashboard")
-  ),
-  LandlordDashboard: lazy(
-    () => import("../components/dashboards/LandloardDashboard")
-  ),
+  TenantDashboard: lazy(() => import("../components/dashboards/TenantDashboard")),
+  LandlordDashboard: lazy(() => import("../components/dashboards/LandloardDashboard")),
   AdminDashboard: lazy(() => import("../components/dashboards/AdminDashboard")),
   Unauthorized: lazy(() => import("../components/Unauthorized")),
   EditAccount: lazy(() => import("../app/pages/EditAccount")),
@@ -35,7 +31,7 @@ const createProtectedRoute = (
   }
 ) => (
   <ProtectedRoute {...options}>
-    <Suspense fallback={<SkeletonLoader />}>{element}</Suspense>
+    <Suspense fallback={<SpinningLoader />}>{element}</Suspense>
   </ProtectedRoute>
 );
 
@@ -44,8 +40,8 @@ export const router = createBrowserRouter([
     path: "/",
     element: (
       <AuthProvider>
-        <div className={`antialiased min-h-screen bg-background font-athauss`}>
-          <Suspense fallback={<SkeletonLoader />}>
+        <div className="antialiased min-h-screen bg-background font-athauss">
+          <Suspense fallback={<SpinningLoader />}>
             <Components.MainLayout />
           </Suspense>
         </div>
@@ -55,7 +51,7 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: (
-          <Suspense fallback={<SkeletonLoader />}>
+          <Suspense fallback={<SpinningLoader />}>
             <Components.Home />
           </Suspense>
         ),
@@ -92,7 +88,7 @@ export const router = createBrowserRouter([
       {
         path: "unauthorized",
         element: (
-          <Suspense fallback={<SkeletonLoader />}>
+          <Suspense fallback={<SpinningLoader />}>
             <Components.Unauthorized />
           </Suspense>
         ),

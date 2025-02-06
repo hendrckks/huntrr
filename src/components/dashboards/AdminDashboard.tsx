@@ -21,7 +21,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="p-10 text-3xl text-black">
+    <div className="p-10 py-20text-3xl text-black">
       AdminDashboard
       <div className="mt-8">
         <button
