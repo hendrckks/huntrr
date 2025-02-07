@@ -117,7 +117,7 @@ const Navbar = () => {
               className="w-8 h-8 rounded-full object-cover"
             />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white text-sm font-medium">
+            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white text-base font-medium">
               {initials}
             </div>
           )}
