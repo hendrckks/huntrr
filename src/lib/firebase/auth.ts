@@ -45,7 +45,7 @@ import { auth, db } from "./clientApp";
 
 // Configuration
 const CONFIG = {
-  MAX_LOGIN_ATTEMPTS: 5,
+  MAX_LOGIN_ATTEMPTS: 5, // Temporarily increased for testing
   LOCKOUT_DURATION: 15 * 60 * 1000, // 15 minutes
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000, // 1 second
@@ -613,8 +613,6 @@ export const changePassword = async (
   }
 };
 
-// ... [previous code remains the same until verifyLandlord]
-
 export const verifyLandlord = async (uid: string) => {
   const functions = getFunctions();
   const verifyLandlordFunction = httpsCallable(functions, "verifyLandlord");
@@ -627,14 +625,27 @@ export const verifyLandlord = async (uid: string) => {
   }
 };
 
-export const resendVerificationEmail = async (user: User) => {
+export const resendVerificationEmail = async (email: string, password: string) => {
   try {
-    await withRetry(() => sendEmailVerification(user));
+    // Temporarily suppress auth state changes
+    sessionStorage.setItem("suppressAuth", "true");
+    
+    // Get user credential without triggering auth state change
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    await sendEmailVerification(userCredential.user);
+    
+    // Sign out silently
+    await auth.signOut();
+    
+    // Remove suppression
+    sessionStorage.removeItem("suppressAuth");
+    
     return {
       success: true,
       message: "Verification email resent. Please check your inbox.",
     };
   } catch (error) {
+    sessionStorage.removeItem("suppressAuth");
     return handleAuthError(error);
   }
 };

@@ -123,6 +123,11 @@ const SignUp = () => {
         throw new Error("Sign-in failed. Please try again.");
       }
 
+      if (!signedInUser.emailVerified) {
+        setError("Your email has not been verified. Please check your inbox and verify your email.");
+        return;
+      }
+
       // Wait for the correct role assignment
       const checkRoleInterval = setInterval(async () => {
         const idTokenResult = await signedInUser.getIdTokenResult(true);
@@ -130,6 +135,11 @@ const SignUp = () => {
 
         if (role && role !== "user" as UserRole) {
           clearInterval(checkRoleInterval);
+
+          if (!signedInUser.emailVerified) {
+            setError("Please verify your email before proceeding.");
+            return;
+          }
 
           switch (role) {
             case "landlord_unverified":

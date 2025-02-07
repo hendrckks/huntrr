@@ -6,7 +6,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "../../hooks/useToast";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../lib/firebase/clientApp";
-import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+// import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 
 // Import shadcn components
 import { Input } from "../../components/ui/input";
@@ -21,7 +21,6 @@ const SignIn = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
   const location = useLocation();
   const [message, setMessage] = useState<string | null>(null);
   const { setUser } = useAuth();
@@ -38,35 +37,33 @@ const SignIn = () => {
     window.history.replaceState({}, document.title);
   }, [location, message]);
 
-  const handleResendVerification = async () => {
-    if (resendLoading) return;
+  // const handleResendVerification = async () => {
+  //   if (resendLoading) return;
     
-    setResendLoading(true);
-    try {
-      // Try to sign in again to get the user object
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await sendEmailVerification(userCredential.user);
+  //   setResendLoading(true);
+  //   try {
+  //     const result = await resendVerificationEmail(email, password);
       
-      toast({
-        title: "Verification Email Sent",
-        variant: "success",
-        description: "A new verification email has been sent to your inbox.",
-        duration: 5000,
-      });
-    } catch (error: any) {
-      console.log(error)
-      toast({
-        title: "Error",
-        variant: "error",
-        description: "Failed to resend verification email. Please try again.",
-        duration: 5000,
-      });
-    } finally {
-      // Sign out immediately after sending verification email
-      await auth.signOut();
-      setResendLoading(false);
-    }
-  };
+  //     if (result.success) {
+  //       toast({
+  //         title: "Verification Email Sent",
+  //         variant: "success",
+  //         description: result.message,
+  //         duration: 5000,
+  //       });
+  //     }
+  //   } catch (error: any) {
+  //     console.error(error);
+  //     toast({
+  //       title: "Error",
+  //       variant: "error",
+  //       description: "Failed to resend verification email. Please try again.",
+  //       duration: 5000,
+  //     });
+  //   } finally {
+  //     setResendLoading(false);
+  //   }
+  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +72,13 @@ const SignIn = () => {
     setShowVerificationMessage(false);
 
     try {
-      await login({ email, password }, setUser);
+      const user = await login({ email, password }, setUser);
+      
+      if (!user.emailVerified) {
+        setShowVerificationMessage(true);
+        throw new Error("Your email has not been verified. Please check your inbox and verify your email.");
+      }
+
       toast({
         title: "Success",
         variant: "success",
@@ -268,16 +271,7 @@ const SignIn = () => {
               <div className="flex flex-col space-y-2">
                 <AlertDescription className="text-xs">
                   <h3 className="font-medium">Verification Required</h3>
-                  <p className="mt-1 text-yellow-600">We've sent a verification email to {email}. Please check your inbox and spam folder.</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleResendVerification}
-                    disabled={resendLoading}
-                    className="mt-2"
-                  >
-                    {resendLoading ? 'Sending...' : 'Resend verification email'}
-                  </Button>
+                  <p className="mt-1">We've sent a verification email to {email}. Please check your inbox and spam folder.</p>
                 </AlertDescription>
               </div>
             </Alert>
