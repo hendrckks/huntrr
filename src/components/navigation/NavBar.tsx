@@ -95,18 +95,36 @@ const Navbar = () => {
       ? roleBasedLinks[effectiveUser.role]
       : roleBasedLinks.user;
 
+    const getInitials = (name: string | null | undefined) => {
+      if (!name) return '?';
+      return name
+        .split(' ')
+        .map(word => word[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    };
+
+    const initials = getInitials(effectiveUser?.displayName);
+
     return (
       <div className="space-x-4">
         <Link to={linkConfig.to}>
-          <img
-            src={effectiveUser?.photoURL || "/default-avatar.png"}
-            alt="User Avatar"
-            className="w-8 h-8 rounded-full"
-            onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
-          />
+          {effectiveUser?.photoURL ? (
+            <img
+              src={effectiveUser.photoURL}
+              alt="User Avatar"
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white text-sm font-medium">
+              {initials}
+            </div>
+          )}
         </Link>
       </div>
     );
+
   };
 
   return (
