@@ -347,6 +347,10 @@ export const signUp = async (userData: SignUpInput) => {
     );
 
     const user = userCredential.user;
+
+    // Force a token refresh to ensure the callable function receives a valid auth context
+    await user.getIdToken(true);
+
     const createdAt = serverTimestamp();
 
     const functions = getFunctions();
