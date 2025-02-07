@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { KeyRound, Mail, Loader2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { login, signInWithGoogle } from "../../lib/firebase/auth";
+import { login, resendVerificationEmail, signInWithGoogle } from "../../lib/firebase/auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "../../hooks/useToast";
 import { onAuthStateChanged } from "firebase/auth";
@@ -37,33 +37,71 @@ const SignIn = () => {
     window.history.replaceState({}, document.title);
   }, [location, message]);
 
-  // const handleResendVerification = async () => {
-  //   if (resendLoading) return;
+  const [resendLoading, setResendLoading] = useState(false);
+
+  const [retryCount, setRetryCount] = useState(0);
+  const [nextRetryTime, setNextRetryTime] = useState<number | null>(null);
+
+  const handleResendVerification = async () => {
+    if (resendLoading) return;
     
-  //   setResendLoading(true);
-  //   try {
-  //     const result = await resendVerificationEmail(email, password);
+    // Check if we need to wait before retrying
+    if (nextRetryTime && Date.now() < nextRetryTime) {
+      const waitTimeMinutes = Math.ceil((nextRetryTime - Date.now()) / 60000);
+      toast({
+        title: "Please Wait",
+        variant: "warning",
+        description: `Please wait ${waitTimeMinutes} minute(s) before trying again.`,
+        duration: 5000,
+      });
+      return;
+    }
+
+    setResendLoading(true);
+    try {
+      const result = await resendVerificationEmail(email, password);
       
-  //     if (result.success) {
-  //       toast({
-  //         title: "Verification Email Sent",
-  //         variant: "success",
-  //         description: result.message,
-  //         duration: 5000,
-  //       });
-  //     }
-  //   } catch (error: any) {
-  //     console.error(error);
-  //     toast({
-  //       title: "Error",
-  //       variant: "error",
-  //       description: "Failed to resend verification email. Please try again.",
-  //       duration: 5000,
-  //     });
-  //   } finally {
-  //     setResendLoading(false);
-  //   }
-  // };
+      if (result.success) {
+        // Set retry time immediately after successful send
+        const waitTime = 120000; // 2 minutes base wait time
+        const nextRetry = Date.now() + waitTime;
+        setNextRetryTime(nextRetry);
+        
+        toast({
+          title: "Verification Email Sent",
+          variant: "success",
+          description: result.message,
+          duration: 5000,
+        });
+      }
+    } catch (error: any) {
+      console.error(error);
+      
+      // Implement exponential backoff only after first attempt
+      const newRetryCount = retryCount + 1;
+      setRetryCount(newRetryCount);
+      
+      // Calculate next retry time with exponential backoff
+      // Base wait time is 2 minutes, doubles with each retry
+      const waitTime = Math.min(120000 * Math.pow(2, newRetryCount - 1), 3600000); // Cap at 1 hour
+      const nextRetry = Date.now() + waitTime;
+      setNextRetryTime(nextRetry);
+
+      const waitTimeMinutes = Math.ceil(waitTime / 60000);
+      const errorMessage = error.code === "auth/too-many-requests"
+        ? `Too many attempts. Please wait  ${waitTimeMinutes}  minute(s) before trying again.`
+        : error.message || "Failed to resend verification email. Please try again.";
+
+      toast({
+        title: "Error",
+        variant: "error",
+        description: errorMessage,
+        duration: 8000,
+      });
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,6 +310,16 @@ const SignIn = () => {
                 <AlertDescription className="text-xs">
                   <h3 className="font-medium">Verification Required</h3>
                   <p className="mt-1">We've sent a verification email to {email}. Please check your inbox and spam folder.</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResendVerification}
+                    disabled={resendLoading}
+                    className="mt-2"
+                  >
+                    {resendLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Resend Verification Email
+                  </Button>
                 </AlertDescription>
               </div>
             </Alert>

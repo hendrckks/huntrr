@@ -45,12 +45,15 @@ import { auth, db } from "./clientApp";
 
 // Configuration
 const CONFIG = {
-  MAX_LOGIN_ATTEMPTS: 5, // Temporarily increased for testing
+  MAX_LOGIN_ATTEMPTS: 9999, // Temporarily increased for testing
   LOCKOUT_DURATION: 15 * 60 * 1000, // 15 minutes
-  RETRY_ATTEMPTS: 3,
+  RETRY_ATTEMPTS: 9999,
   RETRY_DELAY: 1000, // 1 second
   SESSION_CHECK_INTERVAL: 60000, // 1 minute
   SESSION_DURATION: 2 * 60 * 60 * 1000, // 2 hours
+  VERIFICATION_RESEND_DELAY: 0, // No delay for first attempt
+  VERIFICATION_RETRY_BASE_DELAY: 120000, // 2 minutes base delay for subsequent attempts
+  MAX_VERIFICATION_RETRIES: 5 // Maximum number of retries before extended lockout
 } as const;
 
 // Types
@@ -626,13 +629,26 @@ export const verifyLandlord = async (uid: string) => {
 };
 
 export const resendVerificationEmail = async (email: string, password: string) => {
+  const authManager = AuthStateManager.getInstance();
+
   try {
     // Temporarily suppress auth state changes
     sessionStorage.setItem("suppressAuth", "true");
     
+    // Check if user is locked out
+    if (authManager.isUserLockedOut(email)) {
+      throw new Error("Account is temporarily locked. Please try again later.");
+    }
+
     // Get user credential without triggering auth state change
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await withRetry(() =>
+      signInWithEmailAndPassword(auth, email, password)
+    );
+
     await sendEmailVerification(userCredential.user);
+    
+    // Record successful attempt
+    authManager.recordLoginAttempt(email, true);
     
     // Sign out silently
     await auth.signOut();
@@ -645,6 +661,11 @@ export const resendVerificationEmail = async (email: string, password: string) =
       message: "Verification email resent. Please check your inbox.",
     };
   } catch (error) {
+    // Record failed attempt
+    if (error instanceof Error && error.name === AuthErrorCodes.INVALID_LOGIN_CREDENTIALS) {
+      authManager.recordLoginAttempt(email, false);
+    }
+
     sessionStorage.removeItem("suppressAuth");
     return handleAuthError(error);
   }
