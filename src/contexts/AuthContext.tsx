@@ -32,9 +32,9 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-function debounce(func: Function, wait: number) {
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout;
-  return (...args: any[]) => {
+  return (...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
   };
@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           user: null,
           error: new Error("Session expired"),
         }));
-        localStorage.removeItem("user");
+        sessionStorage.removeItem("user");
       }
     } catch (error) {
       setAuthState((prev) => ({
@@ -71,8 +71,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, 300);
 
   useEffect(() => {
-    // Initialize auth state from localStorage if available
-    const cachedUser = localStorage.getItem("user");
+    // Initialize auth state from sessionStorage if available
+    const cachedUser = sessionStorage.getItem("user");
     if (cachedUser) {
       setAuthState((prev) => ({
         ...prev,
@@ -108,11 +108,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             isInitialized: true,
             error: null,
           });
-          localStorage.setItem("user", JSON.stringify(userData));
+          sessionStorage.setItem("user", JSON.stringify(userData));
         } else {
-          // Clear all storage when user signs out
-          localStorage.removeItem("user");
-          localStorage.removeItem("sessionId");
+          const sessionExpiration = sessionStorage.getItem("sessionExpiration");
+          const cachedUser = sessionStorage.getItem("user");
+          if (sessionExpiration && Date.now() < parseInt(sessionExpiration) && cachedUser) {
+            // Session still valid and a user is cached in sessionStorage, so use it
+            setAuthState({
+              user: JSON.parse(cachedUser),
+              isLoading: false,
+              isInitialized: true,
+              error: null,
+            });
+            return;
+          }
+
+          // Clear session storage when user is truly signed out
           sessionStorage.clear();
           
           setAuthState({
@@ -123,9 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           });
         }
       } catch (error) {
-        // Clear storage on error as well
-        localStorage.removeItem("user");
-        localStorage.removeItem("sessionId");
+        // Clear session storage on error as well
         sessionStorage.clear();
         
         setAuthState({
