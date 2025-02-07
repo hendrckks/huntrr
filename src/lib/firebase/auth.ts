@@ -189,11 +189,23 @@ export class AuthStateManager {
 
   async signOut() {
     try {
+      // Clear all storage first
+      localStorage.removeItem("user");
+      localStorage.removeItem("sessionId");
+      sessionStorage.clear();
+
+      // Clear auth manager state
+      const authManager = AuthStateManager.getInstance();
+      authManager.clearSessionTimeout();
+      
+      // Finally, sign out from Firebase
       await auth.signOut();
-      this.clearSessionTimeout();
-      sessionStorage.clear(); // Clear all session data
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("Error during sign out:", error);
+      // Ensure storage is cleared even if Firebase sign out fails
+      localStorage.removeItem("user");
+      localStorage.removeItem("sessionId");
+      sessionStorage.clear();
     }
   }
 
@@ -623,15 +635,6 @@ export const resendVerificationEmail = async (user: User) => {
   }
 };
 
-export const signOut = async () => {
-  const authManager = AuthStateManager.getInstance();
-  await authManager.signOut();
-  // Clear all storage
-  localStorage.removeItem("user");
-  localStorage.removeItem("sessionId");
-  sessionStorage.clear();
-};
-
 export const onAuthStateChanged = (cb: NextOrObserver<User>) => {
   return auth.onAuthStateChanged(cb);
 };
@@ -648,4 +651,26 @@ export const cleanup = () => {
 // Export AuthStateManager for direct access if needed
 export const getAuthStateManager = () => {
   return AuthStateManager.getInstance();
+};
+
+export const signOut = async () => {
+  try {
+    // Clear all storage first
+    localStorage.removeItem("user");
+    localStorage.removeItem("sessionId");
+    sessionStorage.clear();
+
+    // Clear auth manager state
+    const authManager = AuthStateManager.getInstance();
+    authManager.clearSessionTimeout();
+    
+    // Finally, sign out from Firebase
+    await auth.signOut();
+  } catch (error) {
+    console.error("Error during sign out:", error);
+    // Ensure storage is cleared even if Firebase sign out fails
+    localStorage.removeItem("user");
+    localStorage.removeItem("sessionId");
+    sessionStorage.clear();
+  }
 };

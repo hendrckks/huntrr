@@ -1,14 +1,48 @@
 import { useAuth } from "../../contexts/AuthContext";
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
+import type { User, UserRole } from "../../lib/types/auth";
 
 const Navbar = () => {
   const { user, isLoading, isInitialized } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const [effectiveUser, setEffectiveUser] = useState<User | null>(null);
   const location = useLocation();
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    // Update effective user when auth user changes
+    if (user) {
+      setEffectiveUser(user);
+    } else {
+      // Check session storage for valid session
+      const sessionExpiration = sessionStorage.getItem("sessionExpiration");
+      const cachedUser = localStorage.getItem("user");
+      
+      if (sessionExpiration && Date.now() < parseInt(sessionExpiration) && cachedUser) {
+        setEffectiveUser(JSON.parse(cachedUser));
+      } else {
+        setEffectiveUser(null);
+      }
+    }
+  }, [user]);
+
+  // Listen for storage changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const sessionExpiration = sessionStorage.getItem("sessionExpiration");
+      const cachedUser = localStorage.getItem("user");
+      
+      if (!sessionExpiration || !cachedUser || Date.now() > parseInt(sessionExpiration)) {
+        setEffectiveUser(null);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // Don't render anything until after first mount to prevent hydration mismatch
@@ -27,15 +61,6 @@ const Navbar = () => {
           <div className="w-20 h-8 bg-gray-200 rounded-md animate-pulse" />
         </div>
       );
-    }
-
-    // Determine effective user from auth context or session storage
-    let effectiveUser = user;
-    if (!effectiveUser && typeof window !== 'undefined') {
-      const stored = sessionStorage.getItem('user');
-      if (stored) {
-        effectiveUser = JSON.parse(stored);
-      }
     }
 
     // Show login/register for unauthenticated users
@@ -58,8 +83,8 @@ const Navbar = () => {
       );
     }
 
-    // Updated role-based links mapping
-    const roleBasedLinks = {
+    // Updated role-based links mapping with proper typing
+    const roleBasedLinks: Record<UserRole, { to: string; text: string }> = {
       user: { to: "/profile", text: "Profile" },
       landlord_verified: { to: "/dashboard", text: "Dashboard" },
       landlord_unverified: { to: "/dashboard", text: "Profile" },
