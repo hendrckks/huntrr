@@ -21,6 +21,7 @@ const Components = {
   EditAccount: lazy(() => import("../app/pages/EditAccount")),
   AdminAuthPage: lazy(() => import("../components/admin/Auth")),
   LandingPage: lazy(() => import("../app/pages/LandingPage")),
+  ListingView: lazy(() => import("../components/ListingView")),
 };
 
 const createProtectedRoute = (
@@ -109,6 +110,14 @@ export const router = createBrowserRouter([
         element: createProtectedRoute(<Components.EditAccount />, {
           requireAuth: true,
         }),
+      },
+      {
+        path: "listings/:id",
+        element: (
+          <Suspense fallback={<SpinningLoader />}>
+            <Components.ListingView />
+          </Suspense>
+        ),
       },
       {
         path: "add-listing",
