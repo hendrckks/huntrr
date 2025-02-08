@@ -1,7 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  CreditCard,
-  PieChart,
   Moon,
   Sun,
   HomeIcon,
@@ -13,6 +11,7 @@ import {
   LogOut,
   MoreHorizontal,
   HousePlus,
+  HelpCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -47,9 +46,9 @@ const Sidebar = () => {
   const navItems = [
     { icon: HomeIcon, label: "Home", path: "/" },
     { icon: Bell, label: "Notifications", path: "/accounts" },
-    { icon: CreditCard, label: "Cards", path: "/cards" },
+    // { icon: CreditCard, label: "Cards", path: "/cards" },
     { icon: Bookmark, label: "Bookmarks", path: "/transactions" },
-    { icon: PieChart, label: "Spend Groups", path: "/spend-groups" },
+    { icon: HousePlus, label: "List your property", path: "/insights" },
     {
       icon: User,
       label: "Profile",
@@ -61,8 +60,8 @@ const Sidebar = () => {
           ? "/dashboard"
           : "/profile",
     },
-    { icon: HousePlus, label: "List your property", path: "/insights" },
     { icon: Settings, label: "Settings & privacy", path: "/invoices" },
+    { icon: HelpCircle, label: "Help & support", path: "/spend-groups" },
   ];
 
   const getInitials = (name: string) => {
@@ -74,7 +73,7 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="w-auto bg-[#121212] text-foreground h-[calc(100vh-1rem)] ml-2 fixed left-0 top-0 p-4 mt-2 mr-2 flex flex-col overflow-y-auto">
+    <div className="w-auto bg-[#121212] text-foreground h-[calc(100vh-1rem)] ml-2 fixed left-0 top-0 p-4 mt-4 mr-2 flex flex-col overflow-y-auto">
       {/* Search Bar */}
       <div className="mb-4">
         <div className="relative">

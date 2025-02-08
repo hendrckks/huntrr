@@ -40,7 +40,7 @@ export default function BreadcrumbNav() {
     <Breadcrumb className="mb-6 bg-white/10 w-fit px-4 py-2 rounded-md shadow-lg">
       <BreadcrumbList>
         {breadcrumbs.map((breadcrumb, index) => (
-          <BreadcrumbItem key={breadcrumb.path} className="text-xs">
+          <BreadcrumbItem key={breadcrumb.path} className="text-sm">
             {index === breadcrumbs.length - 1 ? (
               <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
             ) : (
