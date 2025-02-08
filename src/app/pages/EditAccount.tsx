@@ -173,21 +173,21 @@ const EditAccount: React.FC = () => {
   const isGoogleUser = user?.providerData[0]?.providerId === "google.com";
 
   return (
-    <div className="max-w-4xl mx-auto py-8 md:py-32 md:mt-0 mt-20 px-4 ">
-      <h1 className="text-3xl md:text-4xl font-normal text-gray-900 mb-2">
+    <div className="max-w-4xl mx-auto py-8 md:py-10 md:mt-0 mt-20 px-4 ">
+      <h1 className="text-3xl md:text-4xl font-normal bg-background dark:bg-inherit dark:text-white mb-2">
         Your Account
       </h1>
-      <p className="text-gray-600 mb-8">
+      <p className=" mb-8">
         Update your account information below.
       </p>
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-lg p-4 md:p-6 shadow-sm space-y-8"
+        className=" rounded-lg p-4 md:p-6 shadow-sm space-y-8"
       >
         {/* Personal Information Section */}
         <div>
-          <h2 className="text-lg font-medium text-gray-900 mb-6">
+          <h2 className="text-lg font-medium mb-6">
             Personal Information
           </h2>
 
@@ -222,29 +222,29 @@ const EditAccount: React.FC = () => {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Name</label>
+              <label className="block text-sm mb-1">Name</label>
               <input
                 type="text"
                 name="displayName"
                 value={formData.displayName}
                 onChange={handleChange}
                 disabled={isLoading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border bg-background dark:bg-inherit dark:text-white border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Email</label>
+              <label className="block text-sm mb-1">Email</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 disabled={isLoading || isGoogleUser}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 bg-background dark:bg-inherit dark:text-white rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               {isGoogleUser && (
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm">
                   Email cannot be changed for Google accounts
                 </p>
               )}
@@ -313,14 +313,14 @@ const EditAccount: React.FC = () => {
             type="button"
             onClick={() => navigate(-1)}
             disabled={isLoading}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-textBlack"
+            className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-white/30  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-textBlack"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className="px-4 py-2 text-sm bg-primary text-white rounded-md hover:bg-[#aab4a1] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-textBlack"
+            className="px-4 py-2 text-sm dark:bg-inherit dark:text-white text-black rounded-md hover:bg-black/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-textBlack"
           >
             {isLoading ? "Saving..." : "Save changes"}
           </button>
