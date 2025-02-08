@@ -113,8 +113,8 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center overflow-hidden bg-textBlack">
-      <Card className="w-full max-w-md">
+    <div className="flex items-center justify-center min-h-screen w-full bg-background">
+      <Card className="w-full max-w-md mx-4">
         <CardHeader className="space-y-1">
           <h2 className="text-2xl font-medium text-center">Reset Password</h2>
           <p className="text-sm text-muted-foreground text-center">
@@ -205,4 +205,4 @@ const ResetPassword = () => {
   );
 };
 
-export default ResetPassword; 
+export default ResetPassword;

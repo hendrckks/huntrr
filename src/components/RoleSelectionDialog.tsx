@@ -23,7 +23,7 @@ const RoleSelectionDialog = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-textBlack px-4">
+    <div className="min-h-screen flex items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
           <h2 className="text-2xl font-medium">Try for free</h2>

@@ -21,7 +21,7 @@ const LandlordDashboard = () => {
   };
 
   return (
-    <div className="p-10 py-20 text-2xl font-semibold">
+    <div className="font-semibold">
       <div>Dashboard</div>
       <Link to="/edit-account" className="mt-4 text-xl">
         <div className="p-4 mt-4 border rounded-md w-fit">Edit Account</div>

@@ -20,6 +20,7 @@ const Components = {
   Unauthorized: lazy(() => import("../components/Unauthorized")),
   EditAccount: lazy(() => import("../app/pages/EditAccount")),
   AdminAuthPage: lazy(() => import("../components/admin/Auth")),
+  LandingPage: lazy(() => import("../app/pages/LandingPage")),
 };
 
 const createProtectedRoute = (
@@ -36,11 +37,19 @@ const createProtectedRoute = (
 );
 
 export const router = createBrowserRouter([
+  // {
+  //   path: "/",
+  //   element: (
+  //     <Suspense fallback={<SpinningLoader />}>
+  //       <Components.LandingPage />
+  //     </Suspense>
+  //   ),
+  // },
   {
     path: "/",
     element: (
       <AuthProvider>
-        <div className="antialiased min-h-screen bg-background font-athauss">
+        <div className="antialiased bg-background font-athauss">
           <Suspense fallback={<SpinningLoader />}>
             <Components.MainLayout />
           </Suspense>

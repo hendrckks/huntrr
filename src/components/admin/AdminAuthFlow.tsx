@@ -96,7 +96,7 @@ const AdminAuthFlow: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex items-center bg-background md:mt-0 mt-20">
+    <div className="h-screen flex items-center md:mt-0 mt-20">
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="space-y-1">
           <h2 className="text-xl font-medium text-center">Admin Login</h2>

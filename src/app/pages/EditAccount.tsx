@@ -173,7 +173,7 @@ const EditAccount: React.FC = () => {
   const isGoogleUser = user?.providerData[0]?.providerId === "google.com";
 
   return (
-    <div className="max-w-4xl mx-auto py-8 md:py-10 md:mt-0 mt-20 px-4 ">
+    <div className="max-w-4xl mx-auto px-4 ">
       <h1 className="text-3xl md:text-4xl font-normal bg-background dark:bg-inherit dark:text-white mb-2">
         Your Account
       </h1>

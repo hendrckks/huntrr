@@ -106,30 +106,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const cachedUser = localStorage.getItem("user");
     
     if (sessionExpiration && Date.now() < parseInt(sessionExpiration) && cachedUser) {
-      setAuthState((prev) => ({
-        ...prev,
-        user: JSON.parse(cachedUser),
-        isLoading: false,
-      }));
+      try {
+        const parsedUser = JSON.parse(cachedUser);
+        setAuthState({
+          user: parsedUser,
+          isLoading: false,
+          isInitialized: true,
+          error: null,
+        });
+      } catch (error) {
+        console.error("Error parsing cached user:", error);
+      }
     }
 
     // Set up auth state listener
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      // If a signup is in progress, ignore this auth change.
+      // If a signup is in progress, ignore this auth change
       if (sessionStorage.getItem("suppressAuth") === "true") {
         return;
       }
 
+      setAuthState(prev => ({ ...prev, isLoading: true }));
+
       try {
+        // Check for existing valid session first
+        const sessionExpiration = sessionStorage.getItem("sessionExpiration");
+        const cachedUser = localStorage.getItem("user");
+        
+        if (sessionExpiration && Date.now() < parseInt(sessionExpiration) && cachedUser) {
+          const existingUser = JSON.parse(cachedUser);
+          if (!firebaseUser) {
+            // Keep the existing session if it's still valid
+            setAuthState({
+              user: existingUser,
+              isLoading: false,
+              isInitialized: true,
+              error: null,
+            });
+            return;
+          }
+        }
+
         if (firebaseUser) {
           let role: UserRole | undefined;
 
           // Optionally wait for proper role assignment
-          for (let i = 0; i < 10; i++) {
+          for (let i = 0; i < 3; i++) {
             const idTokenResult = await firebaseUser.getIdTokenResult(true);
             role = idTokenResult.claims.role as UserRole;
             if (role && role !== "user") break;
-            await new Promise((res) => setTimeout(res, 1000));
+            if (i < 2) await new Promise((res) => setTimeout(res, 500));
           }
 
           const userData: User = { ...firebaseUser, role };
@@ -149,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             error: null,
           });
         } else {
-          // Check if we still have valid session data
+          // Only clear session if we don't have a valid one
           const sessionExpiration = sessionStorage.getItem("sessionExpiration");
           const cachedUser = localStorage.getItem("user");
           
@@ -167,6 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         }
       } catch (error) {
+        console.error("Auth state change error:", error);
         // Clear all storage on error
         localStorage.removeItem("user");
         sessionStorage.clear();

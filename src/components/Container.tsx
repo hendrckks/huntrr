@@ -17,7 +17,8 @@ const Container = ({ children, className = "" }: ContainerProps) => {
       py-4
       mx-auto
       w-full
-      ${className}
+      
+   ${className}
     `}
     >
       {children}
