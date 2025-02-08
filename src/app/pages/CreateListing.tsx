@@ -944,9 +944,9 @@ export default function CreateListingForm() {
           )}
 
           {debugLog.length > 0 && (
-            <Card className="mt-4">
+            <Card className="mt-4 text-black">
               <CardHeader>
-                <CardTitle>Debug Log</CardTitle>
+                <CardTitle className="text-white">Debug Log</CardTitle>
               </CardHeader>
               <CardContent>
                 <pre className="bg-gray-100 p-4 rounded-lg overflow-auto max-h-60 text-sm">

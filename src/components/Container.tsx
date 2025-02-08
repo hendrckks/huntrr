@@ -16,7 +16,7 @@ const Container = ({ children, className = "" }: ContainerProps) => {
       xl:px-64
       py-4
       mx-auto
-      w-full
+      w-[75vw]
       
    ${className}
     `}

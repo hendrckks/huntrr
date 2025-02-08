@@ -24,11 +24,11 @@ const MainLayout: React.FC = () => {
 
   return (
     <ThemeProvider>
-      <div className="flex h-screen tracking-wide word-spacing-sm bg-[#121212] font-clash overflow-auto">
+      <div className="flex fixed inset-0 tracking-wide word-spacing-sm bg-[#121212] font-clash overflow-hidden">
         <ScrollToTop />
         {!shouldHideNavbar && <Sidebar />}
-        <div className={`flex-1 flex flex-col min-h-0 ${!shouldHideNavbar ? 'ml-[calc(0.5rem+16rem)]' : ''} mt-2`}>
-          <main className="flex-1 font-clash tracking-normal p-6 mb-2 mx-2 bg-[#171717] shadow-lg rounded-xl overflow-y-auto">
+        <div className={`flex-1 flex flex-col ${!shouldHideNavbar ? 'ml-[calc(0.5rem+16rem)]' : ''} mt-2 overflow-hidden`}>
+          <main className="flex-1 font-clash tracking-normal p-6 mb-2 mx-2 bg-[#171717] shadow-lg rounded-xl overflow-y-auto h-[calc(100vh-1rem)]">
             {!shouldHideNavbar && <BreadcrumbNav />}
             <Outlet />
           </main>
