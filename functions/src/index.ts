@@ -10,6 +10,26 @@ import {
 
 admin.initializeApp();
 
+// Listen for user role changes and update custom claims
+export const onUserRoleUpdate = onDocumentUpdated('users/{userId}', async (event) => {
+  const newValue = event.data?.after.data();
+  const previousValue = event.data?.before.data();
+
+  // Only proceed if the role has changed
+  if (newValue?.role !== previousValue?.role) {
+    try {
+      // Update custom claims
+      await admin.auth().setCustomUserClaims(event.params.userId, {
+        role: newValue?.role
+      });
+
+      console.log(`Updated custom claims for user ${event.params.userId} to role: ${newValue?.role}`);
+    } catch (error) {
+      console.error('Error updating custom claims:', error);
+    }
+  }
+});
+
 // Type definitions for request data
 interface SetCustomClaimsRequest {
   uid: string;

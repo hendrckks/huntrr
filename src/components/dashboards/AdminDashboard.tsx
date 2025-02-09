@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { signOut } from "../../lib/firebase/auth";
 import { useToast } from "../../hooks/useToast";
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../lib/firebase/clientApp";
 import {
   Card,
@@ -16,8 +16,6 @@ import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
-import { httpsCallable } from "firebase/functions";
-import { functions } from "../../lib/firebase/clientApp";
 import type { KYCDocument } from "../../lib/types/kyc";
 
 const AdminDashboard = () => {
@@ -30,6 +28,7 @@ const AdminDashboard = () => {
     data: kycSubmissions,
     isLoading: isLoadingKYC,
     error: kycError,
+    refetch: refetchKYC,
   } = useQuery({
     queryKey: ["kyc-submissions"],
     queryFn: async () => {
@@ -99,8 +98,25 @@ const AdminDashboard = () => {
   const handleProcessKYC = async (userId: string, approved: boolean) => {
     try {
       setProcessingId(userId);
-      const processKYC = httpsCallable(functions, "processKYC");
-      await processKYC({ userId, approved });
+
+      // Update KYC document status
+      const kycRef = doc(db, "kyc", userId);
+      await updateDoc(kycRef, {
+        status: approved ? "approved" : "rejected",
+        reviewedAt: serverTimestamp(),
+      });
+
+      // If approved, update user's role in Firestore
+      if (approved) {
+        const userRef = doc(db, "users", userId);
+        await updateDoc(userRef, {
+          role: "landlord_verified",
+          verifiedAt: serverTimestamp(),
+        });
+      }
+
+      // Refetch KYC submissions to update UI
+      await refetchKYC();
 
       toast({
         title: "Success",
