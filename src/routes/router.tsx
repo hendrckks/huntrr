@@ -25,6 +25,7 @@ const Components = {
   ListingView: lazy(() => import("../components/ListingView")),
   BookmarksPage: lazy(() => import("../app/pages/Bookmarks")),
   KYCVerification: lazy(() => import("../app/pages/KYCVerification")),
+  EditListing: lazy(() => import("../app/pages/EditListing")),
 };
 
 const createProtectedRoute = (
@@ -127,6 +128,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<SpinningLoader />}>
             <Components.ListingView />
+          </Suspense>
+        ),
+      },
+      {
+        path: "edit-listing/:id",
+        element: (
+          <Suspense fallback={<SpinningLoader />}>
+            <Components.EditListing />
           </Suspense>
         ),
       },

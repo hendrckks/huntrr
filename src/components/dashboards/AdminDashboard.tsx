@@ -13,6 +13,7 @@ import {
   serverTimestamp,
   writeBatch,
   setDoc,
+  getDoc,
 } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase/clientApp";
 import {
@@ -28,6 +29,9 @@ import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 import type { KYCDocument } from "../../lib/types/kyc";
 import { refreshUserClaims } from "../../lib/firebase/tokenRefresh";
+import { BellDot, User2Icon } from "lucide-react";
+import { FileText } from "lucide-react";
+import type { ListingDocument } from "../../lib/types/Listing";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -251,6 +255,101 @@ const AdminDashboard = () => {
     }
   };
 
+  // Add new query for pending listings
+  const {
+    data: pendingListings,
+    isLoading: isLoadingListings,
+    error: listingsError,
+    refetch: refetchListings,
+  } = useQuery({
+    queryKey: ["pending-listings"],
+    queryFn: async () => {
+      try {
+        const q = query(
+          collection(db, "listings"),
+          where("status", "==", "pending_review"),
+          orderBy("createdAt", "desc")
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as ListingDocument[];
+      } catch (error: any) {
+        if (
+          error.code === "failed-precondition" ||
+          error.message?.includes("index")
+        ) {
+          throw new Error(
+            "Database index is being created. Please wait a few minutes and try again."
+          );
+        }
+        throw error;
+      }
+    },
+    refetchInterval: 30000,
+  });
+
+  const handleListingAction = async (listingId: string, approved: boolean) => {
+    try {
+      // Verify admin privileges
+      if (!auth.currentUser) {
+        throw new Error("No authenticated user found");
+      }
+      await refreshUserClaims(auth.currentUser);
+      const idTokenResult = await auth.currentUser.getIdTokenResult(true);
+      if (idTokenResult.claims.role !== "admin") {
+        throw new Error("Insufficient admin privileges");
+      }
+
+      // Update listing status
+      const batch = writeBatch(db);
+      const listingRef = doc(db, "listings", listingId);
+
+      batch.update(listingRef, {
+        status: approved ? "published" : "denied",
+        reviewedAt: serverTimestamp(),
+        reviewedBy: auth.currentUser.uid,
+      });
+
+      // Create notification for the landlord
+      const listingDoc = await getDoc(listingRef);
+      const listingData = listingDoc.data();
+
+      if (listingData) {
+        const notificationRef = doc(collection(db, "notifications"));
+        await setDoc(notificationRef, {
+          userId: listingData.landlordId,
+          type: "listing_review",
+          message: approved
+            ? `Your listing "${listingData.title}" has been approved and is now live.`
+            : `Your listing "${listingData.title}" was not approved. Please review our guidelines and submit again.`,
+          read: false,
+          createdAt: serverTimestamp(),
+          listingId: listingId,
+        });
+      }
+
+      await batch.commit();
+      await refetchListings();
+
+      toast({
+        title: "Success",
+        description: `Listing ${
+          approved ? "approved" : "rejected"
+        } successfully`,
+        variant: "success",
+      });
+    } catch (error: any) {
+      console.error("Error processing listing:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process listing",
+        variant: "error",
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto px-4">
       <div className="flex justify-between items-center mb-4">
@@ -262,7 +361,13 @@ const AdminDashboard = () => {
 
       <Tabs defaultValue="kyc" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="kyc" className="text-white">
+          <TabsTrigger
+            value="kyc"
+            className="text-white flex items-center gap-2"
+          >
+            <span>
+              <User2Icon className="h-4 w-4" />
+            </span>
             KYC Verifications
             {kycSubmissions?.length ? (
               <Badge variant="destructive" className="ml-2">
@@ -270,7 +375,42 @@ const AdminDashboard = () => {
               </Badge>
             ) : null}
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="text-white">
+          <TabsTrigger
+            value="listings"
+            className="text-white flex items-center gap-2"
+          >
+            <span>
+              <FileText className="h-4 w-4" />
+            </span>
+            Pending Listings
+            {pendingListings?.length ? (
+              <Badge variant="destructive" className="ml-2">
+                {pendingListings.length}
+              </Badge>
+            ) : null}
+          </TabsTrigger>
+
+          {/* <TabsTrigger
+            value="listings"
+            className="text-white flex items-center gap-2"
+          >
+            <span>
+              <FileText className="h-4 w-4" />
+            </span>
+            Pending Listings
+            {pendingListings?.length ? (
+              <Badge variant="destructive" className="ml-2">
+                {pendingListings.length}
+              </Badge>
+            ) : null}
+          </TabsTrigger> */}
+          <TabsTrigger
+            value="notifications"
+            className="text-white flex items-center gap-2"
+          >
+            <span>
+              <BellDot className="h-4 w-4" />
+            </span>
             Notifications
             {notifications?.length ? (
               <Badge variant="destructive" className="ml-2">
@@ -278,7 +418,90 @@ const AdminDashboard = () => {
               </Badge>
             ) : null}
           </TabsTrigger>
+          {/* <TabsTrigger value="listings">
+            Pending Listings
+            {pendingListings && pendingListings.length > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {pendingListings.length}
+              </Badge>
+            )}
+          </TabsTrigger> */}
         </TabsList>
+
+        <TabsContent value="listings" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pending Listings</CardTitle>
+              <CardDescription>
+                Review and approve or reject new listings
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[400px] pr-4">
+                {isLoadingListings ? (
+                  <div className="flex items-center justify-center p-4">
+                    <p className="text-gray-600">Loading listings...</p>
+                  </div>
+                ) : listingsError ? (
+                  <div className="p-4 rounded-md bg-amber-50 border border-amber-200">
+                    <p className="text-amber-800">
+                      {listingsError.message?.includes("index")
+                        ? "The system is being initialized. Please wait a few minutes and refresh the page."
+                        : `Error loading listings: ${listingsError.message}`}
+                    </p>
+                  </div>
+                ) : pendingListings?.length ? (
+                  <div className="space-y-4">
+                    {pendingListings.map((listing) => (
+                      <Card key={listing.id}>
+                        <CardContent className="pt-6">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                              <h3 className="font-semibold">{listing.title}</h3>
+                              <p className="text-sm text-gray-500">
+                                {listing.location?.city},{" "}
+                                {listing.location?.area}
+                              </p>
+                              <p className="text-sm">
+                                ${listing.price}/mo · {listing.bedrooms} beds ·{" "}
+                                {listing.bathrooms} baths
+                              </p>
+                            </div>
+                            <div className="space-x-2">
+                              <Button
+                                onClick={() =>
+                                  handleListingAction(listing.id, true)
+                                }
+                                disabled={processingId === listing.id}
+                              >
+                                {processingId === listing.id
+                                  ? "Processing..."
+                                  : "Approve"}
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                onClick={() =>
+                                  handleListingAction(listing.id, false)
+                                }
+                                disabled={processingId === listing.id}
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center p-4">
+                    <p className="text-gray-600">No pending listings</p>
+                  </div>
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="kyc" className="space-y-4">
           <Card>

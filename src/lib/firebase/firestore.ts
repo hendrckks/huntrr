@@ -66,20 +66,23 @@ const LISTINGS_PER_PAGE = 20;
 const convertTimestamps = <T extends { [key: string]: any }>(
   doc: QueryDocumentSnapshot<T>
 ): T => {
-  const data = doc.data();
-  const result: { [key: string]: any } = {};
-
-  for (const [key, value] of Object.entries(data)) {
+  const convertValue = (value: any): any => {
     if (value instanceof Timestamp) {
-      result[key] = value.toDate();
-    } else {
-      result[key] = value;
+      return value.toDate();
     }
-  }
+    if (Array.isArray(value)) {
+      return value.map(convertValue);
+    }
+    if (typeof value === "object" && value !== null) {
+      return Object.fromEntries(
+        Object.entries(value).map(([k, v]) => [k, convertValue(v)])
+      );
+    }
+    return value;
+  };
 
-  return result as T;
+  return convertValue(doc.data()) as T;
 };
-
 // Listing functions
 export const createListing = async (
   listing: Omit<Listing, "id" | "status" | "createdAt" | "updatedAt">,
@@ -150,35 +153,60 @@ export const createListing = async (
   }
 };
 
+// firestore.ts
 export const updateListing = async (
   listingId: string,
-  updates: Partial<Omit<Listing, "id" | "status" | "createdAt" | "updatedAt">>
+  updates: Partial<Omit<Listing, "id" | "status" | "createdAt" | "updatedAt">>,
+  images: File[] = [],
+  userId: string
 ): Promise<void> => {
   const listingRef = doc(db, "listings", listingId);
+  // const timestamp = Timestamp.now();
+  if (
+    !(updates as Partial<Listing>).status &&
+    (updates as Partial<Listing>).status !== "pending_review"
+  ) {
+    const userDoc = await getDoc(doc(db, "users", userId));
+    if (userDoc.exists() && userDoc.data().role !== "admin") {
+      (updates as Partial<Listing>).status = "pending_review";
+    }
+  }
+  // Upload new images
+  const imageUrls: string[] = [];
+  const photos: Photo[] = [];
 
-  // First get the current listing to merge with updates
-  const currentListing = await getDoc(listingRef);
-  if (!currentListing.exists()) {
-    throw new Error("Listing not found");
+  if (images.length > 0) {
+    for (const image of images) {
+      const url = await uploadImage(image, listingId, userId);
+      imageUrls.push(url);
+      photos.push({
+        id: `photo_${photos.length}`,
+        url,
+        isPrimary: photos.length === 0,
+      });
+    }
   }
 
-  const currentData = currentListing.data() as ListingDocument;
-
-  // Merge current data with updates
-  const mergedData = {
-    ...currentData,
+  // Merge updates with image data
+  const mergedUpdates = {
     ...updates,
+    ...(images.length > 0 && { imageUrls, photos }),
     updatedAt: serverTimestamp(),
   };
 
-  // Validate the merged data
-  const validationResult = listingSchema.safeParse({
-    ...mergedData,
-    id: listingId,
-    createdAt: currentData.createdAt.toDate(),
-    updatedAt: new Date(),
-  });
+  // Validate and update
+  const currentDoc = await getDoc(listingRef);
+  if (!currentDoc.exists()) throw new Error("Listing not found");
 
+  const validationData = {
+    ...currentDoc.data(),
+    ...mergedUpdates,
+    id: listingId,
+    createdAt: currentDoc.data().createdAt.toDate(),
+    updatedAt: new Date(),
+  };
+
+  const validationResult = listingSchema.safeParse(validationData);
   if (!validationResult.success) {
     throw new Error(
       `Validation failed: ${validationResult.error.errors
@@ -187,11 +215,7 @@ export const updateListing = async (
     );
   }
 
-  await updateDoc(listingRef, {
-    ...updates,
-    updatedAt: serverTimestamp(),
-  });
-
+  await updateDoc(listingRef, mergedUpdates);
   globalCache.invalidate("listings_");
 };
 
@@ -231,29 +255,37 @@ export const getListingsByStatus = async (
   return listings;
 };
 
+// In firestore.ts, modify the getLandlordListings function
 export const getLandlordListings = async (
   landlordId: string,
   status?: ListingStatus
-) => {
+): Promise<ListingDocument[]> => {
   const cacheKey = `landlord_listings_${landlordId}_${status ?? "all"}`;
   const cached = globalCache.get(cacheKey);
 
   if (cached) {
-    return cached;
+    return cached as ListingDocument[];
   }
 
   let q = query(
     collection(db, "listings"),
     where("landlordId", "==", landlordId),
-    orderBy("createdAt", "desc")
+    orderBy("createdAt", "desc") // Must match index ordering
   );
 
   if (status) {
-    q = query(q, where("status", "==", status));
+    q = query(
+      q,
+      where("status", "==", status),
+      orderBy("status") // Add this if filtering by status
+    );
   }
-
+  
   const snapshot = await getDocs(q);
-  const listings = snapshot.docs.map(convertTimestamps);
+  const listings = snapshot.docs.map((doc) => ({
+    ...convertTimestamps(doc),
+    id: doc.id,
+  })) as ListingDocument[];
 
   globalCache.set(cacheKey, listings);
   return listings;
