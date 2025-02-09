@@ -134,7 +134,7 @@ export const router = createBrowserRouter([
         path: "add-listing",
         element: createProtectedRoute(<Components.CreateListing />, {
           requireAuth: true,
-          allowedRoles: ["landlord_unverified"],
+          allowedRoles: ["landlord_verified", "landlord_unverified"],
         }),
       },
 
