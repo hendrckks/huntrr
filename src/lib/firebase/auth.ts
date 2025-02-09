@@ -510,11 +510,10 @@ export const login = async (
       setUser(null);
       sessionStorage.removeItem("suppressAuth");
 
-      // Send a new verification email
-      await sendEmailVerification(user);
-
+      // Don't count unverified email attempts as failed login attempts
+      // Only throw the verification error
       throw new Error(
-        "Your email address has not been verified. Please check your inbox or spam folder to verfify."
+        "Your email address has not been verified. Please check your inbox or spam folder to verify."
       );
     }
 
@@ -561,10 +560,12 @@ export const login = async (
       throw new Error(getZodErrorMessage(error));
     }
 
+    // Only record failed attempts for invalid credentials, not for unverified emails
     if (
       error instanceof Error &&
       (error.name === AuthErrorCodes.INVALID_PASSWORD ||
-        error.name === AuthErrorCodes.USER_DELETED)
+        error.name === AuthErrorCodes.USER_DELETED) &&
+      !error.message.includes("not been verified") // Add this check
     ) {
       authManager.recordLoginAttempt(loginData.email, false);
     }
