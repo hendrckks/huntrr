@@ -4,10 +4,12 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
 import type { ListingDocument } from "../lib/types/Listing";
 import { useState } from "react";
+import ImageModal from "./ImageModal";
 
 const ListingView = () => {
   const { id } = useParams<{ id: string }>();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: listing, isLoading } = useQuery<ListingDocument>({
     queryKey: ["listing", id],
@@ -82,7 +84,10 @@ const ListingView = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Image Gallery */}
         <div className="space-y-4">
-          <div className="relative w-full pb-[56.25%] rounded-lg overflow-hidden">
+          <div 
+            className="relative w-full pb-[56.25%] rounded-lg overflow-hidden cursor-pointer"
+            onClick={() => setIsModalOpen(true)}
+          >
             <img
               src={listing.photos?.[selectedImageIndex]?.url || "https://via.placeholder.com/800x600?text=No+Image"}
               alt={listing.title}
@@ -94,7 +99,10 @@ const ListingView = () => {
               <div 
                 key={photo.id} 
                 className="relative w-full pb-[100%] rounded-lg overflow-hidden cursor-pointer"
-                onClick={() => setSelectedImageIndex(index)}
+                onClick={() => {
+                  setSelectedImageIndex(index);
+                  setIsModalOpen(true);
+                }}
               >
                 <img
                   src={photo.url}
@@ -262,25 +270,15 @@ const ListingView = () => {
               </div>
             </dl>
           </div>
-
-          {/* <div className="border-t pt-6">
-            <h2 className="text-lg font-semibold mb-4">Contact Landlord</h2>
-            <div className="space-y-2">
-              <p className="text-gray-600 dark:text-gray-300">
-                {listing.landlordName}
-              </p>
-              <p className="text-gray-600 dark:text-gray-300">
-                Phone: {listing.landlordContact.phone}
-              </p>
-              {listing.landlordContact.showEmail && listing.landlordContact.email && (
-                <p className="text-gray-600 dark:text-gray-300">
-                  Email: {listing.landlordContact.email}
-                </p>
-              )}
-            </div>
-          </div> */}
         </div>
       </div>
+
+      <ImageModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        imageUrl={listing?.photos?.[selectedImageIndex]?.url || ''}
+        alt={listing?.title}
+      />
     </div>
   );
 };
