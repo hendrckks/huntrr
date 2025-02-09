@@ -247,7 +247,7 @@ const ListingView = () => {
               <div>
                 <dt className="text-gray-500 dark:text-gray-400">Deposit</dt>
                 <dd className="text-gray-900 dark:text-white">
-                  ${listing.terms.depositAmount.toLocaleString()}
+                  KSh {listing.terms.depositAmount.toLocaleString()}
                 </dd>
               </div>
               <div>

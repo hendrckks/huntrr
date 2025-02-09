@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { KeyRound, Mail, Loader2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { login, resendVerificationEmail, signInWithGoogle } from "../../lib/firebase/auth";
+import {
+  login,
+  resendVerificationEmail,
+  signInWithGoogle,
+} from "../../lib/firebase/auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "../../hooks/useToast";
 import { onAuthStateChanged } from "firebase/auth";
@@ -44,7 +48,7 @@ const SignIn = () => {
 
   const handleResendVerification = async () => {
     if (resendLoading) return;
-    
+
     // Check if we need to wait before retrying
     if (nextRetryTime && Date.now() < nextRetryTime) {
       const waitTimeMinutes = Math.ceil((nextRetryTime - Date.now()) / 60000);
@@ -60,13 +64,19 @@ const SignIn = () => {
     setResendLoading(true);
     try {
       const result = await resendVerificationEmail(email, password);
-      
+
       if (result.success) {
-        // Set retry time immediately after successful send
-        const waitTime = 120000; // 2 minutes base wait time
-        const nextRetry = Date.now() + waitTime;
-        setNextRetryTime(nextRetry);
-        
+        // For the first attempt, don't set a wait time
+        if (retryCount > 0) {
+          // Set retry time only for subsequent attempts
+          const waitTime = 120000; // 2 minutes base wait time
+          const nextRetry = Date.now() + waitTime;
+          setNextRetryTime(nextRetry);
+        }
+
+        // Increment retry count after successful send
+        setRetryCount((prev) => prev + 1);
+
         toast({
           title: "Verification Email Sent",
           variant: "success",
@@ -76,28 +86,49 @@ const SignIn = () => {
       }
     } catch (error: any) {
       console.error(error);
-      
-      // Implement exponential backoff only after first attempt
+
+      if (error.code === "auth/invalid-login-credentials") {
+        toast({
+          title: "Error",
+          variant: "error",
+          description:
+            "Invalid email or password. Please check your credentials.",
+          duration: 5000,
+        });
+        return;
+      }
+
+      // Increment retry count
       const newRetryCount = retryCount + 1;
       setRetryCount(newRetryCount);
-      
+
       // Calculate next retry time with exponential backoff
-      // Base wait time is 2 minutes, doubles with each retry
-      const waitTime = Math.min(120000 * Math.pow(2, newRetryCount - 1), 3600000); // Cap at 1 hour
-      const nextRetry = Date.now() + waitTime;
-      setNextRetryTime(nextRetry);
+      // Only apply wait time after first attempt
+      if (newRetryCount > 1) {
+        const waitTime = Math.min(
+          120000 * Math.pow(2, newRetryCount - 2),
+          3600000
+        ); // Cap at 1 hour
+        const nextRetry = Date.now() + waitTime;
+        setNextRetryTime(nextRetry);
 
-      const waitTimeMinutes = Math.ceil(waitTime / 60000);
-      const errorMessage = error.code === "auth/too-many-requests"
-        ? `Too many attempts. Please wait  ${waitTimeMinutes}  minute(s) before trying again.`
-        : error.message || "Failed to resend verification email. Please try again.";
-
-      toast({
-        title: "Error",
-        variant: "error",
-        description: errorMessage,
-        duration: 8000,
-      });
+        const waitTimeMinutes = Math.ceil(waitTime / 60000);
+        toast({
+          title: "Please Wait",
+          variant: "warning",
+          description: `Please wait ${waitTimeMinutes} minute(s) before trying again.`,
+          duration: 5000,
+        });
+      } else {
+        toast({
+          title: "Error",
+          variant: "error",
+          description:
+            error.message ||
+            "Failed to resend verification email. Please try again.",
+          duration: 5000,
+        });
+      }
     } finally {
       setResendLoading(false);
     }
@@ -111,10 +142,12 @@ const SignIn = () => {
 
     try {
       const user = await login({ email, password }, setUser);
-      
+
       if (!user.emailVerified) {
         setShowVerificationMessage(true);
-        throw new Error("Your email has not been verified. Please check your inbox and verify your email.");
+        throw new Error(
+          "Your email has not been verified. Please check your inbox and verify your email."
+        );
       }
 
       toast({
@@ -238,11 +271,7 @@ const SignIn = () => {
               </div>
             </div>
 
-            <Button 
-              type="submit" 
-              disabled={loading}
-              className="w-full"
-            >
+            <Button type="submit" disabled={loading} className="w-full">
               {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Login
             </Button>
@@ -271,7 +300,9 @@ const SignIn = () => {
                 <div className="w-full border-t border-border"></div>
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">or</span>
+                <span className="bg-background px-2 text-muted-foreground">
+                  or
+                </span>
               </div>
             </div>
 
@@ -309,7 +340,10 @@ const SignIn = () => {
               <div className="flex flex-col space-y-2">
                 <AlertDescription className="text-xs">
                   <h3 className="font-medium">Verification Required</h3>
-                  <p className="mt-1">We've sent a verification email to {email}. Please check your inbox and spam folder.</p>
+                  <p className="mt-1">
+                    We've sent a verification email to {email}. Please check
+                    your inbox and spam folder.
+                  </p>
                   <Button
                     variant="outline"
                     size="sm"
@@ -317,7 +351,9 @@ const SignIn = () => {
                     disabled={resendLoading}
                     className="mt-2"
                   >
-                    {resendLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    {resendLoading && (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    )}
                     Resend Verification Email
                   </Button>
                 </AlertDescription>

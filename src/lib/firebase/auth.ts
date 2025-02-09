@@ -642,16 +642,11 @@ export const resendVerificationEmail = async (
   email: string,
   password: string
 ) => {
-  const authManager = AuthStateManager.getInstance();
+  // const authManager = AuthStateManager.getInstance();
 
   try {
     // Temporarily suppress auth state changes
     sessionStorage.setItem("suppressAuth", "true");
-
-    // Check if user is locked out
-    if (authManager.isUserLockedOut(email)) {
-      throw new Error("Account is temporarily locked. Please try again later.");
-    }
 
     // Get user credential without triggering auth state change
     const userCredential = await withRetry(() =>
@@ -660,30 +655,28 @@ export const resendVerificationEmail = async (
 
     await sendEmailVerification(userCredential.user);
 
-    // Record successful attempt
-    authManager.recordLoginAttempt(email, true);
-
     // Sign out silently
     await auth.signOut();
 
     // Remove suppression
     sessionStorage.removeItem("suppressAuth");
 
+    // Don't record this as a login attempt at all, since it's just for verification
     return {
       success: true,
       message: "Verification email resent. Please check your inbox.",
     };
   } catch (error) {
-    // Record failed attempt
-    if (
-      error instanceof Error &&
-      error.name === AuthErrorCodes.INVALID_LOGIN_CREDENTIALS
-    ) {
-      authManager.recordLoginAttempt(email, false);
+    // Don't record verification attempts as failed login attempts
+    sessionStorage.removeItem("suppressAuth");
+
+    // If it's an invalid credentials error, we still want to show that
+    if (error && typeof error === 'object' && 'code' in error && error.code === AuthErrorCodes.INVALID_LOGIN_CREDENTIALS) {
+      return handleAuthError(error);
     }
 
-    sessionStorage.removeItem("suppressAuth");
-    return handleAuthError(error);
+    // For other errors, just throw them normally
+    throw error;
   }
 };
 
