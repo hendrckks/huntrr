@@ -5,7 +5,13 @@ import { useToast } from "../../hooks/useToast";
 import { useQuery } from "@tanstack/react-query";
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "../../lib/firebase/clientApp";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Badge } from "../ui/badge";
@@ -20,21 +26,52 @@ const AdminDashboard = () => {
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   // Fetch KYC submissions
-  const { data: kycSubmissions, isLoading: isLoadingKYC } = useQuery({
+  const {
+    data: kycSubmissions,
+    isLoading: isLoadingKYC,
+    error: kycError,
+  } = useQuery({
     queryKey: ["kyc-submissions"],
     queryFn: async () => {
-      const q = query(
-        collection(db, "kyc"),
-        where("status", "==", "pending"),
-        orderBy("submittedAt", "desc")
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ ...doc.data() })) as KYCDocument[];
+      try {
+        const q = query(
+          collection(db, "kyc"),
+          where("status", "==", "pending"),
+          orderBy("submittedAt", "desc")
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            submittedAt: data.submittedAt?.toDate(),
+            createdAt: data.createdAt?.toDate(),
+            updatedAt: data.updatedAt?.toDate(),
+            reviewedAt: data.reviewedAt?.toDate(),
+          } as KYCDocument;
+        });
+      } catch (error: any) {
+        if (
+          error.code === "failed-precondition" ||
+          error.message?.includes("index")
+        ) {
+          throw new Error(
+            "Database index is being created. Please wait a few minutes and try again."
+          );
+        }
+        throw error;
+      }
     },
+    refetchInterval: 30000,
   });
 
   // Fetch admin notifications
-  const { data: notifications, isLoading: isLoadingNotifications } = useQuery({
+  const {
+    data: notifications,
+    isLoading: isLoadingNotifications,
+    error: notificationsError,
+  } = useQuery({
     queryKey: ["admin-notifications"],
     queryFn: async () => {
       const q = query(
@@ -43,19 +80,31 @@ const AdminDashboard = () => {
         orderBy("createdAt", "desc")
       );
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ ...doc.data() }));
+      return snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title,
+          message: data.message,
+          createdAt: data.createdAt?.toDate(),
+          read: data.read,
+          type: data.type,
+          relatedUserId: data.relatedUserId,
+        };
+      });
     },
+    refetchInterval: 30000,
   });
 
   const handleProcessKYC = async (userId: string, approved: boolean) => {
     try {
       setProcessingId(userId);
-      const processKYC = httpsCallable(functions, 'processKYC');
+      const processKYC = httpsCallable(functions, "processKYC");
       await processKYC({ userId, approved });
 
       toast({
         title: "Success",
-        description: `KYC ${approved ? 'approved' : 'rejected'} successfully`,
+        description: `KYC ${approved ? "approved" : "rejected"} successfully`,
         variant: "success",
       });
     } catch (error) {
@@ -86,9 +135,11 @@ const AdminDashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl font-semibold">Admin Dashboard</h1>
+        <Button variant="outline" onClick={handleSignOut}>
+          Sign Out
+        </Button>
       </div>
 
       <Tabs defaultValue="kyc" className="space-y-4">
@@ -122,7 +173,19 @@ const AdminDashboard = () => {
             <CardContent>
               <ScrollArea className="h-[400px] pr-4">
                 {isLoadingKYC ? (
-                  <p>Loading KYC submissions...</p>
+                  <div className="flex items-center justify-center p-4">
+                    <p className="text-gray-600">Loading KYC submissions...</p>
+                  </div>
+                ) : kycError ? (
+                  <div className="p-4 rounded-md bg-amber-50 border border-amber-200">
+                    <p className="text-amber-800">
+                      {kycError.message?.includes("index")
+                        ? "The system is being initialized. Please wait a few minutes and refresh the page."
+                        : `Error loading KYC submissions: ${
+                            (kycError as Error).message
+                          }`}
+                    </p>
+                  </div>
                 ) : kycSubmissions?.length ? (
                   <div className="space-y-4">
                     {kycSubmissions.map((kyc) => (
@@ -130,29 +193,38 @@ const AdminDashboard = () => {
                         <CardContent className="pt-6">
                           <div className="flex justify-between items-start">
                             <div>
-                              <p><strong>Document Type:</strong> {kyc.documentType}</p>
-                              <p><strong>Document Number:</strong> {kyc.documentNumber}</p>
-                              <p><strong>Submitted:</strong> {kyc.submittedAt.toDate().toLocaleString()}</p>
+                              <p>
+                                <strong>Document Type:</strong>{" "}
+                                {kyc.documentType}
+                              </p>
+                              <p>
+                                <strong>Document Number:</strong>{" "}
+                                {kyc.documentNumber}
+                              </p>
+                              <p>
+                                <strong>Submitted:</strong>{" "}
+                                {kyc.submittedAt.toLocaleString()}
+                              </p>
                               <div className="space-y-2">
-                                <a 
-                                  href={kyc.frontDocumentUrl} 
-                                  target="_blank" 
+                                <a
+                                  href={kyc.frontDocumentUrl}
+                                  target="_blank"
                                   rel="noopener noreferrer"
                                   className="block text-blue-500 hover:underline"
                                 >
                                   View Front Document
                                 </a>
-                                <a 
-                                  href={kyc.backDocumentUrl} 
-                                  target="_blank" 
+                                <a
+                                  href={kyc.backDocumentUrl}
+                                  target="_blank"
                                   rel="noopener noreferrer"
                                   className="block text-blue-500 hover:underline"
                                 >
                                   View Back Document
                                 </a>
-                                <a 
-                                  href={kyc.selfieUrl} 
-                                  target="_blank" 
+                                <a
+                                  href={kyc.selfieUrl}
+                                  target="_blank"
                                   rel="noopener noreferrer"
                                   className="block text-blue-500 hover:underline"
                                 >
@@ -163,14 +235,20 @@ const AdminDashboard = () => {
                             <div className="space-x-2">
                               <Button
                                 variant="default"
-                                onClick={() => handleProcessKYC(kyc.userId, true)}
+                                onClick={() =>
+                                  handleProcessKYC(kyc.userId, true)
+                                }
                                 disabled={!!processingId}
                               >
-                                {processingId === kyc.userId ? "Processing..." : "Approve"}
+                                {processingId === kyc.userId
+                                  ? "Processing..."
+                                  : "Approve"}
                               </Button>
                               <Button
                                 variant="destructive"
-                                onClick={() => handleProcessKYC(kyc.userId, false)}
+                                onClick={() =>
+                                  handleProcessKYC(kyc.userId, false)
+                                }
                                 disabled={!!processingId}
                               >
                                 Reject
@@ -182,7 +260,11 @@ const AdminDashboard = () => {
                     ))}
                   </div>
                 ) : (
-                  <p>No pending KYC verifications</p>
+                  <div className="flex items-center justify-center p-4">
+                    <p className="text-gray-600">
+                      No pending KYC verifications
+                    </p>
+                  </div>
                 )}
               </ScrollArea>
             </CardContent>
@@ -193,23 +275,45 @@ const AdminDashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle>Notifications</CardTitle>
-              <CardDescription>
-                System notifications and alerts
-              </CardDescription>
+              <CardDescription>System notifications and alerts</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[400px] pr-4">
                 {isLoadingNotifications ? (
                   <p>Loading notifications...</p>
+                ) : notificationsError ? (
+                  <p className="text-red-500">
+                    Error loading notifications:{" "}
+                    {(notificationsError as Error).message}
+                  </p>
                 ) : notifications?.length ? (
                   <div className="space-y-4">
-                    {notifications.map((notification) => (
+                    {notifications?.map((notification) => (
                       <Card key={notification.id}>
                         <CardContent className="pt-6">
-                          <h3 className="font-semibold">{notification.title}</h3>
-                          <p className="text-sm text-gray-500">{notification.message}</p>
+                          <h3 className="font-semibold">
+                            {notification.title}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {notification.message}
+                          </p>
+                          {notification.type === "kyc_submission" && (
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto font-normal text-blue-500"
+                              onClick={() => {
+                                (
+                                  document.querySelector(
+                                    '[value="kyc"]'
+                                  ) as HTMLElement
+                                )?.click();
+                              }}
+                            >
+                              View KYC Submission
+                            </Button>
+                          )}
                           <p className="text-xs text-gray-400 mt-2">
-                            {notification.createdAt.toDate().toLocaleString()}
+                            {notification.createdAt.toLocaleString()}
                           </p>
                         </CardContent>
                       </Card>
