@@ -4,6 +4,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import SpinningLoader from "../components/SpinningLoader";
 import { UserRole } from "../lib/types/auth";
 import { AuthProvider } from "../contexts/AuthContext";
+import { BookmarkProvider } from "../contexts/BookmarkContext";
 
 // Lazy load components
 const Components = {
@@ -14,8 +15,12 @@ const Components = {
   SignIn: lazy(() => import("../app/auth/SignIn")),
   ResetPassword: lazy(() => import("../app/auth/ResetPassword")),
   RoleSelectionDialog: lazy(() => import("../components/RoleSelectionDialog")),
-  TenantDashboard: lazy(() => import("../components/dashboards/TenantDashboard")),
-  LandlordDashboard: lazy(() => import("../components/dashboards/LandloardDashboard")),
+  TenantDashboard: lazy(
+    () => import("../components/dashboards/TenantDashboard")
+  ),
+  LandlordDashboard: lazy(
+    () => import("../components/dashboards/LandloardDashboard")
+  ),
   AdminDashboard: lazy(() => import("../components/dashboards/AdminDashboard")),
   Unauthorized: lazy(() => import("../components/Unauthorized")),
   EditAccount: lazy(() => import("../app/pages/EditAccount")),
@@ -51,11 +56,13 @@ export const router = createBrowserRouter([
     path: "/",
     element: (
       <AuthProvider>
-        <div className="antialiased bg-background font-athauss">
-          <Suspense fallback={<SpinningLoader />}>
-            <Components.MainLayout />
-          </Suspense>
-        </div>
+        <BookmarkProvider>
+          <div className="antialiased bg-background font-athauss">
+            <Suspense fallback={<SpinningLoader />}>
+              <Components.MainLayout />
+            </Suspense>
+          </div>
+        </BookmarkProvider>
       </AuthProvider>
     ),
     children: [

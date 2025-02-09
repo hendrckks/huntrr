@@ -2,11 +2,12 @@ import { Link } from "react-router-dom";
 import { Bookmark } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import type { ListingDocument } from "../lib/types/Listing";
-import { toggleBookmark } from "../lib/firebase/firestore";
 import { useAuth } from "../contexts/AuthContext"; // Assuming you have an auth context
-import { useQueryClient } from '@tanstack/react-query';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase/clientApp';
+import { useQueryClient } from "@tanstack/react-query";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../lib/firebase/clientApp";
+import { useBookmarks } from "../contexts/BookmarkContext";
+import { useCallback, useRef, useState } from "react";
 
 interface ListingCardProps {
   listing?: ListingDocument;
@@ -20,23 +21,25 @@ const ListingCard = ({
   listing,
   isLoading = false,
   showBookmark = true,
-  isBookmarked = false,
   onBookmarkToggle,
 }: ListingCardProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { isBookmarked, addBookmark, removeBookmark } = useBookmarks();
+  const [isDissolving, setIsDissolving] = useState(false);
+  const dissolveAnimRef = useRef<SVGAnimateElement>(null);
 
   // Prefetch listing details on hover
   const handleMouseEnter = () => {
     if (listing) {
       queryClient.prefetchQuery({
-        queryKey: ['listing', listing.id],
+        queryKey: ["listing", listing.id],
         queryFn: async () => {
-          const docRef = doc(db, 'listings', listing.id);
+          const docRef = doc(db, "listings", listing.id);
           const docSnap = await getDoc(docRef);
           if (!docSnap.exists()) {
-            throw new Error('Listing not found');
+            throw new Error("Listing not found");
           }
           return { ...docSnap.data(), id: docSnap.id } as ListingDocument;
         },
@@ -45,37 +48,59 @@ const ListingCard = ({
     }
   };
 
-  const handleBookmarkClick = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigation when clicking bookmark
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to bookmark listings",
-        variant: "error",
-      });
-      return;
-    }
+  const handleBookmarkClick = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault(); // Prevent navigation when clicking bookmark
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to bookmark listings",
+          variant: "error",
+        });
+        return;
+      }
 
-    if (!listing) return;
+      if (!listing) return;
 
-    try {
-      const isNowBookmarked = await toggleBookmark(user.uid, listing.id);
-      onBookmarkToggle?.(listing.id);
-
-      toast({
-        title: isNowBookmarked ? "Listing Bookmarked" : "Bookmark Removed",
-        description: isNowBookmarked
-          ? "The listing has been added to your bookmarks"
-          : "The listing has been removed from your bookmarks",
-      });
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to update bookmark",
-        variant: "error",
-      });
-    }
-  };
+      const isCurrentlyBookmarked = isBookmarked(listing.id);
+      
+      try {
+        if (isCurrentlyBookmarked) {
+          // Start dissolve animation immediately for visual feedback
+          setIsDissolving(true);
+          dissolveAnimRef.current?.beginElement();
+          await removeBookmark(listing.id);
+          onBookmarkToggle?.(listing.id);
+          toast({
+            title: "Success",
+            description: "Listing removed from bookmarks",
+            variant: "success"
+          });
+          // Complete the dissolve animation
+          setTimeout(() => {
+            setIsDissolving(false);
+          }, 1500);
+        } else {
+          await addBookmark(listing.id);
+          onBookmarkToggle?.(listing.id);
+          toast({
+            title: "Success",
+            description: "Listing added to bookmarks",
+            variant: "success"
+          });
+        }
+      } catch (error) {
+        console.error('Error toggling bookmark:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update bookmark. Please try again.",
+          variant: "error",
+        });
+        setIsDissolving(false); // Reset dissolving state on error
+      }
+    },
+    [user, listing, isBookmarked, addBookmark, removeBookmark, onBookmarkToggle, toast]
+  );
 
   if (isLoading) {
     return (
@@ -113,16 +138,25 @@ const ListingCard = ({
       onMouseEnter={handleMouseEnter}
     >
       {showBookmark && (
-        <button
-          onClick={handleBookmarkClick}
-          className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
-        >
-          <Bookmark
-            className={`w-4 h-4 ${
-              isBookmarked ? "fill-current text-blue-500" : "text-gray-600"
-            }`}
-          />
-        </button>
+        <>
+          <button
+            onClick={handleBookmarkClick}
+            className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
+            style={{
+              filter: isDissolving
+                ? `url(#dissolve-filter-${listing?.id})`
+                : "none",
+            }}
+          >
+            <Bookmark
+              className={`w-4 h-4 ${
+                isBookmarked(listing?.id || "")
+                  ? "fill-current text-black"
+                  : "text-gray-600"
+              }`}
+            />
+          </button>
+        </>
       )}
       <div className="relative w-full pb-[75%] overflow-hidden rounded-lg">
         <img
