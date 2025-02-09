@@ -4,6 +4,9 @@ import { useToast } from "../hooks/useToast";
 import type { ListingDocument } from "../lib/types/Listing";
 import { toggleBookmark } from "../lib/firebase/firestore";
 import { useAuth } from "../contexts/AuthContext"; // Assuming you have an auth context
+import { useQueryClient } from '@tanstack/react-query';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase/clientApp';
 
 interface ListingCardProps {
   listing?: ListingDocument;
@@ -22,6 +25,25 @@ const ListingCard = ({
 }: ListingCardProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Prefetch listing details on hover
+  const handleMouseEnter = () => {
+    if (listing) {
+      queryClient.prefetchQuery({
+        queryKey: ['listing', listing.id],
+        queryFn: async () => {
+          const docRef = doc(db, 'listings', listing.id);
+          const docSnap = await getDoc(docRef);
+          if (!docSnap.exists()) {
+            throw new Error('Listing not found');
+          }
+          return { ...docSnap.data(), id: docSnap.id } as ListingDocument;
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes
+      });
+    }
+  };
 
   const handleBookmarkClick = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation when clicking bookmark
@@ -88,6 +110,7 @@ const ListingCard = ({
     <Link
       to={`/listings/${listing.id}`}
       className="block rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 relative"
+      onMouseEnter={handleMouseEnter}
     >
       {showBookmark && (
         <button

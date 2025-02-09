@@ -1,68 +1,131 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../../contexts/AuthContext";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../../lib/firebase/clientApp";
-import ListingCard from "../../components/ListingCard";
-import { useToast } from "../../hooks/useToast";
-import type { ListingDocument, BookmarkDocument } from "../../lib/types/Listing";
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../../lib/firebase/clientApp';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../hooks/useToast';
+import ListingCard from '../../components/ListingCard';
+import type { ListingDocument, BookmarkDocument } from '../../lib/types/Listing';
+import { toggleBookmark } from '../../lib/firebase/firestore';
 
-const BookmarksPage = () => {
-  const [listings, setListings] = useState<ListingDocument[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+// Query keys for better cache management
+const queryKeys = {
+  bookmarks: (userId: string) => ['bookmarks', userId],
+  listings: (listingIds: string[]) => ['listings', listingIds],
+};
+
+// Custom hook to manage bookmarks state and operations
+const useBookmarks = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchBookmarks = async () => {
-      if (!user) return;
+  // Fetch bookmarks
+  const bookmarksQuery = useQuery({
+    queryKey: queryKeys.bookmarks(user?.uid || ''),
+    queryFn: async () => {
+      if (!user) return [];
       
-      try {
-        setIsLoading(true);
-        // First get the user's bookmarks
-        const bookmarksQuery = query(
-          collection(db, "bookmarks"),
-          where("userId", "==", user.uid)
+      const bookmarksRef = query(
+        collection(db, 'bookmarks'),
+        where('userId', '==', user.uid)
+      );
+      const snapshot = await getDocs(bookmarksRef);
+      return snapshot.docs.map(doc => doc.data() as BookmarkDocument);
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+  });
+
+  // Fetch listings for bookmarks
+  const listingsQuery = useQuery({
+    queryKey: queryKeys.listings(bookmarksQuery.data?.map(b => b.listingId) || []),
+    queryFn: async () => {
+      if (!bookmarksQuery.data?.length) return [];
+
+      const listingIds = bookmarksQuery.data.map(b => b.listingId);
+      const listings: ListingDocument[] = [];
+
+      // Batch fetch listings in groups of 10
+      for (let i = 0; i < listingIds.length; i += 10) {
+        const batch = listingIds.slice(i, i + 10);
+        const q = query(
+          collection(db, 'listings'),
+          where('id', 'in', batch)
         );
-        const bookmarksSnapshot = await getDocs(bookmarksQuery);
-        const bookmarkDocs = bookmarksSnapshot.docs.map(doc => ({
-          ...doc.data(),
-          id: doc.id
-        })) as BookmarkDocument[];
-
-        // Then fetch the corresponding listings
-        const listingPromises = bookmarkDocs.map(async bookmark => {
-          const listingRef = collection(db, "listings");
-          const listingSnapshot = await getDocs(
-            query(listingRef, where("id", "==", bookmark.listingId))
-          );
-          return {
-            ...listingSnapshot.docs[0].data(),
-            id: listingSnapshot.docs[0].id
-          } as ListingDocument;
-        });
-        
-        const listingData = await Promise.all(listingPromises);
-        setListings(listingData);
-      } catch (error) {
-        console.error("Error fetching bookmarks:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load bookmarks",
-          variant: "error",
-        });
-      } finally {
-        setIsLoading(false);
+        const snapshot = await getDocs(q);
+        listings.push(...snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as ListingDocument));
       }
-    };
 
-    fetchBookmarks();
-  }, [user, toast]);
+      return listings;
+    },
+    enabled: !!bookmarksQuery.data?.length,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
 
-  const handleBookmarkToggle = (listingId: string) => {
-    setListings(prevListings => 
-      prevListings.filter(listing => listing.id !== listingId)
-    );
+  // Optimistic updates for bookmark toggle
+  const toggleBookmarkMutation = useMutation({
+    mutationFn: async (listingId: string) => {
+      if (!user) throw new Error('User not authenticated');
+      return toggleBookmark(user.uid, listingId);
+    },
+    onMutate: async (listingId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.bookmarks(user?.uid || '') });
+
+      // Snapshot previous value
+      const previousBookmarks = queryClient.getQueryData(queryKeys.bookmarks(user?.uid || ''));
+
+      // Optimistically update bookmarks
+      queryClient.setQueryData(
+        queryKeys.bookmarks(user?.uid || ''),
+        (old: BookmarkDocument[] = []) => {
+          const exists = old.some(b => b.listingId === listingId);
+          if (exists) {
+            return old.filter(b => b.listingId !== listingId);
+          }
+          return [...old, { 
+            userId: user!.uid, 
+            listingId, 
+            id: `${user!.uid}_${listingId}`,
+            createdAt: new Date()
+          }];
+        }
+      );
+
+      return { previousBookmarks };
+    },
+    onError: (_err, _listingId, context) => {
+      // Revert on error
+      if (context?.previousBookmarks) {
+        queryClient.setQueryData(
+          queryKeys.bookmarks(user?.uid || ''),
+          context.previousBookmarks
+        );
+      }
+      toast({
+        title: 'Error',
+        description: 'Failed to update bookmark',
+        variant: 'error',
+      });
+    },
+    onSettled: () => {
+      // Refresh queries after mutation
+      queryClient.invalidateQueries({ queryKey: queryKeys.bookmarks(user?.uid || '') });
+    },
+  });
+
+  return {
+    listings: listingsQuery.data || [],
+    isLoading: bookmarksQuery.isLoading || listingsQuery.isLoading,
+    toggleBookmark: toggleBookmarkMutation.mutate,
   };
+};
+
+// Optimized Bookmarks Page Component
+const BookmarksPage = () => {
+  const { listings, isLoading, toggleBookmark } = useBookmarks();
 
   if (isLoading) {
     return (
@@ -77,30 +140,25 @@ const BookmarksPage = () => {
     );
   }
 
-  if (!listings.length) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4">
-        <h1 className="text-xl font-medium mb-4">Your Bookmarks</h1>
-        <p className="text-gray-500 text-center py-8">
-          You haven't bookmarked any listings yet.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4">
       <h1 className="text-xl font-medium mb-4">Your Bookmarks</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {listings.map((listing) => (
-          <ListingCard
-            key={listing.id}
-            listing={listing}
-            isBookmarked={true}
-            onBookmarkToggle={handleBookmarkToggle}
-          />
-        ))}
-      </div>
+      {!listings.length ? (
+        <p className="text-gray-500 text-center py-8">
+          You haven't bookmarked any listings yet.
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {listings.map((listing) => (
+            <ListingCard
+              key={listing.id}
+              listing={listing}
+              isBookmarked={true}
+              onBookmarkToggle={() => toggleBookmark(listing.id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
