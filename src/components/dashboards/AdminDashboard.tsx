@@ -15,7 +15,7 @@ import {
   writeBatch,
   setDoc,
 } from "firebase/firestore";
-import { db } from "../../lib/firebase/clientApp";
+import { auth, db } from "../../lib/firebase/clientApp";
 import {
   Card,
   CardContent,
@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 import type { KYCDocument } from "../../lib/types/kyc";
+import { refreshUserClaims } from "../../lib/firebase/tokenRefresh";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -109,17 +110,29 @@ const AdminDashboard = () => {
   const handleProcessKYC = async (userId: string, approved: boolean) => {
     try {
       setProcessingId(userId);
-
+  
+      // Refresh admin token to ensure up-to-date privileges
+      if (auth.currentUser) {
+        await refreshUserClaims(auth.currentUser);
+        const idTokenResult = await auth.currentUser.getIdTokenResult(true);
+        if (idTokenResult.claims.role !== 'admin') {
+          throw new Error('Insufficient admin privileges');
+        }
+      } else {
+        throw new Error('No authenticated user found');
+      }
+  
       // Start a batch write to ensure atomicity
       const batch = writeBatch(db);
-
+  
       // Update KYC document status
       const kycRef = doc(db, "kyc", userId);
       batch.update(kycRef, {
         status: approved ? "approved" : "rejected",
         reviewedAt: serverTimestamp(),
+        reviewedBy: auth.currentUser.uid
       });
-
+  
       // If approved, update user's role in Firestore
       if (approved) {
         const userRef = doc(db, "users", userId);
@@ -128,25 +141,25 @@ const AdminDashboard = () => {
           verifiedAt: serverTimestamp(),
         });
       }
-
+  
       // Commit the batch
       await batch.commit();
-
+  
       // Send notification to the user about their verification status
       const notificationRef = doc(collection(db, "notifications"));
       await setDoc(notificationRef, {
         userId,
         type: "kyc_verification",
         message: approved 
-          ? "Your KYC verification has been approved. You can now list properties." 
+          ? "Your KYC verification has been approved. You can now list properties. Please sign out and sign in again to refresh your permissions." 
           : "Your KYC verification was not approved. Please contact support for more information.",
         read: false,
         createdAt: serverTimestamp()
       });
-
+  
       // Refetch KYC submissions to update UI
       await refetchKYC();
-
+  
       toast({
         title: "Success",
         description: `KYC ${approved ? "approved" : "rejected"} successfully`,
