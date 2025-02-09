@@ -108,31 +108,34 @@ const AdminDashboard = () => {
   });
 
   const handleProcessKYC = async (userId: string, approved: boolean) => {
-    try {
-      setProcessingId(userId);
-  
-      // Refresh admin token to ensure up-to-date privileges
-      if (auth.currentUser) {
-        await refreshUserClaims(auth.currentUser);
-        const idTokenResult = await auth.currentUser.getIdTokenResult(true);
-        if (idTokenResult.claims.role !== 'admin') {
-          throw new Error('Insufficient admin privileges');
-        }
-      } else {
+    const maxRetries = 3;
+    let currentRetry = 0;
+
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const verifyAdminPrivileges = async () => {
+      if (!auth.currentUser) {
         throw new Error('No authenticated user found');
       }
-  
-      // Start a batch write to ensure atomicity
+      await refreshUserClaims(auth.currentUser);
+      const idTokenResult = await auth.currentUser.getIdTokenResult(true);
+      if (idTokenResult.claims.role !== 'admin') {
+        throw new Error('Insufficient admin privileges');
+      }
+      return auth.currentUser;
+    };
+
+    const performBatchOperations = async (currentUser: any) => {
       const batch = writeBatch(db);
-  
+
       // Update KYC document status
       const kycRef = doc(db, "kyc", userId);
       batch.update(kycRef, {
         status: approved ? "approved" : "rejected",
         reviewedAt: serverTimestamp(),
-        reviewedBy: auth.currentUser.uid
+        reviewedBy: currentUser.uid
       });
-  
+
       // If approved, update user's role in Firestore
       if (approved) {
         const userRef = doc(db, "users", userId);
@@ -141,11 +144,11 @@ const AdminDashboard = () => {
           verifiedAt: serverTimestamp(),
         });
       }
-  
-      // Commit the batch
+
       await batch.commit();
-  
-      // Send notification to the user about their verification status
+    };
+
+    const sendUserNotification = async () => {
       const notificationRef = doc(collection(db, "notifications"));
       await setDoc(notificationRef, {
         userId,
@@ -156,20 +159,52 @@ const AdminDashboard = () => {
         read: false,
         createdAt: serverTimestamp()
       });
-  
-      // Refetch KYC submissions to update UI
-      await refetchKYC();
-  
-      toast({
-        title: "Success",
-        description: `KYC ${approved ? "approved" : "rejected"} successfully`,
-        variant: "success",
-      });
-    } catch (error) {
+    };
+
+    try {
+      setProcessingId(userId);
+
+      while (currentRetry < maxRetries) {
+        try {
+          // Step 1: Verify admin privileges
+          const currentUser = await verifyAdminPrivileges();
+
+          // Step 2: Perform batch operations
+          await performBatchOperations(currentUser);
+
+          // Step 3: Send notification
+          await sendUserNotification();
+
+          // Step 4: Refresh UI
+          await refetchKYC();
+
+          // Success! Break the retry loop
+          toast({
+            title: "Success",
+            description: `KYC ${approved ? "approved" : "rejected"} successfully`,
+            variant: "success",
+          });
+          return;
+
+        } catch (error: any) {
+          currentRetry++;
+          
+          // If we've exhausted all retries, throw the error
+          if (currentRetry === maxRetries) {
+            throw error;
+          }
+
+          // Calculate delay with exponential backoff (1s, 2s, 4s)
+          const delay = Math.pow(2, currentRetry - 1) * 1000;
+          console.log(`Attempt ${currentRetry} failed, retrying in ${delay}ms...`);
+          await sleep(delay);
+        }
+      }
+    } catch (error: any) {
       console.error("Error processing KYC:", error);
       toast({
         title: "Error",
-        description: "Failed to process KYC submission",
+        description: error.message || "Failed to process KYC submission",
         variant: "error",
       });
     } finally {
