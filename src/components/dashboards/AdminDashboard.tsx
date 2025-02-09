@@ -10,8 +10,10 @@ import {
   where,
   orderBy,
   doc,
-  updateDoc,
+  // updateDoc,
   serverTimestamp,
+  writeBatch,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "../../lib/firebase/clientApp";
 import {
@@ -108,9 +110,12 @@ const AdminDashboard = () => {
     try {
       setProcessingId(userId);
 
+      // Start a batch write to ensure atomicity
+      const batch = writeBatch(db);
+
       // Update KYC document status
       const kycRef = doc(db, "kyc", userId);
-      await updateDoc(kycRef, {
+      batch.update(kycRef, {
         status: approved ? "approved" : "rejected",
         reviewedAt: serverTimestamp(),
       });
@@ -118,11 +123,26 @@ const AdminDashboard = () => {
       // If approved, update user's role in Firestore
       if (approved) {
         const userRef = doc(db, "users", userId);
-        await updateDoc(userRef, {
+        batch.update(userRef, {
           role: "landlord_verified",
           verifiedAt: serverTimestamp(),
         });
       }
+
+      // Commit the batch
+      await batch.commit();
+
+      // Send notification to the user about their verification status
+      const notificationRef = doc(collection(db, "notifications"));
+      await setDoc(notificationRef, {
+        userId,
+        type: "kyc_verification",
+        message: approved 
+          ? "Your KYC verification has been approved. You can now list properties." 
+          : "Your KYC verification was not approved. Please contact support for more information.",
+        read: false,
+        createdAt: serverTimestamp()
+      });
 
       // Refetch KYC submissions to update UI
       await refetchKYC();

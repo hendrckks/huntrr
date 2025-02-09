@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "../../hooks/useToast";
 import { AuthStateManager } from "../../lib/firebase/auth";
+import { refreshUserClaims } from "../../lib/firebase/tokenRefresh";
 import {
   doc,
   updateDoc,
@@ -65,7 +66,8 @@ const AdminAuthFlow: React.FC = () => {
 
         if (user) {
           try {
-            const idTokenResult = await user.getIdTokenResult(true);
+            await refreshUserClaims(user);
+            const idTokenResult = await user.getIdTokenResult();
             if (idTokenResult.claims.role === "admin") {
               const userDoc = await getDoc(doc(db, "users", user.uid));
               const userData = userDoc.data();
@@ -132,7 +134,8 @@ const AdminAuthFlow: React.FC = () => {
         validatedData.password
       );
 
-      const idTokenResult = await userCredential.user.getIdTokenResult(true);
+      await refreshUserClaims(userCredential.user);
+      const idTokenResult = await userCredential.user.getIdTokenResult();
 
       if (idTokenResult.claims.role !== "admin") {
         throw new Error("You do not have admin privileges.");
