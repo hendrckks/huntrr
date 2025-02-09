@@ -210,7 +210,7 @@ const ListingView = () => {
                   {listing.utilities.includedUtilities.map((utility) => (
                     <span
                       key={utility}
-                      className="px-3 py-1 bg-gray-100 dark:bg-white/40 rounded-md text-sm"
+                      className="px-3 py-1 bg-gray-100 dark:bg-white/20 rounded-md text-sm"
                     >
                       {utility}
                     </span>

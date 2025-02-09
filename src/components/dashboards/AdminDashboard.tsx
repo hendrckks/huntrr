@@ -10,7 +10,6 @@ import {
   where,
   orderBy,
   doc,
-  // updateDoc,
   serverTimestamp,
   writeBatch,
   setDoc,
@@ -35,7 +34,7 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  // Fetch KYC submissions
+  // Fetch KYC submissions (unchanged)
   const {
     data: kycSubmissions,
     isLoading: isLoadingKYC,
@@ -77,7 +76,7 @@ const AdminDashboard = () => {
     refetchInterval: 30000,
   });
 
-  // Fetch admin notifications
+  // Updated notifications query to use existing index
   const {
     data: notifications,
     isLoading: isLoadingNotifications,
@@ -85,24 +84,46 @@ const AdminDashboard = () => {
   } = useQuery({
     queryKey: ["admin-notifications"],
     queryFn: async () => {
-      const q = query(
-        collection(db, "adminNotifications"),
-        where("read", "==", false),
-        orderBy("createdAt", "desc")
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          title: data.title,
-          message: data.message,
-          createdAt: data.createdAt?.toDate(),
-          read: data.read,
-          type: data.type,
-          relatedUserId: data.relatedUserId,
-        };
-      });
+      try {
+        // Use the existing index (read Ascending, createdAt Descending)
+        const q = query(
+          collection(db, "adminNotifications"),
+          where("read", "==", false),
+          orderBy("createdAt", "desc")
+        );
+
+        const snapshot = await getDocs(q);
+
+        return snapshot.docs.map((doc) => {
+          const data = doc.data();
+          // Normalize the date field, checking both timestamp and createdAt
+          const dateValue = data.createdAt || data.timestamp;
+
+          return {
+            id: doc.id,
+            title: data.title || "Notification",
+            message: data.message || "No message provided",
+            createdAt: dateValue?.toDate() || new Date(),
+            read: data.read ?? false,
+            type: data.type || "general",
+            priority: data.priority || "normal",
+            relatedUserId: data.userId || data.relatedUserId || null,
+            relatedListingId: data.relatedListingId || null,
+            metadata: data.metadata || {},
+          };
+        });
+      } catch (error: any) {
+        console.error("Raw error:", error);
+        if (
+          error.code === "failed-precondition" ||
+          error.message?.includes("index")
+        ) {
+          throw new Error(
+            "Database index is being created. Please wait a few minutes and try again."
+          );
+        }
+        throw error;
+      }
     },
     refetchInterval: 30000,
   });
@@ -111,16 +132,17 @@ const AdminDashboard = () => {
     const maxRetries = 3;
     let currentRetry = 0;
 
-    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    const sleep = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
 
     const verifyAdminPrivileges = async () => {
       if (!auth.currentUser) {
-        throw new Error('No authenticated user found');
+        throw new Error("No authenticated user found");
       }
       await refreshUserClaims(auth.currentUser);
       const idTokenResult = await auth.currentUser.getIdTokenResult(true);
-      if (idTokenResult.claims.role !== 'admin') {
-        throw new Error('Insufficient admin privileges');
+      if (idTokenResult.claims.role !== "admin") {
+        throw new Error("Insufficient admin privileges");
       }
       return auth.currentUser;
     };
@@ -133,7 +155,7 @@ const AdminDashboard = () => {
       batch.update(kycRef, {
         status: approved ? "approved" : "rejected",
         reviewedAt: serverTimestamp(),
-        reviewedBy: currentUser.uid
+        reviewedBy: currentUser.uid,
       });
 
       // If approved, update user's role in Firestore
@@ -153,11 +175,11 @@ const AdminDashboard = () => {
       await setDoc(notificationRef, {
         userId,
         type: "kyc_verification",
-        message: approved 
-          ? "Your KYC verification has been approved. You can now list properties. Please sign out and sign in again to refresh your permissions." 
+        message: approved
+          ? "Your KYC verification has been approved. You can now list properties. Please sign out and sign in again to refresh your permissions."
           : "Your KYC verification was not approved. Please contact support for more information.",
         read: false,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       });
     };
 
@@ -181,14 +203,15 @@ const AdminDashboard = () => {
           // Success! Break the retry loop
           toast({
             title: "Success",
-            description: `KYC ${approved ? "approved" : "rejected"} successfully`,
+            description: `KYC ${
+              approved ? "approved" : "rejected"
+            } successfully`,
             variant: "success",
           });
           return;
-
         } catch (error: any) {
           currentRetry++;
-          
+
           // If we've exhausted all retries, throw the error
           if (currentRetry === maxRetries) {
             throw error;
@@ -196,7 +219,9 @@ const AdminDashboard = () => {
 
           // Calculate delay with exponential backoff (1s, 2s, 4s)
           const delay = Math.pow(2, currentRetry - 1) * 1000;
-          console.log(`Attempt ${currentRetry} failed, retrying in ${delay}ms...`);
+          console.log(
+            `Attempt ${currentRetry} failed, retrying in ${delay}ms...`
+          );
           await sleep(delay);
         }
       }
