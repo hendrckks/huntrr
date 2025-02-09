@@ -1,5 +1,5 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 import {
   CustomError,
@@ -23,6 +23,17 @@ export const onUserRoleUpdate = onDocumentUpdated(
         // Update custom claims
         await admin.auth().setCustomUserClaims(event.params.userId, {
           role: newValue?.role,
+        });
+
+        // Add a notification in Firestore about the role change
+        await admin.firestore().collection('adminNotifications').add({
+          type: 'role_update',
+          userId: event.params.userId,
+          previousRole: previousValue?.role,
+          newRole: newValue?.role,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          message: `User ${event.params.userId} role updated from ${previousValue?.role} to ${newValue?.role}`,
+          read: false
         });
 
         console.log(
@@ -124,45 +135,6 @@ export const setCustomClaims = onCall<SetCustomClaimsRequest>(
   }
 );
 
-// // Listen for user role changes and update custom claims
-// export const onUserRoleUpdate = onDocumentUpdated('users/{userId}', async (event) => {
-//   const newData = event.data?.after.data();
-//   const previousData = event.data?.before.data();
-//   const userId = event.params.userId;
-
-//   // Only proceed if the role has changed
-//   if (newData?.role !== previousData?.role) {
-//     try {
-//       // Get the current custom claims
-//       const user = await admin.auth().getUser(userId);
-//       const currentClaims = user.customClaims || {};
-
-//       // Update custom claims with new role
-//       await admin.auth().setCustomUserClaims(userId, {
-//         ...currentClaims,
-//         role: newData?.role
-//       });
-
-//       // Add a notification in Firestore about the role change
-//       await admin.firestore().collection('adminNotifications').add({
-//         type: 'role_update',
-//         userId: userId,
-//         previousRole: previousData?.role,
-//         newRole: newData?.role,
-//         timestamp: admin.firestore.FieldValue.serverTimestamp(),
-//         message: `User ${userId} role updated from ${previousData?.role} to ${newData?.role}`,
-//         read: false
-//       });
-
-//       console.log(`Successfully updated custom claims for user ${userId}. New role: ${newData?.role}`);
-//     } catch (error) {
-//       console.error('Error updating custom claims:', error);
-//       throw new Error(`Failed to update custom claims for user ${userId}`);
-//     }
-//   }
-// });
-
-// Function to verify a landlord
 export const verifyLandlord = onCall(
   { enforceAppCheck: true },
   async (request) => {
@@ -195,6 +167,16 @@ export const verifyLandlord = onCall(
         transaction.update(userRef, {
           role: Roles.LANDLORD_VERIFIED,
           verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // Add admin notification about landlord verification
+        const notificationRef = admin.firestore().collection('adminNotifications').doc();
+        transaction.set(notificationRef, {
+          type: 'landlord_verification',
+          userId: uid,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          message: `Landlord ${uid} has been verified`,
+          read: false
         });
       });
 
@@ -251,6 +233,19 @@ export const onListingVerified = onDocumentUpdated(
             read: false,
           });
 
+        // Add admin notification about listing verification
+        await admin
+          .firestore()
+          .collection("adminNotifications")
+          .add({
+            type: "listing_verification",
+            listingId: event.params.listingId,
+            landlordId: landlordId,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            message: `Listing ${event.params.listingId} has been verified and published`,
+            read: false
+          });
+
         if (notificationToken) {
           await admin.messaging().send({
             token: notificationToken,
@@ -275,6 +270,35 @@ export const onListingVerified = onDocumentUpdated(
       }
     } catch (error) {
       console.error("Error in onListingVerified:", error);
+      // Since this is a background function, we can't return an error to the client
+      // But we can log it for monitoring purposes
+    }
+  }
+);
+
+export const onNewListing = onDocumentCreated(
+  "listings/{listingId}",
+  async (event) => {
+    try {
+      const listingData = event.data?.data();
+
+      if (!listingData) {
+        throw new ValidationError("No data associated with the new listing");
+      }
+
+      // Add admin notification about the new listing
+      await admin.firestore().collection('adminNotifications').add({
+        type: 'new_listing',
+        listingId: event.params.listingId,
+        landlordId: listingData.landlord.uid,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        message: `New listing "${listingData.title}" created by landlord ${listingData.landlord.uid}`,
+        read: false
+      });
+
+      console.log(`Created notification for new listing ${event.params.listingId}`);
+    } catch (error) {
+      console.error("Error in onNewListing:", error);
       // Since this is a background function, we can't return an error to the client
       // But we can log it for monitoring purposes
     }
