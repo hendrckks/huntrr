@@ -70,6 +70,10 @@ const SignUp = () => {
       const result = await signUp(signUpData);
 
       if (result?.success) {
+        // Clear any existing auth state
+        localStorage.removeItem("user");
+        sessionStorage.clear();
+        
         toast({
           title: "Verification Email Sent",
           variant: "info",
@@ -78,17 +82,17 @@ const SignUp = () => {
           duration: 5000,
         });
         setSuccess(result.message);
-        setTimeout(() => {
-          // Remove the flag before navigating to the login page.
-          sessionStorage.removeItem("suppressAuth");
-          navigate("/login", {
-            state: {
-              email: formData.email,
-              message:
-                "Account created successfully! Please check your email for verification before logging in.",
-            },
-          });
-        }, 2000);
+        
+        // Remove the flag and navigate immediately
+        sessionStorage.removeItem("suppressAuth");
+        navigate("/login", {
+          state: {
+            email: formData.email,
+            message:
+              "Account created successfully! Please check your email for verification before logging in.",
+          },
+          replace: true, // Replace the current history entry
+        });
       }
     } catch (err: any) {
       // Remove the suppression flag so that later auth events are processed normally

@@ -148,6 +148,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         if (firebaseUser) {
+          // Check email verification first
+          if (!firebaseUser.emailVerified) {
+            setAuthState({
+              user: null,
+              isLoading: false,
+              isInitialized: true,
+              error: new Error("Email not verified"),
+            });
+            return;
+          }
+
           let role: UserRole | undefined;
 
           // Optionally wait for proper role assignment
