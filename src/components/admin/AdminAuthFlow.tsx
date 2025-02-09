@@ -1,19 +1,25 @@
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { KeyRound, Mail, Loader2 } from "lucide-react";
 import {
   signInWithEmailAndPassword,
   setPersistence,
   browserSessionPersistence,
+  onAuthStateChanged,
 } from "firebase/auth";
-import { auth } from "../../lib/firebase/clientApp";
+import { auth, db } from "../../lib/firebase/clientApp";
 import { loginSchema, type UserRole } from "../../lib/types/auth";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "../../hooks/useToast";
 import { AuthStateManager } from "../../lib/firebase/auth";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../lib/firebase/clientApp";
+import {
+  doc,
+  updateDoc,
+  serverTimestamp,
+  getDoc,
+  Timestamp,
+} from "firebase/firestore";
 import type { User } from "../../lib/types/auth";
 
 // Import shadcn components
@@ -30,6 +36,66 @@ const AdminAuthFlow: React.FC = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Check for existing admin session on mount
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      // First check sessionStorage for a quick answer
+      const sessionUser = sessionStorage.getItem("user");
+      if (sessionUser) {
+        try {
+          const userData = JSON.parse(sessionUser);
+          if (userData.role === "admin") {
+            setUser(userData);
+            navigate("/admin-dashboard");
+            return;
+          }
+        } catch (error) {
+          console.error("Error parsing session user:", error);
+        }
+      }
+
+      // If no valid session found in storage, check Firebase auth state
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          try {
+            const idTokenResult = await user.getIdTokenResult(true);
+            if (idTokenResult.claims.role === "admin") {
+              const userDoc = await getDoc(doc(db, "users", user.uid));
+              const userData = userDoc.data();
+
+              const userWithRole: User = {
+                ...user,
+                role: idTokenResult.claims.role as UserRole,
+                createdAt:
+                  userData?.createdAt instanceof Timestamp
+                    ? userData.createdAt.toDate().toISOString()
+                    : undefined,
+              };
+
+              // Store user data in both storages
+              localStorage.setItem("user", JSON.stringify(userWithRole));
+              sessionStorage.setItem("user", JSON.stringify(userWithRole));
+
+              setUser(userWithRole);
+              const authManager = AuthStateManager.getInstance();
+              await authManager.startSessionTimeout();
+              navigate("/admin-dashboard");
+            }
+          } catch (error) {
+            console.error("Error checking admin session:", error);
+            localStorage.removeItem("user");
+            sessionStorage.clear();
+          }
+        }
+        setIsCheckingAuth(false);
+        unsubscribe(); // Cleanup subscription after initial check
+      });
+    };
+
+    checkExistingSession();
+  }, [navigate, setUser]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,8 +104,9 @@ const AdminAuthFlow: React.FC = () => {
 
     try {
       const validatedData = loginSchema.parse({ email, password });
+
       await setPersistence(auth, browserSessionPersistence);
-      
+
       const userCredential = await signInWithEmailAndPassword(
         auth,
         validatedData.email,
@@ -47,28 +114,36 @@ const AdminAuthFlow: React.FC = () => {
       );
 
       const idTokenResult = await userCredential.user.getIdTokenResult(true);
-      console.log("Claims on Login:", idTokenResult.claims);
 
       if (idTokenResult.claims.role !== "admin") {
         throw new Error("You do not have admin privileges.");
       }
 
       const userRef = doc(db, "users", userCredential.user.uid);
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.data();
+
       await updateDoc(userRef, {
-        lastLoggedIn: serverTimestamp(),
+        lastLogin: serverTimestamp(),
       });
 
       const userWithRole: User = {
         ...userCredential.user,
         role: idTokenResult.claims.role as UserRole,
+        createdAt:
+          userData?.createdAt instanceof Timestamp
+            ? userData.createdAt.toDate().toISOString()
+            : undefined,
       };
+
+      localStorage.setItem("user", JSON.stringify(userWithRole));
+      sessionStorage.setItem("user", JSON.stringify(userWithRole));
 
       setUser(userWithRole);
 
       const authManager = AuthStateManager.getInstance();
       await authManager.startSessionTimeout();
 
-      console.log("Admin user logged in:", userWithRole);
       navigate("/admin-dashboard");
 
       toast({
@@ -90,10 +165,22 @@ const AdminAuthFlow: React.FC = () => {
 
       setError(errorMessage);
       console.error("Login error:", error);
+
+      localStorage.removeItem("user");
+      sessionStorage.clear();
     } finally {
       setLoading(false);
     }
   };
+
+  // Show loading spinner while checking auth state
+  if (isCheckingAuth) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex items-center md:mt-0 mt-20">
@@ -141,11 +228,7 @@ const AdminAuthFlow: React.FC = () => {
               </div>
             </div>
 
-            <Button 
-              type="submit" 
-              disabled={loading}
-              className="w-full"
-            >
+            <Button type="submit" disabled={loading} className="w-full">
               {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Login as Admin
             </Button>

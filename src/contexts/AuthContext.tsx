@@ -2,7 +2,6 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { auth } from "../lib/firebase/clientApp";
 import { getAuthStateManager } from "../lib/firebase/auth";
-// import { useLocation } from "react-router-dom";
 
 type UserRole =
   | "user"
@@ -32,7 +31,10 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout;
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
@@ -49,152 +51,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     isInitialized: false,
     error: null,
   });
-  // const location = useLocation();
 
-  const debouncedCheckSession = debounce(async () => {
-    try {
-      const sessionExpiration = sessionStorage.getItem("sessionExpiration");
-      const cachedUser = localStorage.getItem("user");
-
-      // Only clear session if there's no expiration time or it has expired
-      if (!sessionExpiration || Date.now() > parseInt(sessionExpiration)) {
-        setAuthState((prev) => ({
-          ...prev,
-          user: null,
-          error: new Error(sessionExpiration ? "Session expired" : "No session found"),
-        }));
-        sessionStorage.clear();
-        localStorage.removeItem("user");
-        return;
-      }
-
-      // If we have a valid session and cached user, ensure the state is in sync
-      if (cachedUser) {
-        const parsedUser = JSON.parse(cachedUser);
-        setAuthState((prev) => ({
-          ...prev,
-          user: parsedUser,
-          error: null,
-        }));
-      }
-    } catch (error) {
-      console.error("Session check error:", error);
-      setAuthState((prev) => ({
-        ...prev,
-        error: error as Error,
-      }));
-    }
-  }, 300);
-
+  // Initialize from session storage immediately
   useEffect(() => {
-    // Add storage event listener to handle cross-tab synchronization
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === null) {  // Storage was cleared
-        setAuthState({
-          user: null,
-          isLoading: false,
-          isInitialized: true,
-          error: null,
-        });
-      }
-    };
+    const initializeFromSession = () => {
+      const sessionExpiration = sessionStorage.getItem("sessionExpiration");
+      const cachedUser = sessionStorage.getItem("user");
 
-    window.addEventListener('storage', handleStorageChange);
-
-    // Initialize auth state from localStorage if available and session is valid
-    const sessionExpiration = sessionStorage.getItem("sessionExpiration");
-    const cachedUser = localStorage.getItem("user");
-    
-    if (sessionExpiration && Date.now() < parseInt(sessionExpiration) && cachedUser) {
-      try {
-        const parsedUser = JSON.parse(cachedUser);
-        setAuthState({
-          user: parsedUser,
-          isLoading: false,
-          isInitialized: true,
-          error: null,
-        });
-      } catch (error) {
-        console.error("Error parsing cached user:", error);
-      }
-    }
-
-    // Set up auth state listener
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      // If a signup is in progress, ignore this auth change
-      if (sessionStorage.getItem("suppressAuth") === "true") {
-        return;
-      }
-
-      setAuthState(prev => ({ ...prev, isLoading: true }));
-
-      try {
-        // Check for existing valid session first
-        const sessionExpiration = sessionStorage.getItem("sessionExpiration");
-        const cachedUser = localStorage.getItem("user");
-        
-        if (sessionExpiration && Date.now() < parseInt(sessionExpiration) && cachedUser) {
-          const existingUser = JSON.parse(cachedUser);
-          if (!firebaseUser) {
-            // Keep the existing session if it's still valid
-            setAuthState({
-              user: existingUser,
-              isLoading: false,
-              isInitialized: true,
-              error: null,
-            });
-            return;
-          }
-        }
-
-        if (firebaseUser) {
-          // Check email verification first
-          if (!firebaseUser.emailVerified) {
-            setAuthState({
-              user: null,
-              isLoading: false,
-              isInitialized: true,
-              error: new Error("Email not verified"),
-            });
-            return;
-          }
-
-          let role: UserRole | undefined;
-
-          // Optionally wait for proper role assignment
-          for (let i = 0; i < 3; i++) {
-            const idTokenResult = await firebaseUser.getIdTokenResult(true);
-            role = idTokenResult.claims.role as UserRole;
-            if (role && role !== "user") break;
-            if (i < 2) await new Promise((res) => setTimeout(res, 500));
-          }
-
-          const userData: User = { ...firebaseUser, role };
-          
-          // Set session expiration (2 hours from now)
-          const expiresAt = Date.now() + (2 * 60 * 60 * 1000);
-          sessionStorage.setItem("sessionExpiration", expiresAt.toString());
-          
-          // Store user data in both storages
-          localStorage.setItem("user", JSON.stringify(userData));
-          sessionStorage.setItem("user", JSON.stringify(userData));
-
+      if (
+        sessionExpiration &&
+        cachedUser &&
+        Date.now() < parseInt(sessionExpiration)
+      ) {
+        try {
+          const userData = JSON.parse(cachedUser);
           setAuthState({
             user: userData,
             isLoading: false,
             isInitialized: true,
             error: null,
           });
-        } else {
-          // Only clear session if we don't have a valid one
-          const sessionExpiration = sessionStorage.getItem("sessionExpiration");
-          const cachedUser = localStorage.getItem("user");
-          
-          if (!sessionExpiration || !cachedUser || Date.now() > parseInt(sessionExpiration)) {
-            // No valid session, clear everything
-            localStorage.removeItem("user");
+          return true; // Session is valid
+        } catch (error) {
+          console.error("Error parsing session user:", error);
+        }
+      }
+      return false; // No valid session
+    };
+
+    // Try to initialize from session first
+    const hasValidSession = initializeFromSession();
+
+    if (!hasValidSession) {
+      // Only if no valid session exists, wait for Firebase auth
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (sessionStorage.getItem("suppressAuth") === "true") {
+          return;
+        }
+
+        try {
+          if (firebaseUser) {
+            if (!firebaseUser.emailVerified) {
+              setAuthState({
+                user: null,
+                isLoading: false,
+                isInitialized: true,
+                error: new Error("Email not verified"),
+              });
+              return;
+            }
+
+            // Get role from token
+            const idTokenResult = await firebaseUser.getIdTokenResult(true);
+            const role = idTokenResult.claims.role as UserRole;
+
+            const userData: User = { ...firebaseUser, role };
+
+            // Set session expiration (2 hours from now)
+            const expiresAt = Date.now() + 2 * 60 * 60 * 1000;
+            sessionStorage.setItem("sessionExpiration", expiresAt.toString());
+
+            // Store user data
+            sessionStorage.setItem("user", JSON.stringify(userData));
+            localStorage.setItem("user", JSON.stringify(userData));
+
+            setAuthState({
+              user: userData,
+              isLoading: false,
+              isInitialized: true,
+              error: null,
+            });
+          } else {
+            // Clear storage and state
             sessionStorage.clear();
-            
+            localStorage.removeItem("user");
+
             setAuthState({
               user: null,
               isLoading: false,
@@ -202,31 +133,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               error: null,
             });
           }
+        } catch (error) {
+          console.error("Auth state change error:", error);
+          sessionStorage.clear();
+          localStorage.removeItem("user");
+
+          setAuthState({
+            user: null,
+            isLoading: false,
+            isInitialized: true,
+            error: error as Error,
+          });
         }
-      } catch (error) {
-        console.error("Auth state change error:", error);
-        // Clear all storage on error
-        localStorage.removeItem("user");
+      });
+
+      return () => {
+        unsubscribe();
+        getAuthStateManager().cleanup();
+      };
+    }
+  }, []);
+
+  // Session check interval
+  useEffect(() => {
+    const checkSession = debounce(() => {
+      const sessionExpiration = sessionStorage.getItem("sessionExpiration");
+      if (!sessionExpiration || Date.now() > parseInt(sessionExpiration)) {
+        // Session expired
         sessionStorage.clear();
-        
+        localStorage.removeItem("user");
         setAuthState({
           user: null,
           isLoading: false,
           isInitialized: true,
-          error: error as Error,
+          error: new Error("Session expired"),
         });
       }
-    });
+    }, 300);
 
-    // Set up periodic session check (every 30 seconds)
-    const sessionCheckInterval = setInterval(debouncedCheckSession, 30000);
+    const interval = setInterval(checkSession, 30000); // Check every 30 seconds
 
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      unsubscribe();
-      clearInterval(sessionCheckInterval);
-      getAuthStateManager().cleanup();
+    return () => clearInterval(interval);
+  }, []);
+
+  // Storage event listener for cross-tab synchronization
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === null || e.key === "user") {
+        const sessionExpiration = sessionStorage.getItem("sessionExpiration");
+        const user = localStorage.getItem("user");
+
+        if (
+          !sessionExpiration ||
+          !user ||
+          Date.now() > parseInt(sessionExpiration)
+        ) {
+          setAuthState({
+            user: null,
+            isLoading: false,
+            isInitialized: true,
+            error: null,
+          });
+        } else if (user) {
+          try {
+            const userData = JSON.parse(user);
+            setAuthState({
+              user: userData,
+              isLoading: false,
+              isInitialized: true,
+              error: null,
+            });
+          } catch (error) {
+            console.error("Error parsing stored user:", error);
+          }
+        }
+      }
     };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   const hasRequiredRole = (requiredRoles?: UserRole[]): boolean => {
