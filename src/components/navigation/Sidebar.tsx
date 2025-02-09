@@ -47,7 +47,7 @@ const Sidebar = () => {
     { icon: HomeIcon, label: "Home", path: "/" },
     { icon: Bell, label: "Notifications", path: "/accounts" },
     // { icon: CreditCard, label: "Cards", path: "/cards" },
-    { icon: Bookmark, label: "Bookmarks", path: "/transactions" },
+    { icon: Bookmark, label: "Bookmarks", path: "/bookmarks" },
     { icon: HousePlus, label: "List your property", path: "/add-listing" },
     {
       icon: User,

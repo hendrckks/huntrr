@@ -291,34 +291,42 @@ export const toggleBookmark = async (
   userId: string,
   listingId: string
 ): Promise<boolean> => {
-  const bookmarkRef = doc(db, "bookmarks", `${userId}_${listingId}`);
+  const bookmarkId = `${userId}_${listingId}`;
+  const bookmarkRef = doc(db, "bookmarks", bookmarkId);
   const listingRef = doc(db, "listings", listingId);
 
-  // Verify listing exists first
-  const listingDoc = await getDoc(listingRef);
-  if (!listingDoc.exists()) {
-    throw new Error("Listing not found");
+  try {
+    return await runTransaction(db, async (transaction) => {
+      // First verify the listing exists
+      const listingDoc = await transaction.get(listingRef);
+      if (!listingDoc.exists()) {
+        throw new Error("Listing not found");
+      }
+
+      // Then check bookmark status
+      const bookmarkDoc = await transaction.get(bookmarkRef);
+      const isBookmarking = !bookmarkDoc.exists();
+
+      if (isBookmarking) {
+        const bookmarkData: BookmarkDocument = {
+          userId,
+          listingId,
+          id: bookmarkId,
+          createdAt: Timestamp.now(),
+        };
+        transaction.set(bookmarkRef, bookmarkData);
+        transaction.update(listingRef, { bookmarkCount: increment(1) });
+      } else {
+        transaction.delete(bookmarkRef);
+        transaction.update(listingRef, { bookmarkCount: increment(-1) });
+      }
+
+      return isBookmarking;
+    });
+  } catch (error) {
+    console.error("Error toggling bookmark:", error);
+    throw error;
   }
-
-  return await runTransaction(db, async (transaction) => {
-    const bookmarkDoc = await transaction.get(bookmarkRef);
-    const isBookmarking = !bookmarkDoc.exists();
-
-    if (isBookmarking) {
-      const bookmarkData: BookmarkDocument = {
-        userId,
-        listingId,
-        createdAt: Timestamp.now(),
-      };
-      transaction.set(bookmarkRef, bookmarkData);
-      transaction.update(listingRef, { bookmarkCount: increment(1) });
-    } else {
-      transaction.delete(bookmarkRef);
-      transaction.update(listingRef, { bookmarkCount: increment(-1) });
-    }
-
-    return isBookmarking;
-  });
 };
 
 export const getUserBookmarks = async (userId: string) => {

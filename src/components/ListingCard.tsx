@@ -1,12 +1,60 @@
 import { Link } from "react-router-dom";
+import { Bookmark } from "lucide-react";
+import { useToast } from "../hooks/useToast";
 import type { ListingDocument } from "../lib/types/Listing";
+import { toggleBookmark } from "../lib/firebase/firestore";
+import { useAuth } from "../contexts/AuthContext"; // Assuming you have an auth context
 
 interface ListingCardProps {
   listing?: ListingDocument;
   isLoading?: boolean;
+  showBookmark?: boolean;
+  isBookmarked?: boolean;
+  onBookmarkToggle?: (listingId: string) => void;
 }
 
-const ListingCard = ({ listing, isLoading = false }: ListingCardProps) => {
+const ListingCard = ({
+  listing,
+  isLoading = false,
+  showBookmark = true,
+  isBookmarked = false,
+  onBookmarkToggle,
+}: ListingCardProps) => {
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  const handleBookmarkClick = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation when clicking bookmark
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to bookmark listings",
+        variant: "error",
+      });
+      return;
+    }
+
+    if (!listing) return;
+
+    try {
+      const isNowBookmarked = await toggleBookmark(user.uid, listing.id);
+      onBookmarkToggle?.(listing.id);
+
+      toast({
+        title: isNowBookmarked ? "Listing Bookmarked" : "Bookmark Removed",
+        description: isNowBookmarked
+          ? "The listing has been added to your bookmarks"
+          : "The listing has been removed from your bookmarks",
+      });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update bookmark",
+        variant: "error",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="block rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
@@ -39,8 +87,20 @@ const ListingCard = ({ listing, isLoading = false }: ListingCardProps) => {
   return (
     <Link
       to={`/listings/${listing.id}`}
-      className="block rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+      className="block rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 relative"
     >
+      {showBookmark && (
+        <button
+          onClick={handleBookmarkClick}
+          className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
+        >
+          <Bookmark
+            className={`w-4 h-4 ${
+              isBookmarked ? "fill-current text-blue-500" : "text-gray-600"
+            }`}
+          />
+        </button>
+      )}
       <div className="relative w-full pb-[75%] overflow-hidden rounded-lg">
         <img
           src={primaryPhoto?.url || defaultImage}

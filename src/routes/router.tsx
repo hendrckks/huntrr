@@ -22,6 +22,7 @@ const Components = {
   AdminAuthPage: lazy(() => import("../components/admin/Auth")),
   LandingPage: lazy(() => import("../app/pages/LandingPage")),
   ListingView: lazy(() => import("../components/ListingView")),
+  BookmarksPage: lazy(() => import("../app/pages/Bookmarks")),
 };
 
 const createProtectedRoute = (
@@ -86,6 +87,12 @@ export const router = createBrowserRouter([
         element: createProtectedRoute(<Components.SignUp />, {
           requireAuth: false,
           requireUnauth: true,
+        }),
+      },
+      {
+        path: "bookmarks",
+        element: createProtectedRoute(<Components.BookmarksPage />, {
+          requireAuth: true,
         }),
       },
       {
