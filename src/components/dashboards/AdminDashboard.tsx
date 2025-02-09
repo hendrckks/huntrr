@@ -134,9 +134,9 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-semibold">Admin Dashboard</h1>
+        <h1 className="text-xl font-medium">Admin Dashboard</h1>
         <Button variant="outline" onClick={handleSignOut}>
           Sign Out
         </Button>
@@ -144,7 +144,7 @@ const AdminDashboard = () => {
 
       <Tabs defaultValue="kyc" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="kyc">
+          <TabsTrigger value="kyc" className="text-white">
             KYC Verifications
             {kycSubmissions?.length ? (
               <Badge variant="destructive" className="ml-2">
@@ -152,7 +152,7 @@ const AdminDashboard = () => {
               </Badge>
             ) : null}
           </TabsTrigger>
-          <TabsTrigger value="notifications">
+          <TabsTrigger value="notifications" className="text-white">
             Notifications
             {notifications?.length ? (
               <Badge variant="destructive" className="ml-2">
@@ -191,45 +191,56 @@ const AdminDashboard = () => {
                     {kycSubmissions.map((kyc) => (
                       <Card key={kyc.id}>
                         <CardContent className="pt-6">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p>
-                                <strong>Document Type:</strong>{" "}
-                                {kyc.documentType}
-                              </p>
-                              <p>
-                                <strong>Document Number:</strong>{" "}
-                                {kyc.documentNumber}
-                              </p>
-                              <p>
-                                <strong>Submitted:</strong>{" "}
-                                {kyc.submittedAt.toLocaleString()}
-                              </p>
-                              <div className="space-y-2">
-                                <a
-                                  href={kyc.frontDocumentUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="block text-blue-500 hover:underline"
-                                >
-                                  View Front Document
-                                </a>
-                                <a
-                                  href={kyc.backDocumentUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="block text-blue-500 hover:underline"
-                                >
-                                  View Back Document
-                                </a>
-                                <a
-                                  href={kyc.selfieUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="block text-blue-500 hover:underline"
-                                >
-                                  View Selfie
-                                </a>
+                          <div className="flex justify-between items-start text-sm">
+                            <div className="flex justify-between w-1/2 ">
+                              <div className="space-y-1">
+                                <p>
+                                  <strong>Document Type:</strong>
+                                  <span className="ml-2">
+                                    {kyc.documentType}
+                                  </span>
+                                </p>
+                                <p>
+                                  <strong>Document Number:</strong>
+                                  <span className="ml-2">
+                                    {kyc.documentNumber}
+                                  </span>
+                                </p>
+                                <p>
+                                  <strong>Submitted:</strong>
+                                  <span className="ml-2">
+                                    {kyc.submittedAt.toLocaleString()}
+                                  </span>
+                                </p>
+                              </div>
+
+                              <div>
+                                <div className="space-y-1 text-sm">
+                                  <a
+                                    href={kyc.frontDocumentUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block text-blue-500 hover:underline"
+                                  >
+                                    View Front Document
+                                  </a>
+                                  <a
+                                    href={kyc.backDocumentUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block text-blue-500 hover:underline"
+                                  >
+                                    View Back Document
+                                  </a>
+                                  <a
+                                    href={kyc.selfieUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block text-blue-500 hover:underline"
+                                  >
+                                    View Selfie
+                                  </a>
+                                </div>
                               </div>
                             </div>
                             <div className="space-x-2">
