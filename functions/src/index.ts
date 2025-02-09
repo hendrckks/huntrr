@@ -11,33 +11,34 @@ import {
 admin.initializeApp();
 
 // Listen for user role changes and update custom claims
-export const onUserRoleUpdate = onDocumentUpdated('users/{userId}', async (event) => {
-  const newValue = event.data?.after.data();
-  const previousValue = event.data?.before.data();
+export const onUserRoleUpdate = onDocumentUpdated(
+  "users/{userId}",
+  async (event) => {
+    const newValue = event.data?.after.data();
+    const previousValue = event.data?.before.data();
 
-  // Only proceed if the role has changed
-  if (newValue?.role !== previousValue?.role) {
-    try {
-      // Update custom claims
-      await admin.auth().setCustomUserClaims(event.params.userId, {
-        role: newValue?.role
-      });
+    // Only proceed if the role has changed
+    if (newValue?.role !== previousValue?.role) {
+      try {
+        // Update custom claims
+        await admin.auth().setCustomUserClaims(event.params.userId, {
+          role: newValue?.role,
+        });
 
-      console.log(`Updated custom claims for user ${event.params.userId} to role: ${newValue?.role}`);
-    } catch (error) {
-      console.error('Error updating custom claims:', error);
+        console.log(
+          `Updated custom claims for user ${event.params.userId} to role: ${newValue?.role}`
+        );
+      } catch (error) {
+        console.error("Error updating custom claims:", error);
+      }
     }
   }
-});
+);
 
 // Type definitions for request data
 interface SetCustomClaimsRequest {
   uid: string;
   role: string;
-}
-
-interface VerifyLandlordRequest {
-  uid: string;
 }
 
 // Constants for roles
@@ -123,8 +124,46 @@ export const setCustomClaims = onCall<SetCustomClaimsRequest>(
   }
 );
 
+// // Listen for user role changes and update custom claims
+// export const onUserRoleUpdate = onDocumentUpdated('users/{userId}', async (event) => {
+//   const newData = event.data?.after.data();
+//   const previousData = event.data?.before.data();
+//   const userId = event.params.userId;
+
+//   // Only proceed if the role has changed
+//   if (newData?.role !== previousData?.role) {
+//     try {
+//       // Get the current custom claims
+//       const user = await admin.auth().getUser(userId);
+//       const currentClaims = user.customClaims || {};
+
+//       // Update custom claims with new role
+//       await admin.auth().setCustomUserClaims(userId, {
+//         ...currentClaims,
+//         role: newData?.role
+//       });
+
+//       // Add a notification in Firestore about the role change
+//       await admin.firestore().collection('adminNotifications').add({
+//         type: 'role_update',
+//         userId: userId,
+//         previousRole: previousData?.role,
+//         newRole: newData?.role,
+//         timestamp: admin.firestore.FieldValue.serverTimestamp(),
+//         message: `User ${userId} role updated from ${previousData?.role} to ${newData?.role}`,
+//         read: false
+//       });
+
+//       console.log(`Successfully updated custom claims for user ${userId}. New role: ${newData?.role}`);
+//     } catch (error) {
+//       console.error('Error updating custom claims:', error);
+//       throw new Error(`Failed to update custom claims for user ${userId}`);
+//     }
+//   }
+// });
+
 // Function to verify a landlord
-export const verifyLandlord = onCall<VerifyLandlordRequest>(
+export const verifyLandlord = onCall(
   { enforceAppCheck: true },
   async (request) => {
     try {
@@ -132,65 +171,40 @@ export const verifyLandlord = onCall<VerifyLandlordRequest>(
         throw new PermissionError("User must be logged in.");
       }
 
-      if (!checkRateLimit(request.auth.uid)) {
-        throw new HttpsError(
-          "resource-exhausted",
-          "Rate limit exceeded. Please try again later."
-        );
-      }
-
-      // Fetch caller's role from auth token
+      // Verify admin role from custom claims
       const callerRole = request.auth.token.role;
       if (callerRole !== Roles.ADMIN) {
         throw new PermissionError("Only admins can verify landlords.");
       }
 
       const { uid } = request.data;
-
       if (!uid || typeof uid !== "string") {
         throw new ValidationError("Invalid UID provided.");
       }
 
-      // Perform Firestore update in a transaction
-      const userDocRef = admin.firestore().collection("users").doc(uid);
+      // Run everything in a transaction to ensure consistency
       await admin.firestore().runTransaction(async (transaction) => {
-        const userDoc = await transaction.get(userDocRef);
+        const userRef = admin.firestore().collection("users").doc(uid);
+        const userDoc = await transaction.get(userRef);
 
         if (!userDoc.exists) {
           throw new NotFoundError("User document not found.");
         }
 
-        transaction.update(userDocRef, {
+        // Update user document with new role and verification timestamp
+        transaction.update(userRef, {
           role: Roles.LANDLORD_VERIFIED,
           verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       });
 
-      // Update custom claims
-      const currentClaims =
-        (await admin.auth().getUser(uid)).customClaims || {};
-      await admin.auth().setCustomUserClaims(uid, {
-        ...currentClaims,
-        role: Roles.LANDLORD_VERIFIED,
-      });
-
       return { success: true };
     } catch (error) {
-      console.error(
-        "Error verifying landlord for UID:",
-        request.data.uid,
-        "Caller UID:",
-        request.auth?.uid,
-        "Error:",
-        error
-      );
+      console.error("Error in verifyLandlord:", error);
       if (error instanceof CustomError) {
         throw new HttpsError(error.code as any, error.message);
       }
-      throw new HttpsError(
-        "internal",
-        "An unexpected error occurred while verifying the landlord."
-      );
+      throw new HttpsError("internal", "An unexpected error occurred.");
     }
   }
 );
@@ -266,4 +280,3 @@ export const onListingVerified = onDocumentUpdated(
     }
   }
 );
-

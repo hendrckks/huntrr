@@ -52,6 +52,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     error: null,
   });
 
+  // Subscribe to auth state changes
+  useEffect((): (() => void) => {
+    const authManager = getAuthStateManager();
+    const unsubscribe = authManager.subscribeToAuthState(() => {
+      setAuthState({
+        user: null,
+        isLoading: false,
+        isInitialized: true,
+        error: null,
+      });
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // Initialize from session storage immediately
   useEffect(() => {
     const initializeFromSession = () => {

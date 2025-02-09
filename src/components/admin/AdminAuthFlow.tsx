@@ -40,13 +40,16 @@ const AdminAuthFlow: React.FC = () => {
 
   // Check for existing admin session on mount
   useEffect(() => {
+    let isMounted = true;
+    let cleanupFn: (() => void) | undefined;
+
     const checkExistingSession = async () => {
       // First check sessionStorage for a quick answer
       const sessionUser = sessionStorage.getItem("user");
       if (sessionUser) {
         try {
           const userData = JSON.parse(sessionUser);
-          if (userData.role === "admin") {
+          if (userData.role === "admin" && isMounted) {
             setUser(userData);
             navigate("/admin-dashboard");
             return;
@@ -58,6 +61,8 @@ const AdminAuthFlow: React.FC = () => {
 
       // If no valid session found in storage, check Firebase auth state
       const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (!isMounted) return;
+
         if (user) {
           try {
             const idTokenResult = await user.getIdTokenResult(true);
@@ -74,14 +79,16 @@ const AdminAuthFlow: React.FC = () => {
                     : undefined,
               };
 
-              // Store user data in both storages
-              localStorage.setItem("user", JSON.stringify(userWithRole));
-              sessionStorage.setItem("user", JSON.stringify(userWithRole));
+              if (isMounted) {
+                // Store user data in both storages
+                localStorage.setItem("user", JSON.stringify(userWithRole));
+                sessionStorage.setItem("user", JSON.stringify(userWithRole));
 
-              setUser(userWithRole);
-              const authManager = AuthStateManager.getInstance();
-              await authManager.startSessionTimeout();
-              navigate("/admin-dashboard");
+                setUser(userWithRole);
+                const authManager = AuthStateManager.getInstance();
+                await authManager.startSessionTimeout();
+                navigate("/admin-dashboard");
+              }
             }
           } catch (error) {
             console.error("Error checking admin session:", error);
@@ -89,13 +96,25 @@ const AdminAuthFlow: React.FC = () => {
             sessionStorage.clear();
           }
         }
-        setIsCheckingAuth(false);
-        unsubscribe(); // Cleanup subscription after initial check
+        if (isMounted) {
+          setIsCheckingAuth(false);
+        }
       });
+
+      cleanupFn = () => {
+        unsubscribe();
+      };
     };
 
     checkExistingSession();
-  }, [navigate, setUser]);
+    
+    return () => {
+      isMounted = false;
+      if (cleanupFn) {
+        cleanupFn();
+      }
+    };
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

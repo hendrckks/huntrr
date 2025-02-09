@@ -73,10 +73,17 @@ export class AuthStateManager {
   private sessionTimeout: NodeJS.Timeout | null;
   private sessionCheckInterval: NodeJS.Timeout | null;
 
+  private authStateListeners: Set<(user: null) => void>;
+  private notifyAuthStateChange: (user: null) => void;
+
   private constructor() {
     this.loginAttempts = new Map();
     this.sessionTimeout = null;
     this.sessionCheckInterval = null;
+    this.authStateListeners = new Set();
+    this.notifyAuthStateChange = (user: null) => {
+      this.authStateListeners.forEach(listener => listener(user));
+    };
     this.initializeSessionCheck();
   }
 
@@ -191,6 +198,11 @@ export class AuthStateManager {
     return true;
   }
 
+  subscribeToAuthState(listener: (user: null) => void) {
+    this.authStateListeners.add(listener);
+    return () => this.authStateListeners.delete(listener);
+  }
+
   async signOut() {
     try {
       // Clear all storage first
@@ -202,6 +214,9 @@ export class AuthStateManager {
       const authManager = AuthStateManager.getInstance();
       authManager.clearSessionTimeout();
 
+      // Notify listeners before Firebase signout
+      this.notifyAuthStateChange(null);
+
       // Finally, sign out from Firebase
       await auth.signOut();
     } catch (error) {
@@ -210,8 +225,10 @@ export class AuthStateManager {
       localStorage.removeItem("user");
       localStorage.removeItem("sessionId");
       sessionStorage.clear();
+      // Still notify listeners in case of error
+      this.notifyAuthStateChange(null)
     }
-  }
+  };
 
   cleanup() {
     this.clearSessionTimeout();

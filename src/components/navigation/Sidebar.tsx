@@ -56,7 +56,8 @@ const Sidebar = () => {
     { icon: Bell, label: "Notifications", path: "/accounts" },
     // { icon: CreditCard, label: "Cards", path: "/cards" },
     { icon: Bookmark, label: "Bookmarks", path: "/bookmarks" },
-    { icon: HousePlus, label: "List your property", path: "/add-listing" },
+    (user?.role === "admin" || user?.role === "landlord_verified") ? 
+      { icon: HousePlus, label: "List your property", path: "/add-listing" } : null,
     {
       icon: User,
       label: "Profile",
