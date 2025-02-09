@@ -21,10 +21,10 @@ const LandlordDashboard = () => {
   };
 
   return (
-    <div className="font-semibold">
+    <div className="font-semibold px-4">
       <div>Dashboard</div>
-      <Link to="/edit-account" className="mt-4 text-xl">
-        <div className="p-4 mt-4 border rounded-md w-fit">Edit Account</div>
+      <Link to="/edit-account" className="mt-4 text-sm">
+        <div className="p-2 mt-4 border rounded-md w-fit">Edit Account</div>
       </Link>
       <div className="mt-8">
         <button
@@ -33,8 +33,8 @@ const LandlordDashboard = () => {
         >
           Sign out
         </button>
-        <Link to="/add-listing" className="mt-4 text-xl">
-          <div className="p-4 mt-4 border rounded-md w-fit">add listing</div>
+        <Link to="/add-listing" className="mt-4 text-sm">
+          <div className="p-2 mt-4 border rounded-md w-fit">add listing</div>
         </Link>
       </div>
     </div>

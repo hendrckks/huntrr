@@ -197,12 +197,12 @@ const ListingView = () => {
             </dl>
             {listing.utilities.includedUtilities.length > 0 && (
               <div className="mt-4">
-                <dt className="text-gray-500 dark:text-gray-400 mb-2">Included Utilities</dt>
+                <dt className="text-gray-500 dark:text-white font-medium mb-2">Included Utilities</dt>
                 <dd className="flex flex-wrap gap-2 text-sm">
                   {listing.utilities.includedUtilities.map((utility) => (
                     <span
                       key={utility}
-                      className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-md text-sm"
+                      className="px-3 py-1 bg-gray-100 dark:bg-white/40 rounded-md text-sm"
                     >
                       {utility}
                     </span>
@@ -263,7 +263,7 @@ const ListingView = () => {
             </dl>
           </div>
 
-          <div className="border-t pt-6">
+          {/* <div className="border-t pt-6">
             <h2 className="text-lg font-semibold mb-4">Contact Landlord</h2>
             <div className="space-y-2">
               <p className="text-gray-600 dark:text-gray-300">
@@ -278,7 +278,7 @@ const ListingView = () => {
                 </p>
               )}
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

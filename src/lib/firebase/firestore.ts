@@ -95,10 +95,7 @@ export const createListing = async (
     const photos: Photo[] = [];
 
     for (const image of images) {
-      const path = `listings/${listing.landlordId}/${
-        listingRef.id
-      }/${Date.now()}`;
-      const url = await uploadImage(image, path);
+      const url = await uploadImage(image, listingRef.id, listing.landlordId);
       imageUrls.push(url);
 
       photos.push({

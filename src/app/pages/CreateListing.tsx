@@ -178,9 +178,13 @@ export default function CreateListingForm() {
       // Upload images first
       addDebugLog("Starting image upload...");
       const imageUrls: Photo[] = [];
+      if (!user.uid || !user.role || !(user.role === 'landlord_unverified' || user.role === 'landlord_verified' || user.role === 'admin')) {
+        throw new Error("You don't have permission to upload listing images");
+      }
+      const tempListingId = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      
       for (let i = 0; i < images.length; i++) {
-        const path = `listings/${user.uid}/${Date.now()}_${i}`;
-        const url = await uploadImage(images[i], path);
+        const url = await uploadImage(images[i], tempListingId, user.uid);
         imageUrls.push({ id: `photo_${i}`, url, isPrimary: i === 0 });
         setUploadProgress(((i + 1) / images.length) * 100);
       }

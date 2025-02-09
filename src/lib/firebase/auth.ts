@@ -42,6 +42,7 @@ import {
   UserRole,
 } from "../types/auth";
 import { auth, db } from "./clientApp";
+import { getUserClaims } from "../../utils/authUtils";
 
 // Configuration
 const CONFIG = {
@@ -53,7 +54,7 @@ const CONFIG = {
   SESSION_DURATION: 2 * 60 * 60 * 1000, // 2 hours
   VERIFICATION_RESEND_DELAY: 0, // No delay for first attempt
   VERIFICATION_RETRY_BASE_DELAY: 120000, // 2 minutes base delay for subsequent attempts
-  MAX_VERIFICATION_RETRIES: 5 // Maximum number of retries before extended lockout
+  MAX_VERIFICATION_RETRIES: 9999, // Maximum number of retries before extended lockout // Temporarily increased for testing
 } as const;
 
 // Types
@@ -200,7 +201,7 @@ export class AuthStateManager {
       // Clear auth manager state
       const authManager = AuthStateManager.getInstance();
       authManager.clearSessionTimeout();
-      
+
       // Finally, sign out from Firebase
       await auth.signOut();
     } catch (error) {
@@ -508,11 +509,13 @@ export const login = async (
       await auth.signOut();
       setUser(null);
       sessionStorage.removeItem("suppressAuth");
-      
+
       // Send a new verification email
       await sendEmailVerification(user);
-      
-      throw new Error("Your email address has not been verified. Please check your inbox or spam folder to verfify.");
+
+      throw new Error(
+        "Your email address has not been verified. Please check your inbox or spam folder to verfify."
+      );
     }
 
     // Remove suppression only after verification is confirmed
@@ -522,9 +525,14 @@ export const login = async (
     const idTokenResult = await user.getIdTokenResult();
     const role = idTokenResult.claims.role as UserRole;
 
+    const claims = await getUserClaims(user);
+    console.log("User role:", claims?.role);
+
     if (role === "admin") {
       await auth.signOut();
-      throw new Error("Access denied. Admin login requires a specialized authentication method.");
+      throw new Error(
+        "Access denied. Admin login requires a specialized authentication method."
+      );
     }
 
     authManager.recordLoginAttempt(validatedData.email, true);
@@ -535,9 +543,10 @@ export const login = async (
     const userWithMetadata: User = {
       ...user,
       role,
-      createdAt: userData?.createdAt instanceof Timestamp
-        ? userData.createdAt.toDate().toISOString()
-        : undefined,
+      createdAt:
+        userData?.createdAt instanceof Timestamp
+          ? userData.createdAt.toDate().toISOString()
+          : undefined,
     };
 
     await authManager.startSessionTimeout();
@@ -547,7 +556,7 @@ export const login = async (
   } catch (error) {
     // Always clean up suppression in case of error
     sessionStorage.removeItem("suppressAuth");
-    
+
     if (error instanceof ZodError) {
       throw new Error(getZodErrorMessage(error));
     }
@@ -628,13 +637,16 @@ export const verifyLandlord = async (uid: string) => {
   }
 };
 
-export const resendVerificationEmail = async (email: string, password: string) => {
+export const resendVerificationEmail = async (
+  email: string,
+  password: string
+) => {
   const authManager = AuthStateManager.getInstance();
 
   try {
     // Temporarily suppress auth state changes
     sessionStorage.setItem("suppressAuth", "true");
-    
+
     // Check if user is locked out
     if (authManager.isUserLockedOut(email)) {
       throw new Error("Account is temporarily locked. Please try again later.");
@@ -646,23 +658,26 @@ export const resendVerificationEmail = async (email: string, password: string) =
     );
 
     await sendEmailVerification(userCredential.user);
-    
+
     // Record successful attempt
     authManager.recordLoginAttempt(email, true);
-    
+
     // Sign out silently
     await auth.signOut();
-    
+
     // Remove suppression
     sessionStorage.removeItem("suppressAuth");
-    
+
     return {
       success: true,
       message: "Verification email resent. Please check your inbox.",
     };
   } catch (error) {
     // Record failed attempt
-    if (error instanceof Error && error.name === AuthErrorCodes.INVALID_LOGIN_CREDENTIALS) {
+    if (
+      error instanceof Error &&
+      error.name === AuthErrorCodes.INVALID_LOGIN_CREDENTIALS
+    ) {
       authManager.recordLoginAttempt(email, false);
     }
 
@@ -699,7 +714,7 @@ export const signOut = async () => {
     // Clear auth manager state
     const authManager = AuthStateManager.getInstance();
     authManager.clearSessionTimeout();
-    
+
     // Finally, sign out from Firebase
     await auth.signOut();
   } catch (error) {

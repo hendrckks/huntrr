@@ -173,17 +173,17 @@ const EditAccount: React.FC = () => {
   const isGoogleUser = user?.providerData[0]?.providerId === "google.com";
 
   return (
-    <div className="max-w-4xl mx-auto px-4 ">
-      <h1 className="text-3xl md:text-4xl font-normal bg-background dark:bg-inherit dark:text-white mb-2">
+    <div className="max-w-4xl px-4">
+      <h1 className="text-lg md:text-xl font-medium bg-background dark:bg-inherit dark:text-white mb-2">
         Your Account
       </h1>
-      <p className=" mb-8">
+      <p className="mb-8">
         Update your account information below.
       </p>
 
       <form
         onSubmit={handleSubmit}
-        className=" rounded-lg p-4 md:p-6 shadow-sm space-y-8"
+        className=" rounded-lg shadow-sm space-y-8"
       >
         {/* Personal Information Section */}
         <div>
@@ -214,7 +214,7 @@ const EditAccount: React.FC = () => {
             </div>
             <label
               htmlFor="profile-upload"
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
+              className="px-3 py-1.5 text-sm border border-gray-300/40 rounded-md hover:bg-gray-50 cursor-pointer"
             >
               {isLoading ? "Uploading..." : "Upload New"}
             </label>
@@ -229,7 +229,7 @@ const EditAccount: React.FC = () => {
                 value={formData.displayName}
                 onChange={handleChange}
                 disabled={isLoading}
-                className="w-full px-3 py-2 border bg-background dark:bg-inherit dark:text-white border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full text-sm px-3 py-2 border bg-background dark:bg-inherit dark:text-white border-gray-300/40 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
@@ -241,7 +241,7 @@ const EditAccount: React.FC = () => {
                 value={formData.email}
                 onChange={handleChange}
                 disabled={isLoading || isGoogleUser}
-                className="w-full px-3 py-2 border border-gray-300 bg-background dark:bg-inherit dark:text-white rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full text-sm px-3 py-2 border border-gray-300/40 bg-background dark:bg-inherit dark:text-white rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               {isGoogleUser && (
                 <p className="mt-1 text-sm">
@@ -313,7 +313,7 @@ const EditAccount: React.FC = () => {
             type="button"
             onClick={() => navigate(-1)}
             disabled={isLoading}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-white/30  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-textBlack"
+            className="px-4 py-2 text-sm border border-gray-300/40 rounded-md hover:bg-gray-50 dark:hover:bg-white/30  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-textBlack"
           >
             Cancel
           </button>

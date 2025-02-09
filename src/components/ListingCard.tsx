@@ -51,10 +51,10 @@ const ListingCard = ({ listing, isLoading = false }: ListingCardProps) => {
       <div className="mt-2">
         <div className="flex justify-between items-start">
           <div className="flex-1">
-            <h3 className="font-medium text-lg text-gray-900 dark:text-white truncate">
+            <h3 className="font-medium text-gray-900 dark:text-white truncate">
               {listing.title}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
+            <p className="text-sm text-gray-600 dark:text-gray-300 truncate mt-1">
               {listing.location.neighborhood}, {listing.location.city}
             </p>
           </div>
@@ -66,8 +66,8 @@ const ListingCard = ({ listing, isLoading = false }: ListingCardProps) => {
           <span>•</span>
           <span>{listing.squareFootage} sqft</span>
         </div>
-        <p className="text-white font-semibold mt-1 mb-4 text-sm">
-          ${listing.price.toLocaleString()}
+        <p className="text-white font-medium mt-2 mb-4 text-sm">
+          KSh {listing.price.toLocaleString()}
           <span className="font-normal"> month</span>
         </p>
       </div>
