@@ -28,6 +28,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "../../components/ui/avatar";
+import { toast } from "../../hooks/useToast";
 import { signOut } from "../../lib/firebase/auth";
 
 type NavItem = {
@@ -39,13 +40,22 @@ type NavItem = {
 const Sidebar = () => {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, setUser } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
+      localStorage.removeItem("user");
+      sessionStorage.clear();
       await signOut();
+      setUser(null);
       navigate("/");
+      toast({
+        title: "",
+        variant: "success",
+        description: "Sign out successful",
+        duration: 5000,
+      });
     } catch (error) {
       console.error("Error signing out:", error);
     }
