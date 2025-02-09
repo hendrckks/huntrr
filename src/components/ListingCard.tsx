@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
 import { useBookmarks } from "../contexts/BookmarkContext";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface ListingCardProps {
   listing?: ListingDocument;
@@ -27,6 +27,7 @@ const ListingCard = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks();
+  const [localBookmarkState, setLocalBookmarkState] = useState<boolean | undefined>(undefined);
   const [isDissolving, setIsDissolving] = useState(false);
   const dissolveAnimRef = useRef<SVGAnimateElement>(null);
 
@@ -48,6 +49,13 @@ const ListingCard = ({
     }
   };
 
+  // Initialize local state when component mounts or isBookmarked changes
+  useEffect(() => {
+    if (listing) {
+      setLocalBookmarkState(isBookmarked(listing.id));
+    }
+  }, [listing, isBookmarked]);
+
   const handleBookmarkClick = useCallback(
     async (e: React.MouseEvent) => {
       e.preventDefault(); // Prevent navigation when clicking bookmark
@@ -62,7 +70,9 @@ const ListingCard = ({
 
       if (!listing) return;
 
-      const isCurrentlyBookmarked = isBookmarked(listing.id);
+      const isCurrentlyBookmarked = localBookmarkState ?? isBookmarked(listing.id);
+      // Update local state immediately for instant UI feedback
+      setLocalBookmarkState(!isCurrentlyBookmarked);
       
       try {
         if (isCurrentlyBookmarked) {
@@ -150,7 +160,7 @@ const ListingCard = ({
           >
             <Bookmark
               className={`w-4 h-4 ${
-                isBookmarked(listing?.id || "")
+                localBookmarkState ?? isBookmarked(listing?.id || "")
                   ? "fill-current text-black"
                   : "text-gray-600"
               }`}

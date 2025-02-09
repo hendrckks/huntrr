@@ -15,12 +15,8 @@ const Components = {
   SignIn: lazy(() => import("../app/auth/SignIn")),
   ResetPassword: lazy(() => import("../app/auth/ResetPassword")),
   RoleSelectionDialog: lazy(() => import("../components/RoleSelectionDialog")),
-  TenantDashboard: lazy(
-    () => import("../components/dashboards/TenantDashboard")
-  ),
-  LandlordDashboard: lazy(
-    () => import("../components/dashboards/LandloardDashboard")
-  ),
+  TenantDashboard: lazy(() => import("../components/dashboards/TenantDashboard")),
+  LandlordDashboard: lazy(() => import("../components/dashboards/LandloardDashboard")),
   AdminDashboard: lazy(() => import("../components/dashboards/AdminDashboard")),
   Unauthorized: lazy(() => import("../components/Unauthorized")),
   EditAccount: lazy(() => import("../app/pages/EditAccount")),
@@ -28,6 +24,7 @@ const Components = {
   LandingPage: lazy(() => import("../app/pages/LandingPage")),
   ListingView: lazy(() => import("../components/ListingView")),
   BookmarksPage: lazy(() => import("../app/pages/Bookmarks")),
+  KYCVerification: lazy(() => import("../app/pages/KYCVerification")),
 };
 
 const createProtectedRoute = (
@@ -142,6 +139,13 @@ export const router = createBrowserRouter([
       },
 
       // Role-specific routes
+      {
+        path: "verify-documents",
+        element: createProtectedRoute(<Components.KYCVerification />, {
+          requireAuth: true,
+          allowedRoles: ["landlord_unverified"],
+        }),
+      },
       {
         path: "profile",
         element: createProtectedRoute(<Components.TenantDashboard />, {

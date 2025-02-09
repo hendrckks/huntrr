@@ -12,6 +12,8 @@ import {
   MoreHorizontal,
   HousePlus,
   HelpCircle,
+  FileCheck,
+  LucideIcon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -27,6 +29,12 @@ import {
   AvatarImage,
 } from "../../components/ui/avatar";
 import { signOut } from "../../lib/firebase/auth";
+
+type NavItem = {
+  icon: LucideIcon;
+  label: string;
+  path: string;
+};
 
 const Sidebar = () => {
   const location = useLocation();
@@ -60,9 +68,14 @@ const Sidebar = () => {
           ? "/dashboard"
           : "/profile",
     },
+    user?.role === "landlord_unverified" ? {
+      icon: FileCheck,
+      label: "Verify Documents",
+      path: "/verify-documents",
+    } : null,
     { icon: Settings, label: "Settings & privacy", path: "/invoices" },
     { icon: HelpCircle, label: "Help & support", path: "/spend-groups" },
-  ];
+  ].filter((item): item is NavItem => Boolean(item));
 
   const getInitials = (name: string) => {
     return name
