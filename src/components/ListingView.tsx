@@ -129,7 +129,7 @@ const ListingView = () => {
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">{listing.title}</h1>
             <p className="mt-2 text-xl font-semibold text-gray-900 dark:text-white">
-              ${listing.price.toLocaleString()}
+              KSh {listing.price.toLocaleString()}
             </p>
           </div>
 
