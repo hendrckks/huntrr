@@ -29,7 +29,7 @@ const ImageModal = ({ isOpen, onClose, imageUrl, alt }: ImageModalProps) => {
           >
             <button
               onClick={onClose}
-              className="absolute -top-4 -right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
+              className="absolute top-2 right-2 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
             >
               <X className="w-6 h-6 text-white" />
             </button>
