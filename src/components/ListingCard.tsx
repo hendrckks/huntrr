@@ -51,7 +51,7 @@ const ListingCard = ({ listing, isLoading = false }: ListingCardProps) => {
       <div className="mt-2">
         <div className="flex justify-between items-start">
           <div className="flex-1">
-            <h3 className="font-medium text-gray-900 dark:text-white truncate">
+            <h3 className="font-medium text-gray-900 dark:text-white max-w-[340px] truncate">
               {listing.title}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-300 truncate mt-1">
