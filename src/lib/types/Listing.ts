@@ -148,6 +148,7 @@ export const listingSchema = z.object({
 
   // Metadata
   status: ListingStatus,
+  rejectionReason: z.string().optional(),
   flags: z.array(flagSchema),
   flagCount: z.number().min(0),
   bookmarkCount: z.number().min(0),

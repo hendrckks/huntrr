@@ -82,11 +82,7 @@ service cloud.firestore {
           !request.resource.data.diff(resource.data).affectedKeys()
             .hasAny(['status', 'verifiedAt', 'verifiedBy']) &&
           isValidListing()) ||
-        (hasRole('admin') && 
-          (request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['status', 'verifiedAt', 'verifiedBy', 'reviewedAt', 'reviewedBy']) ||
-           request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['bookmarkCount'])))
+        hasRole('admin')
       );
       allow delete: if isAuthenticated() && 
         (resource.data.landlordId == request.auth.uid || hasRole('admin'));

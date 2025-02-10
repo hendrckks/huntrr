@@ -7,21 +7,59 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "../ui/breadcrumb";
+import { useEffect, useState } from "react";
 
-const getBreadcrumbs = (pathname: string) => {
+interface BreadcrumbItem {
+  label: string;
+  path: string;
+}
+
+const formatPathLabel = (path: string): string => {
+  return path
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+const getBreadcrumbs = (
+  pathname: string,
+  history: BreadcrumbItem[]
+): BreadcrumbItem[] => {
   const paths = pathname.split("/").filter(Boolean);
   if (paths.length === 0) return [{ label: "Home", path: "/" }];
 
-  const breadcrumbs = [{ label: "Home", path: "/" }];
-  let currentPath = "";
+  // Start with home
+  let breadcrumbs: BreadcrumbItem[] = [{ label: "Home", path: "/" }];
 
-  paths.forEach((path) => {
+  // Find the index where the current path diverges from history
+  let divergeIndex = -1;
+  for (let i = 0; i < history.length; i++) {
+    if (history[i].path === pathname) {
+      return history.slice(0, i + 1);
+    }
+    if (pathname.startsWith(history[i].path)) {
+      divergeIndex = i;
+    }
+  }
+
+  // If we found a diverging point, keep the history up to that point
+  if (divergeIndex >= 0) {
+    breadcrumbs = history.slice(0, divergeIndex + 1);
+  }
+
+  // Add any new path segments
+  let currentPath = breadcrumbs[breadcrumbs.length - 1]?.path || "";
+  const remainingPaths = pathname
+    .slice(currentPath.length)
+    .split("/")
+    .filter(Boolean);
+
+  remainingPaths.forEach((path) => {
     currentPath += `/${path}`;
-    const label = path
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-    breadcrumbs.push({ label, path: currentPath });
+    breadcrumbs.push({
+      label: formatPathLabel(path),
+      path: currentPath,
+    });
   });
 
   return breadcrumbs;
@@ -30,7 +68,22 @@ const getBreadcrumbs = (pathname: string) => {
 export default function BreadcrumbNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const breadcrumbs = getBreadcrumbs(location.pathname);
+  const [history, setHistory] = useState<BreadcrumbItem[]>([]);
+
+  useEffect(() => {
+    const storedHistory = localStorage.getItem("breadcrumbHistory");
+    if (storedHistory) {
+      setHistory(JSON.parse(storedHistory));
+    }
+  }, []);
+
+  useEffect(() => {
+    const newBreadcrumbs = getBreadcrumbs(location.pathname, history);
+    if (JSON.stringify(newBreadcrumbs) !== JSON.stringify(history)) {
+      setHistory(newBreadcrumbs);
+      localStorage.setItem("breadcrumbHistory", JSON.stringify(newBreadcrumbs));
+    }
+  }, [location.pathname, history]);
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -39,19 +92,19 @@ export default function BreadcrumbNav() {
   return (
     <Breadcrumb className="mb-6 ml-4 bg-white/10 w-fit px-4 py-2 rounded-md shadow-lg">
       <BreadcrumbList>
-        {breadcrumbs.map((breadcrumb, index) => (
+        {history.map((breadcrumb, index) => (
           <BreadcrumbItem key={breadcrumb.path} className="text-sm">
-            {index === breadcrumbs.length - 1 ? (
+            {index === history.length - 1 ? (
               <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
             ) : (
-              <BreadcrumbLink 
+              <BreadcrumbLink
                 onClick={() => handleNavigation(breadcrumb.path)}
                 className="cursor-pointer"
               >
                 {breadcrumb.label}
               </BreadcrumbLink>
             )}
-            {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
+            {index < history.length - 1 && <BreadcrumbSeparator />}
           </BreadcrumbItem>
         ))}
       </BreadcrumbList>

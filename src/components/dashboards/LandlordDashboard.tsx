@@ -46,6 +46,7 @@ import {
   ArchiveIcon,
 } from "lucide-react";
 import type { ListingDocument, ListingStatus } from "../../lib/types/Listing";
+import { rejectionReasons } from "../dialogs/RejectionDialog";
 
 interface ListingCardProps {
   listing: ListingDocument;
@@ -156,7 +157,7 @@ const LandlordDashboard: React.FC = () => {
   const publishedListings = listings.filter((l) => l.status === "published");
   const pendingListings = listings.filter((l) => l.status === "pending_review");
   const draftListings = listings.filter((l) =>
-    ["draft", "denied", "pending_review"].includes(l.status)
+    ["draft", "denied"].includes(l.status)
   );
   const archivedListings = listings.filter((l) => l.status === "archived");
 
@@ -176,6 +177,11 @@ const LandlordDashboard: React.FC = () => {
               ${listing.price}/month • {listing.bedrooms} beds •{" "}
               {listing.bathrooms} baths
             </p>
+            {listing.status === "denied" && listing.rejectionReason && (
+              <p className="text-sm text-red-500">
+                Rejection Reason: {rejectionReasons.find(r => r.value === listing.rejectionReason)?.label || listing.rejectionReason}
+              </p>
+            )}
           </div>
           <div className="flex gap-2">
             <Button
@@ -265,8 +271,7 @@ const LandlordDashboard: React.FC = () => {
             )}
           </TabsTrigger>
           <TabsTrigger
-            value="drafts
-          "
+            value="drafts"
             className="flex items-center gap-2 text-white"
           >
             <span>

@@ -29,15 +29,23 @@ import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 import type { KYCDocument } from "../../lib/types/kyc";
 import { refreshUserClaims } from "../../lib/firebase/tokenRefresh";
-import { BellDot, User2Icon } from "lucide-react";
-import { FileText } from "lucide-react";
+import { BellDot, User2Icon, FileText, Check, X, Eye } from "lucide-react";
 import type { ListingDocument } from "../../lib/types/Listing";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import {
+  RejectionDialog,
+  type RejectionReason,
+  rejectionReasons,
+} from "../dialogs/RejectionDialog";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(
+    null
+  );
+  const [isRejectionDialogOpen, setIsRejectionDialogOpen] = useState(false);
 
   // Fetch KYC submissions (unchanged)
   const {
@@ -296,6 +304,12 @@ const AdminDashboard = () => {
   });
 
   const handleListingAction = async (listingId: string, approved: boolean) => {
+    if (!approved) {
+      setSelectedListingId(listingId);
+      setIsRejectionDialogOpen(true);
+      return;
+    }
+
     try {
       // Verify admin privileges
       if (!auth.currentUser) {
@@ -312,7 +326,7 @@ const AdminDashboard = () => {
       const listingRef = doc(db, "listings", listingId);
 
       batch.update(listingRef, {
-        status: approved ? "published" : "denied",
+        status: "published",
         reviewedAt: serverTimestamp(),
         reviewedBy: auth.currentUser.uid,
       });
@@ -326,9 +340,7 @@ const AdminDashboard = () => {
         await setDoc(notificationRef, {
           userId: listingData.landlordId,
           type: "listing_review",
-          message: approved
-            ? `Your listing "${listingData.title}" has been approved and is now live.`
-            : `Your listing "${listingData.title}" was not approved. Please review our guidelines and submit again.`,
+          message: "Your listing has been approved and is now live.",
           read: false,
           createdAt: serverTimestamp(),
           listingId: listingId,
@@ -340,9 +352,7 @@ const AdminDashboard = () => {
 
       toast({
         title: "Success",
-        description: `Listing ${
-          approved ? "approved" : "rejected"
-        } successfully`,
+        description: "Listing approved successfully",
         variant: "success",
       });
     } catch (error: any) {
@@ -350,6 +360,55 @@ const AdminDashboard = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to process listing",
+        variant: "error",
+      });
+    }
+  };
+
+  const handleReject = async (reason: RejectionReason) => {
+    if (!selectedListingId || !auth.currentUser) return;
+
+    try {
+      const batch = writeBatch(db);
+      const listingRef = doc(db, "listings", selectedListingId);
+
+      batch.update(listingRef, {
+        status: "denied",
+        rejectionReason: reason,
+        reviewedAt: serverTimestamp(),
+        reviewedBy: auth.currentUser.uid,
+      });
+
+      const listingDoc = await getDoc(listingRef);
+      const listingData = listingDoc.data();
+
+      if (listingData) {
+        const notificationRef = doc(collection(db, "notifications"));
+        await setDoc(notificationRef, {
+          userId: listingData.landlordId,
+          type: "listing_review",
+          message: `Your listing was not approved. Reason: ${
+            rejectionReasons.find((r) => r.value === reason)?.label
+          }`,
+          read: false,
+          createdAt: serverTimestamp(),
+          listingId: selectedListingId,
+        });
+      }
+
+      await batch.commit();
+      await refetchListings();
+
+      toast({
+        title: "Success",
+        description: "Listing rejected successfully",
+        variant: "success",
+      });
+    } catch (error: any) {
+      console.error("Error rejecting listing:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject listing",
         variant: "error",
       });
     }
@@ -448,59 +507,69 @@ const AdminDashboard = () => {
                     <p className="text-gray-600">Loading listings...</p>
                   </div>
                 ) : listingsError ? (
-                  <div className="p-4 rounded-md bg-amber-50 border border-amber-200">
-                    <p className="text-amber-800">
-                      {listingsError.message?.includes("index")
-                        ? "The system is being initialized. Please wait a few minutes and refresh the page."
-                        : `Error loading listings: ${listingsError.message}`}
+                  <div className="flex items-center justify-center p-4">
+                    <p className="text-red-500">
+                      Error loading listings. Please try again.
                     </p>
                   </div>
-                ) : pendingListings?.length ? (
+                ) : pendingListings?.length === 0 ? (
+                  <p className="text-center text-gray-500">
+                    No listings pending review
+                  </p>
+                ) : (
                   <div className="space-y-4">
-                    {pendingListings.map((listing) => (
+                    {pendingListings?.map((listing) => (
                       <Card key={listing.id}>
                         <CardContent className="pt-6">
                           <div className="flex justify-between items-start">
-                            <div className="space-y-1">
-                              <h3 className="font-semibold">{listing.title}</h3>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold">
+                                  {listing.title}
+                                </h3>
+                                <Badge>PENDING REVIEW</Badge>
+                              </div>
                               <p className="text-sm text-gray-500">
-                                {listing.location?.city},{" "}
-                                {listing.location?.area}
+                                {listing.location.area}, {listing.location.city}
                               </p>
                               <p className="text-sm">
-                                ${listing.price}/mo · {listing.bedrooms} beds ·{" "}
-                                {listing.bathrooms} baths
+                                ${listing.price}/month • {listing.bedrooms} beds
+                                • {listing.bathrooms} baths
                               </p>
                             </div>
-                            <div className="space-x-2">
+                            <div className="flex gap-2">
                               <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() =>
+                                  navigate(`/listings/${listing.id}`)
+                                } // Changed from "/listing" to "/listings"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="default"
+                                size="icon"
                                 onClick={() =>
                                   handleListingAction(listing.id, true)
                                 }
-                                disabled={processingId === listing.id}
                               >
-                                {processingId === listing.id
-                                  ? "Processing..."
-                                  : "Approve"}
+                                <Check className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="destructive"
+                                size="icon"
                                 onClick={() =>
                                   handleListingAction(listing.id, false)
                                 }
-                                disabled={processingId === listing.id}
                               >
-                                Reject
+                                <X className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
                         </CardContent>
                       </Card>
                     ))}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center p-4">
-                    <p className="text-gray-600">No pending listings</p>
                   </div>
                 )}
               </ScrollArea>
@@ -683,6 +752,12 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <RejectionDialog
+          open={isRejectionDialogOpen}
+          onOpenChange={setIsRejectionDialogOpen}
+          onConfirm={handleReject}
+        />
       </Tabs>
     </div>
   );

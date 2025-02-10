@@ -161,15 +161,11 @@ export const updateListing = async (
   userId: string
 ): Promise<void> => {
   const listingRef = doc(db, "listings", listingId);
-  // const timestamp = Timestamp.now();
-  if (
-    !(updates as Partial<Listing>).status &&
-    (updates as Partial<Listing>).status !== "pending_review"
-  ) {
-    const userDoc = await getDoc(doc(db, "users", userId));
-    if (userDoc.exists() && userDoc.data().role !== "admin") {
-      (updates as Partial<Listing>).status = "pending_review";
-    }
+  const userDoc = await getDoc(doc(db, "users", userId));
+  
+  // Always set status to pending_review for non-admin users
+  if (userDoc.exists() && userDoc.data().role !== "admin") {
+    (updates as Partial<Listing>).status = "pending_review";
   }
   // Upload new images
   const imageUrls: string[] = [];
