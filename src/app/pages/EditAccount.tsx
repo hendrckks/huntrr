@@ -189,7 +189,7 @@ const EditAccount: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
+            <CardTitle>Account Information</CardTitle>
             <CardDescription>Update your profile details and preferences</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -264,7 +264,7 @@ const EditAccount: React.FC = () => {
         {!isGoogleUser && (
           <Card>
             <CardHeader>
-              <CardTitle>Password</CardTitle>
+              <CardTitle>Change your Password</CardTitle>
               <CardDescription>Update your password to keep your account secure</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
