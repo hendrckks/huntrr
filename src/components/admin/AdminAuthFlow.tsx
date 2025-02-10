@@ -126,6 +126,7 @@ const AdminAuthFlow: React.FC = () => {
     try {
       const validatedData = loginSchema.parse({ email, password });
 
+      // Set persistence before attempting sign in
       await setPersistence(auth, browserSessionPersistence);
 
       const userCredential = await signInWithEmailAndPassword(
@@ -134,17 +135,20 @@ const AdminAuthFlow: React.FC = () => {
         validatedData.password
       );
 
+      // Wait for user claims to be refreshed
       await refreshUserClaims(userCredential.user);
-      const idTokenResult = await userCredential.user.getIdTokenResult();
+      const idTokenResult = await userCredential.user.getIdTokenResult(true);
 
       if (idTokenResult.claims.role !== "admin") {
         throw new Error("You do not have admin privileges.");
       }
 
+      // Get user data after confirming admin role
       const userRef = doc(db, "users", userCredential.user.uid);
       const userDoc = await getDoc(userRef);
       const userData = userDoc.data();
 
+      // Update last login after confirming permissions
       await updateDoc(userRef, {
         lastLogin: serverTimestamp(),
       });
@@ -158,9 +162,9 @@ const AdminAuthFlow: React.FC = () => {
             : undefined,
       };
 
+      // Update storage and state after successful authentication
       localStorage.setItem("user", JSON.stringify(userWithRole));
       sessionStorage.setItem("user", JSON.stringify(userWithRole));
-
       setUser(userWithRole);
 
       const authManager = AuthStateManager.getInstance();
