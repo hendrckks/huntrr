@@ -12,6 +12,11 @@ import {
 import { doc, updateDoc } from "firebase/firestore";
 import { uploadImage } from "../../lib/actions/uploadImage";
 import { toast } from "../../hooks/useToast";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Upload } from "lucide-react";
 
 // Default placeholder image path
 const DEFAULT_PROFILE_IMAGE = "/default image.webp";
@@ -173,30 +178,28 @@ const EditAccount: React.FC = () => {
   const isGoogleUser = user?.providerData[0]?.providerId === "google.com";
 
   return (
-    <div className="max-w-4xl px-4">
-      <h1 className="text-lg md:text-xl font-medium bg-background dark:bg-inherit dark:text-white mb-2">
-        Your Account
-      </h1>
-      <p className="mb-8">
-        Update your account information below.
-      </p>
+    <div className="container mx-auto px-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl font-medium">Account Settings</h1>
+        <Button variant="outline" onClick={() => navigate(-1)}>
+          Back
+        </Button>
+      </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className=" rounded-lg shadow-sm space-y-8"
-      >
-        {/* Personal Information Section */}
-        <div>
-          <h2 className="text-lg font-medium mb-6">
-            Personal Information
-          </h2>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Personal Information</CardTitle>
+            <CardDescription>Update your profile details and preferences</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
 
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-6">
+          <div className="flex items-center gap-4 mb-6">
             <div className="relative">
               <img
                 src={profileImage}
                 alt="Profile"
-                className="w-16 h-16 rounded-full object-cover border border-gray-300"
+                className="w-16 h-16 rounded-full object-cover"
                 onError={() => setProfileImage(DEFAULT_PROFILE_IMAGE)}
               />
               <input
@@ -212,118 +215,120 @@ const EditAccount: React.FC = () => {
                 className="absolute inset-0 cursor-pointer"
               />
             </div>
-            <label
-              htmlFor="profile-upload"
-              className="px-3 py-1.5 text-sm border border-gray-300/40 rounded-md hover:bg-gray-50 cursor-pointer"
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+              disabled={isLoading}
+              asChild
             >
-              {isLoading ? "Uploading..." : "Upload New"}
-            </label>
+              <label htmlFor="profile-upload" className="cursor-pointer">
+                <Upload className="h-4 w-4" />
+                {isLoading ? "Uploading..." : "Upload New"}
+              </label>
+            </Button>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm mb-1">Name</label>
-              <input
-                type="text"
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="displayName">Name</Label>
+              <Input
+                id="displayName"
                 name="displayName"
                 value={formData.displayName}
                 onChange={handleChange}
                 disabled={isLoading}
-                className="w-full text-sm px-3 py-2 border bg-background dark:bg-inherit dark:text-white border-gray-300/40 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
-            <div>
-              <label className="block text-sm mb-1">Email</label>
-              <input
-                type="email"
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
                 name="email"
+                type="email"
                 value={formData.email}
                 onChange={handleChange}
                 disabled={isLoading || isGoogleUser}
-                className="w-full text-sm px-3 py-2 border border-gray-300/40 bg-background dark:bg-inherit dark:text-white rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               {isGoogleUser && (
-                <p className="mt-1 text-sm">
+                <p className="text-sm text-muted-foreground">
                   Email cannot be changed for Google accounts
                 </p>
               )}
             </div>
           </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Password Section */}
         {!isGoogleUser && (
-          <div>
-            <h2 className="text-lg font-medium text-gray-900 mb-6">Password</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">
-                  Current Password
-                </label>
-                <input
-                  type="password"
-                  name="currentPassword"
-                  value={formData.currentPassword}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter current password"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-700 mb-1">
-                    New Password
-                  </label>
-                  <input
+          <Card>
+            <CardHeader>
+              <CardTitle>Password</CardTitle>
+              <CardDescription>Update your password to keep your account secure</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Input
+                    id="currentPassword"
                     type="password"
-                    name="newPassword"
-                    value={formData.newPassword}
+                    name="currentPassword"
+                    value={formData.currentPassword}
                     onChange={handleChange}
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter new password"
+                    placeholder="Enter current password"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm text-gray-700 mb-1">
-                    Confirm New Password
-                  </label>
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Confirm new password"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      name="newPassword"
+                      value={formData.newPassword}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      placeholder="Enter new password"
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      placeholder="Confirm new password"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex flex-col md:flex-row justify-end gap-4 pt-4">
-          <button
+        <div className="flex justify-end gap-4">
+          <Button
+            variant="outline"
             type="button"
             onClick={() => navigate(-1)}
             disabled={isLoading}
-            className="px-4 py-2 text-sm border border-gray-300/40 rounded-md hover:bg-gray-50 dark:hover:bg-white/30  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-textBlack"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             disabled={isLoading}
-            className="px-4 py-2 text-sm dark:bg-inherit dark:text-white text-black rounded-md hover:bg-black/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-textBlack"
           >
             {isLoading ? "Saving..." : "Save changes"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

@@ -84,7 +84,7 @@ const Sidebar = () => {
       label: "Verify Documents",
       path: "/verify-documents",
     } : null,
-    { icon: Settings, label: "Settings & privacy", path: "/invoices" },
+    { icon: Settings, label: "Settings & privacy", path: "/edit-account" },
     { icon: HelpCircle, label: "Help & support", path: "/spend-groups" },
   ].filter((item): item is NavItem => Boolean(item));
 
@@ -123,7 +123,7 @@ const Sidebar = () => {
               className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive ? "bg-white/10 shadow-lg" : "hover:bg-white/5"}`}
             >
               <Icon className="w-5 h-5" />
-              <span className="">{item.label}</span>
+              <span className="text-sm">{item.label}</span>
             </Link>
           );
         })}
