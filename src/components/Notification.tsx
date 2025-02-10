@@ -66,7 +66,10 @@ const NotificationsPage = () => {
     }
   };
 
-  const markAsRead = async (notificationId: string) => {
+  const markAsRead = async (notificationId: string, e?: React.MouseEvent) => {
+    // Prevent card click event if clicking the button
+    e?.stopPropagation();
+    
     try {
       const notificationRef = doc(db, "notifications", notificationId);
       await updateDoc(notificationRef, {
@@ -74,7 +77,7 @@ const NotificationsPage = () => {
         readAt: Timestamp.now(),
       });
 
-      // Update local state
+      // Update local state with animation
       setNotifications((prevNotifications) =>
         prevNotifications.map((notification) =>
           notification.id === notificationId
@@ -174,8 +177,7 @@ const NotificationsPage = () => {
               {unreadNotifications.map((notification) => (
                 <Card
                   key={notification.id}
-                  className="hover:bg-accent/50 transition-colors cursor-pointer"
-                  onClick={() => markAsRead(notification.id)}
+                  className="hover:bg-accent/50 transition-colors"
                 >
                   <CardContent className="flex items-start gap-4 p-4">
                     {getNotificationIcon(notification.type)}
@@ -188,6 +190,12 @@ const NotificationsPage = () => {
                         {formatDate(notification.createdAt!)}
                       </p>
                     </div>
+                    <button
+                      onClick={(e) => markAsRead(notification.id, e)}
+                      className="px-3 py-1 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
+                    >
+                      Mark as read
+                    </button>
                   </CardContent>
                 </Card>
               ))}
