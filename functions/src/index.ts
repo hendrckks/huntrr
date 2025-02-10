@@ -1,5 +1,8 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
+import {
+  onDocumentCreated,
+  onDocumentUpdated,
+} from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 import {
   CustomError,
@@ -10,43 +13,6 @@ import {
 
 admin.initializeApp();
 
-// Listen for user role changes and update custom claims
-export const onUserRoleUpdate = onDocumentUpdated(
-  "users/{userId}",
-  async (event) => {
-    const newValue = event.data?.after.data();
-    const previousValue = event.data?.before.data();
-
-    // Only proceed if the role has changed
-    if (newValue?.role !== previousValue?.role) {
-      try {
-        // Update custom claims
-        await admin.auth().setCustomUserClaims(event.params.userId, {
-          role: newValue?.role,
-        });
-
-        // Add a notification in Firestore about the role change
-        await admin.firestore().collection('adminNotifications').add({
-          type: 'role_update',
-          userId: event.params.userId,
-          previousRole: previousValue?.role,
-          newRole: newValue?.role,
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
-          message: `User ${event.params.userId} role updated from ${previousValue?.role} to ${newValue?.role}`,
-          read: false
-        });
-
-        console.log(
-          `Updated custom claims for user ${event.params.userId} to role: ${newValue?.role}`
-        );
-      } catch (error) {
-        console.error("Error updating custom claims:", error);
-      }
-    }
-  }
-);
-
-// Type definitions for request data
 interface SetCustomClaimsRequest {
   uid: string;
   role: string;
@@ -77,6 +43,59 @@ function checkRateLimit(uid: string): boolean {
   rateLimiter.set(uid, userRateLimit);
   return userRateLimit.count <= RATE_LIMIT;
 }
+
+// Listen for user role changes and update custom claims
+export const onUserRoleUpdate = onDocumentUpdated(
+  "users/{userId}",
+  async (event) => {
+    const newValue = event.data?.after.data();
+    const previousValue = event.data?.before.data();
+
+    if (newValue?.role !== previousValue?.role) {
+      try {
+        // Force token revocation
+        await admin.auth().revokeRefreshTokens(event.params.userId);
+
+        // Update custom claims
+        await admin.auth().setCustomUserClaims(event.params.userId, {
+          role: newValue?.role,
+        });
+
+        // Add a notification in Firestore about the role change
+        await admin
+          .firestore()
+          .collection("adminNotifications")
+          .add({
+            type: "role_update",
+            userId: event.params.userId,
+            previousRole: previousValue?.role,
+            newRole: newValue?.role,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            message: `User ${event.params.userId} role updated from ${previousValue?.role} to ${newValue?.role}`,
+            read: false,
+          });
+
+        console.log(
+          `Updated custom claims for user ${event.params.userId} to role: ${newValue?.role}`
+        );
+      } catch (error) {
+        console.error("Error updating custom claims:", error);
+      }
+    }
+  }
+);
+
+export const revokeUserTokens = onCall(async (request) => {
+  if (!request.auth || request.auth.token.role !== "admin") {
+    throw new HttpsError("permission-denied", "Not authorized");
+  }
+
+  const { userId } = request.data;
+  await admin.auth().revokeRefreshTokens(userId);
+  return { success: true };
+});
+
+// Type definitions for request data
 
 // Function to set custom claims for a user
 export const setCustomClaims = onCall<SetCustomClaimsRequest>(
@@ -170,13 +189,16 @@ export const verifyLandlord = onCall(
         });
 
         // Add admin notification about landlord verification
-        const notificationRef = admin.firestore().collection('adminNotifications').doc();
+        const notificationRef = admin
+          .firestore()
+          .collection("adminNotifications")
+          .doc();
         transaction.set(notificationRef, {
-          type: 'landlord_verification',
+          type: "landlord_verification",
           userId: uid,
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
           message: `Landlord ${uid} has been verified`,
-          read: false
+          read: false,
         });
       });
 
@@ -243,7 +265,7 @@ export const onListingVerified = onDocumentUpdated(
             landlordId: landlordId,
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             message: `Listing ${event.params.listingId} has been verified and published`,
-            read: false
+            read: false,
           });
 
         if (notificationToken) {
@@ -287,16 +309,21 @@ export const onNewListing = onDocumentCreated(
       }
 
       // Add admin notification about the new listing
-      await admin.firestore().collection('adminNotifications').add({
-        type: 'new_listing',
-        listingId: event.params.listingId,
-        landlordId: listingData.landlord.uid,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        message: `New listing "${listingData.title}" created by landlord ${listingData.landlord.uid}`,
-        read: false
-      });
+      await admin
+        .firestore()
+        .collection("adminNotifications")
+        .add({
+          type: "new_listing",
+          listingId: event.params.listingId,
+          landlordId: listingData.landlord.uid,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          message: `New listing "${listingData.title}" created by landlord ${listingData.landlord.uid}`,
+          read: false,
+        });
 
-      console.log(`Created notification for new listing ${event.params.listingId}`);
+      console.log(
+        `Created notification for new listing ${event.params.listingId}`
+      );
     } catch (error) {
       console.error("Error in onNewListing:", error);
       // Since this is a background function, we can't return an error to the client

@@ -82,7 +82,7 @@ export class AuthStateManager {
     this.sessionCheckInterval = null;
     this.authStateListeners = new Set();
     this.notifyAuthStateChange = (user: null) => {
-      this.authStateListeners.forEach(listener => listener(user));
+      this.authStateListeners.forEach((listener) => listener(user));
     };
     this.initializeSessionCheck();
   }
@@ -226,9 +226,9 @@ export class AuthStateManager {
       localStorage.removeItem("sessionId");
       sessionStorage.clear();
       // Still notify listeners in case of error
-      this.notifyAuthStateChange(null)
+      this.notifyAuthStateChange(null);
     }
-  };
+  }
 
   cleanup() {
     this.clearSessionTimeout();
@@ -556,14 +556,13 @@ export const login = async (
     const userDoc = await getDoc(doc(db, "users", user.uid));
     const userData = userDoc.data();
 
-    const userWithMetadata: User = {
-      ...user,
+    const userWithMetadata = Object.assign(user, {
       role,
       createdAt:
         userData?.createdAt instanceof Timestamp
           ? userData.createdAt.toDate().toISOString()
           : undefined,
-    };
+    }) as User;
 
     await authManager.startSessionTimeout();
     setUser(userWithMetadata);
@@ -688,7 +687,12 @@ export const resendVerificationEmail = async (
     sessionStorage.removeItem("suppressAuth");
 
     // If it's an invalid credentials error, we still want to show that
-    if (error && typeof error === 'object' && 'code' in error && error.code === AuthErrorCodes.INVALID_LOGIN_CREDENTIALS) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === AuthErrorCodes.INVALID_LOGIN_CREDENTIALS
+    ) {
       return handleAuthError(error);
     }
 

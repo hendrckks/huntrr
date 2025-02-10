@@ -34,7 +34,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog";
-import { Archive, Eye, Pencil, Trash2, Home, Plus } from "lucide-react";
+import {
+  Archive,
+  Eye,
+  Pencil,
+  Trash2,
+  Plus,
+  FileText,
+  Upload,
+  File,
+  ArchiveIcon,
+} from "lucide-react";
 import type { ListingDocument, ListingStatus } from "../../lib/types/Listing";
 
 interface ListingCardProps {
@@ -130,16 +140,16 @@ const LandlordDashboard: React.FC = () => {
   };
 
   const getStatusBadge = (status: ListingStatus) => {
-    // const variants = {
-    //   published: "success",
-    //   pending_review: "warning",
-    //   archived: "secondary",
-    //   denied: "destructive",
-    //   draft: "outline",
-    //   recalled: "destructive",
-    // } as const;
+    const variants = {
+      published: "success",
+      pending_review: "warning",
+      archived: "secondary",
+      denied: "destructive",
+      draft: "outline",
+      recalled: "destructive",
+    } as const;
 
-    return <Badge>{status.replace("_", " ").toUpperCase()}</Badge>;
+    return <Badge variant={variants[status] as "secondary" | "destructive" | "outline" | "default"}>{status.replace("_", " ").toUpperCase()}</Badge>;
   };
 
   // Filter listings by status
@@ -171,7 +181,7 @@ const LandlordDashboard: React.FC = () => {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => navigate(`/listing/${listing.id}`)}
+              onClick={() => navigate(`/listings/${listing.id}`)} // Changed from "/listing" to "/listings"
             >
               <Eye className="h-4 w-4" />
             </Button>
@@ -207,9 +217,8 @@ const LandlordDashboard: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
-          <Home className="h-6 w-6" />
           <h1 className="text-xl font-medium">Landlord Dashboard</h1>
         </div>
         <div className="flex gap-2">
@@ -229,7 +238,13 @@ const LandlordDashboard: React.FC = () => {
 
       <Tabs defaultValue="published" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="published">
+          <TabsTrigger
+            className="flex items-center gap-2 text-white"
+            value="published"
+          >
+            <span>
+              <Upload className="h-4 w-4" />
+            </span>
             Published
             {publishedListings.length > 0 && (
               <Badge variant="secondary" className="ml-2">
@@ -237,13 +252,26 @@ const LandlordDashboard: React.FC = () => {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="pending">
+          <TabsTrigger
+            value="pending"
+            className="flex items-center gap-2 text-white"
+          >
+            <span>
+              <FileText className="h-4 w-4" />
+            </span>
             Pending Review
             {pendingListings.length > 0 && (
               <Badge className="ml-2">{pendingListings.length}</Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="drafts">
+          <TabsTrigger
+            value="drafts
+          "
+            className="flex items-center gap-2 text-white"
+          >
+            <span>
+              <File className="h-4 w-4" />
+            </span>
             Drafts & Pending
             {draftListings.length > 0 && (
               <Badge variant="outline" className="ml-2">
@@ -251,7 +279,13 @@ const LandlordDashboard: React.FC = () => {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="archived">
+          <TabsTrigger
+            value="archived"
+            className="flex items-center gap-2 text-white"
+          >
+            <span>
+              <ArchiveIcon className="h-4 w-4" />
+            </span>
             Archived
             {archivedListings.length > 0 && (
               <Badge variant="secondary" className="ml-2">

@@ -5,17 +5,21 @@ export type UserClaims = {
 };
 
 export const getUserClaims = async (user: User): Promise<UserClaims | null> => {
+  if (!(user && typeof user.getIdToken === "function")) {
+    console.error("Invalid user object:", user);
+    return null;
+  }
   try {
     // Force token refresh and wait for it to complete
     await user.getIdToken(true);
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Allow time for token to propagate
-    
+
     const decodedToken = await user.getIdTokenResult(true);
     if (!decodedToken.claims.role) {
       console.warn("No role claim found in token");
       return null;
     }
-    
+
     return { role: decodedToken.claims.role as UserClaims["role"] };
   } catch (error) {
     console.error("Error getting user claims:", error);

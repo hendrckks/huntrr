@@ -86,9 +86,9 @@ export const processKYC = onCall({ enforceAppCheck: true }, async (request) => {
       });
 
       // Update custom claims
-      await admin
-        .auth()
-        .setCustomUserClaims(userId, { role: "landlord_verified" });
+      // await admin
+      //   .auth()
+      //   .setCustomUserClaims(userId, { role: "landlord_verified" });
     }
 
     await batch.commit();

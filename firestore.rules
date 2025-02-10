@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function hasRole(role) {
+      return request.auth.token.role == role;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isValidNewUser() {
+      let incoming = request.resource.data;
+      return incoming.keys().hasAll(['email', 'role', 'displayName', 'createdAt']) &&
+        incoming.role in ['tenant_unverified', 'user'] &&
+        incoming.email is string &&
+        incoming.email.matches('^[^@]+@[^@]+\\.[^@]+$');
+    }
+
+    function isValidListing() {
+      let incoming = request.resource.data;
+      return incoming.size() <= 1048576 && // 1MB max
+        incoming.title.size() <= 100 &&
+        incoming.description.size() <= 2000 &&
+        incoming.photos.size() <= 10;
+    }
+    
+    function isValidKYCDocument() {
+      let incoming = request.resource.data;
+      return incoming.keys().hasAll([
+        'userId', 'documentType', 'documentNumber', 
+        'frontDocumentUrl', 'backDocumentUrl', 'selfieUrl',
+        'status', 'personalInfo', 'submittedAt', 'createdAt', 'updatedAt'
+      ]) &&
+      incoming.documentType in ['national_id', 'passport', 'drivers_license'] &&
+      incoming.status == 'pending' &&
+      incoming.userId == request.auth.uid;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow list: if true;  // Needed for email duplicate check
+      allow create: if true;  // Needed for initial user creation
+      allow get: if isAuthenticated() && (isOwner(userId) || hasRole('admin'));
+      allow update: if isAuthenticated() && (isOwner(userId) || hasRole('admin'));
+      allow delete: if hasRole('admin');
+    }
+    
+    match /bookmarks/{bookmarkId} {
+      function isValidBookmarkId() {
+        return bookmarkId.matches('^[^_]+_[^_]+$') && 
+          bookmarkId.split('_')[0] == request.auth.uid;
+      }
+
+      allow read: if isAuthenticated() && (
+        (resource != null && resource.data.userId == request.auth.uid) ||
+        (resource == null && isValidBookmarkId())
+      );
+      
+      allow create: if isAuthenticated() && 
+        isValidBookmarkId() &&
+        request.resource.data.userId == request.auth.uid;
+      
+      allow delete: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // Listings collection
+    match /listings/{listingId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && 
+        (hasRole('landlord_verified') || hasRole('admin')) &&
+        request.resource.data.landlordId == request.auth.uid &&
+        isValidListing();
+      allow update: if isAuthenticated() && (
+        (resource.data.landlordId == request.auth.uid && 
+          !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['status', 'verifiedAt', 'verifiedBy']) &&
+          isValidListing()) ||
+        (hasRole('admin') && 
+          (request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['status', 'verifiedAt', 'verifiedBy', 'reviewedAt', 'reviewedBy']) ||
+           request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['bookmarkCount'])))
+      );
+      allow delete: if isAuthenticated() && 
+        (resource.data.landlordId == request.auth.uid || hasRole('admin'));
+    }
+
+    // Sessions collection
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // KYC collection
+    match /kyc/{userId} {
+      allow read: if isAuthenticated() && 
+        (isOwner(userId) || hasRole('admin'));
+      
+      allow create: if isAuthenticated() && 
+        (isOwner(userId) || hasRole('admin')) &&
+        isValidKYCDocument();
+      
+      allow update: if isAuthenticated() && hasRole('admin');
+    }
+
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.landlordId == request.auth.uid || hasRole('admin'));
+      allow write: if false; // Only backend can write notifications
+    }
+
+    // Admin notifications collection
+    match /adminNotifications/{notificationId} {
+      allow read: if isAuthenticated() && hasRole('admin');
+      allow write: if false; // Only backend can write admin notifications
+    }
+
+    // Audit logs collection
+    match /audit_logs/{logId} {
+      allow read: if hasRole('admin');
+      allow write: if false; // Only backend can write audit logs
+    }
+  }
+}

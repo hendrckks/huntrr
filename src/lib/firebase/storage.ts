@@ -8,7 +8,7 @@ import { storage } from "./clientApp";
 
 export const uploadImage = async (
   file: File,
-  path: string,
+  listingId: string,
   userId: string
 ): Promise<string> => {
   // Verify file is an image and under 5MB
@@ -25,16 +25,35 @@ export const uploadImage = async (
     .toString(36)
     .substring(7)}.${fileExtension}`;
 
-  // For KYC documents, ensure proper path structure
-  const fullPath = path.includes("kyc")
-    ? `users/${userId}/kyc/${fileName}`
-    : path.includes("listings")
-    ? `listings/${userId}/${path}/${fileName}`
-    : `${path}/${fileName}`;
+  // Structure the path according to the storage rules
+  let fullPath: string;
 
-  const storageRef = ref(storage, fullPath);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
+  if (listingId.startsWith("temp_")) {
+    // For new listings being created
+    fullPath = `listings/${userId}/${listingId}/${fileName}`;
+  } else if (listingId.includes("kyc")) {
+    // For KYC documents
+    fullPath = `users/${userId}/kyc/${fileName}`;
+  } else if (listingId.includes("profile")) {
+    // For profile images
+    fullPath = `users/${userId}/profile/${fileName}`;
+  } else {
+    // For existing listings
+    fullPath = `listings/${userId}/${listingId}/${fileName}`;
+  }
+
+  try {
+    const storageRef = ref(storage, fullPath);
+    await uploadBytes(storageRef, file);
+    return getDownloadURL(storageRef);
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    throw new Error(
+      `Failed to upload image: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
 };
 
 export const deleteImage = async (path: string): Promise<void> => {

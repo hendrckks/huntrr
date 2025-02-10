@@ -32,6 +32,7 @@ import { refreshUserClaims } from "../../lib/firebase/tokenRefresh";
 import { BellDot, User2Icon } from "lucide-react";
 import { FileText } from "lucide-react";
 import type { ListingDocument } from "../../lib/types/Listing";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -133,6 +134,9 @@ const AdminDashboard = () => {
   });
 
   const handleProcessKYC = async (userId: string, approved: boolean) => {
+    const functions = getFunctions();
+    const revokeTokens = httpsCallable(functions, "revokeUserTokens");
+
     const maxRetries = 3;
     let currentRetry = 0;
 
@@ -169,6 +173,7 @@ const AdminDashboard = () => {
           role: "landlord_verified",
           verifiedAt: serverTimestamp(),
         });
+        await revokeTokens({ userId }); // Fixed: Use userId directly instead of kyc.userId
       }
 
       await batch.commit();
