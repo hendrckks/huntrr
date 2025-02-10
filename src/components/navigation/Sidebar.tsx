@@ -13,8 +13,11 @@ import {
   HousePlus,
   HelpCircle,
   FileCheck,
-  LucideIcon,
+  // LucideIcon,
 } from "lucide-react";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../lib/firebase/clientApp";
+import { normalizeNotificationDate } from "../../lib/utils/NotificationUtils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,18 +33,58 @@ import {
 } from "../../components/ui/avatar";
 import { toast } from "../../hooks/useToast";
 import { signOut } from "../../lib/firebase/auth";
+import { useEffect, useState } from "react";
+import { BaseNotification } from "../../lib/utils/NotificationUtils";
 
-type NavItem = {
-  icon: LucideIcon;
-  label: string;
-  path: string;
-};
+// type NavItem = {
+//   icon: LucideIcon;
+//   label: string;
+//   path: string;
+//   badge?: number;
+// };
 
 const Sidebar = () => {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { user, isLoading, setUser } = useAuth();
   const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<BaseNotification[]>([]);
+
+  useEffect(() => {
+    if (user?.uid) {
+      fetchNotifications();
+    }
+  }, [user?.uid]);
+
+  const fetchNotifications = async () => {
+    try {
+      const baseQuery = query(
+        collection(db, "notifications"),
+        where("userId", "==", user?.uid)
+      );
+
+      const landlordQuery = query(
+        collection(db, "notifications"),
+        where("landlordId", "==", user?.uid)
+      );
+
+      const [userSnapshot, landlordSnapshot] = await Promise.all([
+        getDocs(baseQuery),
+        getDocs(landlordQuery)
+      ]);
+
+      const allNotifs = [...userSnapshot.docs, ...landlordSnapshot.docs].map((doc) =>
+        normalizeNotificationDate({
+          ...doc.data(),
+          id: doc.id,
+        })
+      );
+
+      setNotifications(allNotifs);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -63,7 +106,12 @@ const Sidebar = () => {
 
   const navItems = [
     { icon: HomeIcon, label: "Home", path: "/" },
-    { icon: Bell, label: "Notifications", path: "/notifications" },
+    { 
+      icon: Bell, 
+      label: "Notifications", 
+      path: "/notifications",
+      badge: notifications.filter(n => !n.read).length > 0
+    },
     { icon: Bookmark, label: "Bookmarks", path: "/bookmarks" },
     (user?.role === "admin" || user?.role === "landlord_verified") ? 
       { icon: HousePlus, label: "List your property", path: "/add-listing" } : null,
@@ -85,7 +133,7 @@ const Sidebar = () => {
     } : null,
     { icon: Settings, label: "Settings & privacy", path: "/account-settings" },
     { icon: HelpCircle, label: "Help & support", path: "/spend-groups" },
-  ].filter((item): item is NavItem => Boolean(item));
+  ].filter((item): item is Exclude<typeof item, null> => item !== null);
 
   const getInitials = (name: string) => {
     return name
@@ -121,7 +169,12 @@ const Sidebar = () => {
               to={item.path}
               className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive ? "bg-white/10 shadow-lg" : "hover:bg-white/5"}`}
             >
-              <Icon className="w-5 h-5" />
+              <div className="relative">
+                <Icon className="w-5 h-5" />
+                {item.badge && (
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                )}
+              </div>
               <span className="text-sm">{item.label}</span>
             </Link>
           );
