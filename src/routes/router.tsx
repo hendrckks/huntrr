@@ -3,8 +3,8 @@ import { lazy, Suspense } from "react";
 import ProtectedRoute from "./ProtectedRoute";
 import SpinningLoader from "../components/SpinningLoader";
 import { UserRole } from "../lib/types/auth";
-import { AuthProvider } from "../contexts/AuthContext";
-import { BookmarkProvider } from "../contexts/BookmarkContext";
+// import { AuthProvider } from "../contexts/AuthContext";
+// import { BookmarkProvider } from "../contexts/BookmarkContext";
 
 // Lazy load components
 const Components = {
@@ -15,8 +15,12 @@ const Components = {
   SignIn: lazy(() => import("../app/auth/SignIn")),
   ResetPassword: lazy(() => import("../app/auth/ResetPassword")),
   RoleSelectionDialog: lazy(() => import("../components/RoleSelectionDialog")),
-  TenantDashboard: lazy(() => import("../components/dashboards/TenantDashboard")),
-  LandlordDashboard: lazy(() => import("../components/dashboards/LandlordDashboard")),
+  TenantDashboard: lazy(
+    () => import("../components/dashboards/TenantDashboard")
+  ),
+  LandlordDashboard: lazy(
+    () => import("../components/dashboards/LandlordDashboard")
+  ),
   AdminDashboard: lazy(() => import("../components/dashboards/AdminDashboard")),
   Unauthorized: lazy(() => import("../components/Unauthorized")),
   EditAccount: lazy(() => import("../app/pages/EditAccount")),
@@ -26,6 +30,9 @@ const Components = {
   BookmarksPage: lazy(() => import("../app/pages/Bookmarks")),
   KYCVerification: lazy(() => import("../app/pages/KYCVerification")),
   EditListing: lazy(() => import("../app/pages/EditListing")),
+  Notifications: lazy(
+    () => import("../components/notifications/Notifications")
+  ),
 };
 
 const createProtectedRoute = (
@@ -53,15 +60,15 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: (
-      <AuthProvider>
-        <BookmarkProvider>
-          <div className="antialiased bg-background font-athauss">
-            <Suspense fallback={<SpinningLoader />}>
-              <Components.MainLayout />
-            </Suspense>
-          </div>
-        </BookmarkProvider>
-      </AuthProvider>
+      // <AuthProvider>
+      //   <BookmarkProvider>
+      <div className="antialiased bg-background font-athauss">
+        <Suspense fallback={<SpinningLoader />}>
+          <Components.MainLayout />
+        </Suspense>
+      </div>
+      //   </BookmarkProvider>
+      // </AuthProvider>
     ),
     children: [
       {
@@ -167,6 +174,12 @@ export const router = createBrowserRouter([
         element: createProtectedRoute(<Components.LandlordDashboard />, {
           requireAuth: true,
           allowedRoles: ["landlord_verified", "landlord_unverified"],
+        }),
+      },
+      {
+        path: "notifications",
+        element: createProtectedRoute(<Components.Notifications />, {
+          requireAuth: true,
         }),
       },
       {

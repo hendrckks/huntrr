@@ -63,8 +63,7 @@ const Sidebar = () => {
 
   const navItems = [
     { icon: HomeIcon, label: "Home", path: "/" },
-    { icon: Bell, label: "Notifications", path: "/accounts" },
-    // { icon: CreditCard, label: "Cards", path: "/cards" },
+    { icon: Bell, label: "Notifications", path: "/notifications" },
     { icon: Bookmark, label: "Bookmarks", path: "/bookmarks" },
     (user?.role === "admin" || user?.role === "landlord_verified") ? 
       { icon: HousePlus, label: "List your property", path: "/add-listing" } : null,

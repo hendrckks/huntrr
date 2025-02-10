@@ -1,6 +1,7 @@
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
+import { KYCDocument } from "./types/types";
 
 // Trigger when a new KYC document is created
 export const onKYCSubmitted = onDocumentCreated(
@@ -102,3 +103,87 @@ export const processKYC = onCall({ enforceAppCheck: true }, async (request) => {
     );
   }
 });
+
+export const onKYCStatusUpdate = onDocumentUpdated(
+  "kyc/{docId}",
+  async (event) => {
+    const beforeData = event.data?.before.data() as KYCDocument;
+    const afterData = event.data?.after.data() as KYCDocument;
+
+    // Only proceed if status has changed
+    if (beforeData.status === afterData.status) {
+      return;
+    }
+
+    const userId = afterData.userId;
+    const userRef = admin.firestore().collection("users").doc(userId);
+    const userDoc = await userRef.get();
+    const userData = userDoc.data();
+
+    if (!userData) {
+      console.error("User document not found");
+      return;
+    }
+
+    // Prepare notification data
+    const notificationData = {
+      userId: userId,
+      type: afterData.status === "approved" ? "kyc_approved" : "kyc_rejected",
+      title: afterData.status === "approved" 
+        ? "KYC Verification Approved" 
+        : "KYC Verification Update",
+      message: afterData.status === "approved"
+        ? "Your KYC verification has been approved. You can now list properties on our platform."
+        : `Your KYC verification was not approved. Reason: ${afterData.rejectionReason || "No reason provided"}`,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      read: false
+    };
+
+    // Create notification in Firestore
+    await admin
+      .firestore()
+      .collection("notifications")
+      .add(notificationData);
+
+    // If user has a notification token, send push notification
+    if (userData.notificationToken) {
+      try {
+        await admin.messaging().send({
+          token: userData.notificationToken,
+          notification: {
+            title: notificationData.title,
+            body: notificationData.message
+          }
+        });
+      } catch (error) {
+        console.error("Error sending push notification:", error);
+      }
+    }
+
+    // Send email notification
+    if (userData.email) {
+      try {
+        await admin.firestore().collection("mail").add({
+          to: userData.email,
+          message: {
+            subject: notificationData.title,
+            text: notificationData.message
+          }
+        });
+      } catch (error) {
+        console.error("Error sending email notification:", error);
+      }
+    }
+
+    // If approved, update user role to landlord_verified
+    if (afterData.status === "approved") {
+      await userRef.update({
+        role: "landlord_verified",
+        kycVerifiedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Force token refresh to update claims
+      await admin.auth().revokeRefreshTokens(userId);
+    }
+  }
+);
