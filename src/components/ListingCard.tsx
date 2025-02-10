@@ -1,7 +1,26 @@
 import { Link } from "react-router-dom";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Flag } from "lucide-react";
+import type { ListingDocument, FlagReason } from "../lib/types/Listing";
+import { Button } from "./ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Textarea } from "./ui/textarea";
+import { flagListing } from "../lib/firebase/firestore";
 import { useToast } from "../hooks/useToast";
-import type { ListingDocument } from "../lib/types/Listing";
 import { useAuth } from "../contexts/AuthContext"; // Assuming you have an auth context
 import { useQueryClient } from "@tanstack/react-query";
 import { doc, getDoc } from "firebase/firestore";
@@ -27,7 +46,9 @@ const ListingCard = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks();
-  const [localBookmarkState, setLocalBookmarkState] = useState<boolean | undefined>(undefined);
+  const [localBookmarkState, setLocalBookmarkState] = useState<
+    boolean | undefined
+  >(undefined);
   const [isDissolving, setIsDissolving] = useState(false);
   const dissolveAnimRef = useRef<SVGAnimateElement>(null);
 
@@ -70,10 +91,11 @@ const ListingCard = ({
 
       if (!listing) return;
 
-      const isCurrentlyBookmarked = localBookmarkState ?? isBookmarked(listing.id);
+      const isCurrentlyBookmarked =
+        localBookmarkState ?? isBookmarked(listing.id);
       // Update local state immediately for instant UI feedback
       setLocalBookmarkState(!isCurrentlyBookmarked);
-      
+
       try {
         if (isCurrentlyBookmarked) {
           // Start dissolve animation immediately for visual feedback
@@ -84,7 +106,7 @@ const ListingCard = ({
           toast({
             title: "Success",
             description: "Listing removed from bookmarks",
-            variant: "success"
+            variant: "success",
           });
           // Complete the dissolve animation
           setTimeout(() => {
@@ -96,11 +118,11 @@ const ListingCard = ({
           toast({
             title: "Success",
             description: "Listing added to bookmarks",
-            variant: "success"
+            variant: "success",
           });
         }
       } catch (error) {
-        console.error('Error toggling bookmark:', error);
+        console.error("Error toggling bookmark:", error);
         toast({
           title: "Error",
           description: "Failed to update bookmark. Please try again.",
@@ -109,8 +131,57 @@ const ListingCard = ({
         setIsDissolving(false); // Reset dissolving state on error
       }
     },
-    [user, listing, isBookmarked, addBookmark, removeBookmark, onBookmarkToggle, toast]
+    [
+      user,
+      listing,
+      isBookmarked,
+      addBookmark,
+      removeBookmark,
+      onBookmarkToggle,
+      toast,
+    ]
   );
+
+  const [flagReason, setFlagReason] = useState<FlagReason>();
+  const [flagDescription, setFlagDescription] = useState("");
+
+  const handleFlag = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to flag listings",
+        variant: "error",
+      });
+      return;
+    }
+
+    if (!listing || !flagReason) return;
+
+    try {
+      await flagListing(listing.id, {
+        reason: flagReason,
+        description: flagDescription,
+        userId: user.uid,
+      });
+
+      toast({
+        title: "Success",
+        description: "Listing has been flagged for review",
+        variant: "success",
+      });
+
+      // Reset the form
+      setFlagReason(undefined);
+      setFlagDescription("");
+    } catch (error) {
+      console.error("Error flagging listing:", error);
+      toast({
+        title: "Error",
+        description: "Failed to flag listing. Please try again.",
+        variant: "error",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -142,45 +213,97 @@ const ListingCard = ({
   const defaultImage = "https://via.placeholder.com/300x200?text=No+Image";
 
   return (
-    <Link
-      to={`/listings/${listing.id}`}
-      className="block rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 relative"
-      onMouseEnter={handleMouseEnter}
-    >
-      {showBookmark && (
-        <>
-          <button
-            onClick={handleBookmarkClick}
-            className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
-            style={{
-              filter: isDissolving
-                ? `url(#dissolve-filter-${listing?.id})`
-                : "none",
-            }}
-          >
-            <Bookmark
-              className={`w-4 h-4 ${
-                localBookmarkState ?? isBookmarked(listing?.id || "")
-                  ? "fill-current text-black"
-                  : "text-gray-600"
-              }`}
-            />
-          </button>
-        </>
-      )}
-      <div className="relative w-full pb-[75%] overflow-hidden rounded-lg">
-        <img
-          src={primaryPhoto?.url || defaultImage}
-          alt={listing.title}
-          className="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform rounded-lg duration-300"
-        />
-      </div>
+    <div>
+      <Link
+        to={`/listings/${listing.id}`}
+        className="block rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 relative"
+        onMouseEnter={handleMouseEnter}
+      >
+        {showBookmark && (
+          <>
+            <button
+              onClick={handleBookmarkClick}
+              className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
+              style={{
+                filter: isDissolving
+                  ? `url(#dissolve-filter-${listing?.id})`
+                  : "none",
+              }}
+            >
+              <Bookmark
+                className={`w-4 h-4 ${
+                  localBookmarkState ?? isBookmarked(listing?.id || "")
+                    ? "fill-current text-black"
+                    : "text-gray-600"
+                }`}
+              />
+            </button>
+          </>
+        )}
+        <div className="relative w-full pb-[75%] overflow-hidden rounded-lg">
+          <img
+            src={primaryPhoto?.url || defaultImage}
+            alt={listing.title}
+            className="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform rounded-lg duration-300"
+          />
+        </div>
+      </Link>
+
       <div className="mt-2">
         <div className="flex justify-between items-start">
           <div className="flex-1">
-            <h3 className="font-medium text-gray-900 dark:text-white max-w-[340px] truncate">
-              {listing.title}
-            </h3>
+            <div className="flex justify-between items-center">
+              <h3 className="font-medium text-gray-900 dark:text-white max-w-[300px] truncate">
+                {listing.title}
+              </h3>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/10">
+                    <Flag className="h-3 w-3" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Flag Listing</DialogTitle>
+                    <DialogDescription>
+                      Please select a reason for flagging this listing.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <Select
+                      onValueChange={(value) =>
+                        setFlagReason(value as FlagReason)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a reason" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="scam">Scam</SelectItem>
+                        <SelectItem value="inappropriate">
+                          Inappropriate
+                        </SelectItem>
+                        <SelectItem value="misleading">Misleading</SelectItem>
+                        <SelectItem value="wrong_information">
+                          Wrong Information
+                        </SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Textarea
+                      placeholder="Additional details about your flag (optional)"
+                      value={flagDescription}
+                      onChange={(e) => setFlagDescription(e.target.value)}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handleFlag} disabled={!flagReason}>
+                      Submit Flag
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
             <p className="text-sm text-gray-600 dark:text-gray-300 truncate mt-1">
               {listing.location.neighborhood}, {listing.location.city}
             </p>
@@ -198,7 +321,7 @@ const ListingCard = ({
           <span className="font-normal"> month</span>
         </p>
       </div>
-    </Link>
+    </div>
   );
 };
 
