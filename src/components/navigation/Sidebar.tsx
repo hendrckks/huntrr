@@ -123,7 +123,7 @@ const Sidebar = () => {
               className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive ? "bg-white/10 shadow-lg" : "hover:bg-white/5"}`}
             >
               <Icon className="w-5 h-5" />
-              <span className="text-sm">{item.label}</span>
+              <span className="">{item.label}</span>
             </Link>
           );
         })}

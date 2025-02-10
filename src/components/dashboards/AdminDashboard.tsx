@@ -434,7 +434,7 @@ const AdminDashboard = () => {
             </span>
             KYC Verifications
             {kycSubmissions?.length ? (
-              <Badge variant="destructive" className="ml-2">
+              <Badge variant="default" className="ml-2">
                 {kycSubmissions.length}
               </Badge>
             ) : null}
@@ -448,7 +448,7 @@ const AdminDashboard = () => {
             </span>
             Pending Listings
             {pendingListings?.length ? (
-              <Badge variant="destructive" className="ml-2">
+              <Badge variant='default' className="ml-2">
                 {pendingListings.length}
               </Badge>
             ) : null}

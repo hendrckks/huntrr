@@ -277,9 +277,9 @@ const LandlordDashboard: React.FC = () => {
             <span>
               <File className="h-4 w-4" />
             </span>
-            Drafts & Pending
+            Drafts 
             {draftListings.length > 0 && (
-              <Badge variant="outline" className="ml-2">
+              <Badge variant="destructive" className="ml-2">
                 {draftListings.length}
               </Badge>
             )}
