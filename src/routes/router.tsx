@@ -118,7 +118,7 @@ export const router = createBrowserRouter([
 
       // Protected routes for all authenticated users
       {
-        path: "edit-account",
+        path: "account-settings",
         element: createProtectedRoute(<Components.EditAccount />, {
           requireAuth: true,
         }),

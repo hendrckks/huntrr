@@ -84,7 +84,7 @@ const Sidebar = () => {
       label: "Verify Documents",
       path: "/verify-documents",
     } : null,
-    { icon: Settings, label: "Settings & privacy", path: "/edit-account" },
+    { icon: Settings, label: "Settings & privacy", path: "/account-settings" },
     { icon: HelpCircle, label: "Help & support", path: "/spend-groups" },
   ].filter((item): item is NavItem => Boolean(item));
 
