@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../../hooks/useToast";
 import { z } from "zod";
@@ -48,6 +48,43 @@ const KYCVerification = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check KYC status on component mount
+  useEffect(() => {
+    const checkKycStatus = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        const kycRef = doc(db, "kyc", user.uid);
+        const kycDoc = await getDoc(kycRef);
+        
+        if (kycDoc.exists()) {
+          const kycData = kycDoc.data();
+          setKycStatus(kycData.status);
+          setIsSubmitted(true);
+          setSubmittedAt(kycData.submittedAt?.toDate() || null);
+        }
+      } catch (error) {
+        console.error("Error checking KYC status:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load verification status",
+          variant: "error"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkKycStatus();
+  }, [user, toast]);
 
   const form = useForm<KYCFormData>({
     resolver: zodResolver(kycSubmissionSchema),
@@ -136,6 +173,9 @@ const KYCVerification = () => {
 
       await setDoc(kycRef, kycData);
 
+      setIsSubmitted(true);
+      setSubmittedAt(timestamp.toDate());
+
       toast({
         title: "Success",
         description: "Your documents have been submitted for verification.",
@@ -153,16 +193,78 @@ const KYCVerification = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardContent className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            <p className="text-sm text-muted-foreground">Loading verification status...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Verify Your Identity</CardTitle>
+        <CardTitle>
+          {isSubmitted ? "Verification In Progress" : "Verify Your Identity"}
+        </CardTitle>
         <CardDescription>
-          Please provide your identification documents and personal information
-          for verification.
+          {isSubmitted
+            ? "Your documents have been submitted and are pending review"
+            : "Please provide your identification documents and personal information for verification."}
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {isSubmitted ? (
+          <div className="space-y-6 text-center">
+            <div className="p-6 bg-green-50 rounded-lg">
+              <div className="flex flex-col items-center gap-4">
+                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                  <svg
+                    className="h-6 w-6 text-green-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg font-medium text-green-800">
+                    Documents Successfully Submitted
+                  </h3>
+                  <p className="mt-2 text-sm text-green-600">
+                    Submitted on {submittedAt?.toLocaleDateString()} at{" "}
+                    {submittedAt?.toLocaleTimeString()}
+                  </p>
+                  {kycStatus === "rejected" && (
+                    <p className="mt-2 text-sm text-red-600">
+                      Your verification was not approved. Please contact support for more information.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h4 className="font-medium">What happens next?</h4>
+              <ul className="space-y-2 text-sm text-white/80 list-disc list-inside">
+                <li>Our team will review your submitted documents</li>
+                <li>You'll receive a notification once the review is complete</li>
+                <li>This process typically takes 1-2 business days</li>
+                <li>You can continue using the platform while you wait</li>
+              </ul>
+            </div>
+          </div>
+        ) : (
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="documentType">Document Type</Label>
@@ -324,6 +426,7 @@ const KYCVerification = () => {
             {isSubmitting ? "Submitting..." : "Submit for Verification"}
           </Button>
         </form>
+        )}
       </CardContent>
     </Card>
   );
