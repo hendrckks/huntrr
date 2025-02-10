@@ -144,9 +144,9 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="w-auto bg-[#121212] text-foreground h-[calc(100vh-1rem)] ml-2 fixed left-0 top-0 p-4 mt-4 mr-2 flex flex-col overflow-y-auto">
+    <div className="w-auto bg-transparent dark:bg-[#121212] text-foreground h-[calc(100vh-1rem)] ml-2 fixed left-0 top-0 p-4 mt-4 mr-2 flex flex-col overflow-y-auto">
       {/* Search Bar */}
-      <div className="mb-4">
+      <div className="mb-4 border border-black/15 dark:border-transparent rounded-md">
         <div className="relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
@@ -167,7 +167,7 @@ const Sidebar = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive ? "bg-white/10 shadow-lg" : "hover:bg-white/5"}`}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg border border-black/10 transition-colors ${isActive ? "dark:bg-white/10 bg-black/10 shadow-lg" : "hover:bg-white/5"}`}
             >
               <div className="relative">
                 <Icon className="w-5 h-5" />
@@ -182,7 +182,7 @@ const Sidebar = () => {
       </nav>
 
       {/* User Profile Section with Theme Toggle */}
-      <div className="border-t border-white/10 pt-4 mt-4 text-sm">
+      <div className="border-t dark:border-white/10 border-black/10 pt-4 mt-4 text-sm">
         <div className="flex flex-col space-y-4">
           <div className="flex items-center justify-between py-2 rounded-lg transition-colors">
             {isLoading ? (
@@ -195,7 +195,7 @@ const Sidebar = () => {
               </div>
             ) : (
               <>
-                <Avatar className="h-10 w-10 mr-2">
+                <Avatar className="h-10 w-10 mr-2 border dark:border-white/10 border-black/15">
                   <AvatarImage src={user?.photoURL || ""} />
                   <AvatarFallback>
                     {user?.displayName ? getInitials(user.displayName) : "?"}
@@ -229,7 +229,7 @@ const Sidebar = () => {
             )}
           </div>
           <button
-            className="flex items-center justify-between hover:bg-white/5 px-4 py-2 rounded-lg transition-colors"
+            className="flex items-center justify-between bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 px-4 py-2 rounded-lg transition-colors"
             onClick={toggleTheme}
             aria-label="Toggle theme"
           >

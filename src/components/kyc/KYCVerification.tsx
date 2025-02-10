@@ -218,7 +218,7 @@ const KYCVerification = () => {
             : "Please provide your identification documents and personal information for verification."}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="dark:text-white text-black">
         {isSubmitted ? (
           <div className="space-y-6 text-center">
             <div className="p-6 bg-green-50 rounded-lg">
@@ -256,7 +256,7 @@ const KYCVerification = () => {
             </div>
             <div className="space-y-4">
               <h4 className="font-medium">What happens next?</h4>
-              <ul className="space-y-2 text-sm text-white/80 list-disc list-inside">
+              <ul className="space-y-2 text-sm dark:text-white/80 text-black/80 list-disc list-inside">
                 <li>Our team will review your submitted documents</li>
                 <li>You'll receive a notification once the review is complete</li>
                 <li>This process typically takes 1-2 business days</li>

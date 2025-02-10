@@ -183,10 +183,10 @@ const NotificationsPage = () => {
                     {getNotificationIcon(notification.type)}
                     <div className="flex-1">
                       <h3 className="font-medium mb-1">{notification.title}</h3>
-                      <p className="text-sm text-muted-foreground w-2/3">
+                      <p className="text-sm dark:text-muted-foreground text-black w-2/3">
                         {notification.message}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-2 text-white">
+                      <p className="text-xs text-muted-foreground mt-2 dark:text-white text-black">
                         {formatDate(notification.createdAt!)}
                       </p>
                     </div>
@@ -219,7 +219,7 @@ const NotificationsPage = () => {
                     {getNotificationIcon(notification.type)}
                     <div className="flex-1">
                       <h3 className="font-medium mb-1">{notification.title}</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm dark:text-muted-foreground text-black">
                         {notification.message}
                       </p>
                       <p className="text-xs text-muted-foreground mt-2">

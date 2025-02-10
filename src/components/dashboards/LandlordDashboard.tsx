@@ -244,7 +244,7 @@ const LandlordDashboard: React.FC = () => {
           <User className="h-6 w-6" />
           <h1 className="text-xl font-medium">Landlord Dashboard</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 ">
           <Button
             variant="outline"
             onClick={() => {
@@ -261,21 +261,21 @@ const LandlordDashboard: React.FC = () => {
                 navigate("/add-listing");
               }
             }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 shadow-md"
           >
             <Plus className="h-4 w-4" />
             Add Listing
           </Button>
-          <Button variant="outline" onClick={handleSignOut}>
+          <Button variant="outline" onClick={handleSignOut} className="shadow-md">
             Sign Out
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="published" className="space-y-4">
-        <TabsList>
+      <Tabs defaultValue="published" className="space-y-4 text-black dark:text-white">
+        <TabsList className="bg-black/5">
           <TabsTrigger
-            className="flex items-center gap-2 text-white"
+            className="flex items-center gap-2"
             value="published"
           >
             <span>
@@ -290,7 +290,7 @@ const LandlordDashboard: React.FC = () => {
           </TabsTrigger>
           <TabsTrigger
             value="pending"
-            className="flex items-center gap-2 text-white"
+            className="flex items-center gap-2 "
           >
             <span>
               <FileText className="h-4 w-4" />
@@ -302,7 +302,7 @@ const LandlordDashboard: React.FC = () => {
           </TabsTrigger>
           <TabsTrigger
             value="drafts"
-            className="flex items-center gap-2 text-white"
+            className="flex items-center gap-2"
           >
             <span>
               <File className="h-4 w-4" />
@@ -316,7 +316,7 @@ const LandlordDashboard: React.FC = () => {
           </TabsTrigger>
           <TabsTrigger
             value="archived"
-            className="flex items-center gap-2 text-white"
+            className="flex items-center gap-2"
           >
             <span>
               <ArchiveIcon className="h-4 w-4" />

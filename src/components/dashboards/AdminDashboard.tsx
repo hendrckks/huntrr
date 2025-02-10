@@ -459,11 +459,11 @@ const AdminDashboard = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="kyc" className="space-y-4">
+      <Tabs defaultValue="kyc" className="space-y-4 text-black dark:text-white" >
         <TabsList>
           <TabsTrigger
             value="kyc"
-            className="text-white flex items-center gap-2"
+            className="flex items-center gap-2"
           >
             <span>
               <User2Icon className="h-4 w-4" />
@@ -477,7 +477,7 @@ const AdminDashboard = () => {
           </TabsTrigger>
           <TabsTrigger
             value="listings"
-            className="text-white flex items-center gap-2"
+            className="flex items-center gap-2"
           >
             <span>
               <FileText className="h-4 w-4" />
@@ -506,7 +506,7 @@ const AdminDashboard = () => {
           </TabsTrigger> */}
           <TabsTrigger
             value="notifications"
-            className="text-white flex items-center gap-2"
+            className="flex items-center gap-2"
           >
             <span>
               <BellDot className="h-4 w-4" />

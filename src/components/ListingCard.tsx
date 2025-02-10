@@ -316,7 +316,7 @@ const ListingCard = ({
           <span>•</span>
           <span>{listing.squareFootage} sqft</span>
         </div>
-        <p className="text-white font-medium mt-2 mb-4 text-sm">
+        <p className="dark:text-white text-black font-medium mt-2 mb-4 text-sm">
           KSh {listing.price.toLocaleString()}
           <span className="font-normal"> month</span>
         </p>
