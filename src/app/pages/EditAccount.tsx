@@ -12,11 +12,17 @@ import {
 import { doc, updateDoc } from "firebase/firestore";
 import { uploadImage } from "../../lib/actions/uploadImage";
 import { toast } from "../../hooks/useToast";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Upload } from "lucide-react";
+import { Settings, Upload } from "lucide-react";
 
 // Default placeholder image path
 const DEFAULT_PROFILE_IMAGE = "/default image.webp";
@@ -180,7 +186,10 @@ const EditAccount: React.FC = () => {
   return (
     <div className="container mx-auto px-4">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-medium">Account Settings</h1>
+        <div className="flex items-center gap-2">
+          <Settings className="h-6 w-6" />
+          <h1 className="text-xl font-medium">Account Settings</h1>
+        </div>{" "}
         <Button variant="outline" onClick={() => navigate(-1)}>
           Back
         </Button>
@@ -190,74 +199,75 @@ const EditAccount: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Account Information</CardTitle>
-            <CardDescription>Update your profile details and preferences</CardDescription>
+            <CardDescription>
+              Update your profile details and preferences
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-
-          <div className="flex items-center gap-4 mb-6">
-            <div className="relative">
-              <img
-                src={profileImage}
-                alt="Profile"
-                className="w-16 h-16 rounded-full object-cover"
-                onError={() => setProfileImage(DEFAULT_PROFILE_IMAGE)}
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="relative">
+                <img
+                  src={profileImage}
+                  alt="Profile"
+                  className="w-16 h-16 rounded-full object-cover"
+                  onError={() => setProfileImage(DEFAULT_PROFILE_IMAGE)}
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={isLoading}
+                  className="hidden"
+                  id="profile-upload"
+                />
+                <label
+                  htmlFor="profile-upload"
+                  className="absolute inset-0 cursor-pointer"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
                 disabled={isLoading}
-                className="hidden"
-                id="profile-upload"
-              />
-              <label
-                htmlFor="profile-upload"
-                className="absolute inset-0 cursor-pointer"
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-              disabled={isLoading}
-              asChild
-            >
-              <label htmlFor="profile-upload" className="cursor-pointer">
-                <Upload className="h-4 w-4" />
-                {isLoading ? "Uploading..." : "Upload New"}
-              </label>
-            </Button>
-          </div>
-
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="displayName">Name</Label>
-              <Input
-                id="displayName"
-                name="displayName"
-                value={formData.displayName}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
+                asChild
+              >
+                <label htmlFor="profile-upload" className="cursor-pointer">
+                  <Upload className="h-4 w-4" />
+                  {isLoading ? "Uploading..." : "Upload New"}
+                </label>
+              </Button>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={isLoading || isGoogleUser}
-              />
-              {isGoogleUser && (
-                <p className="text-sm text-muted-foreground">
-                  Email cannot be changed for Google accounts
-                </p>
-              )}
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="displayName">Name</Label>
+                <Input
+                  id="displayName"
+                  name="displayName"
+                  value={formData.displayName}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  disabled={isLoading || isGoogleUser}
+                />
+                {isGoogleUser && (
+                  <p className="text-sm text-muted-foreground">
+                    Email cannot be changed for Google accounts
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
           </CardContent>
         </Card>
 
@@ -265,7 +275,9 @@ const EditAccount: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Change your Password</CardTitle>
-              <CardDescription>Update your password to keep your account secure</CardDescription>
+              <CardDescription>
+                Update your password to keep your account secure
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-4">
@@ -297,7 +309,9 @@ const EditAccount: React.FC = () => {
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Label htmlFor="confirmPassword">
+                      Confirm New Password
+                    </Label>
                     <Input
                       id="confirmPassword"
                       type="password"
@@ -323,10 +337,7 @@ const EditAccount: React.FC = () => {
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            disabled={isLoading}
-          >
+          <Button type="submit" disabled={isLoading}>
             {isLoading ? "Saving..." : "Save changes"}
           </Button>
         </div>

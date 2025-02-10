@@ -34,7 +34,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, HousePlus } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
 import Container from "../../components/Container";
 import {
@@ -178,11 +178,21 @@ export default function CreateListingForm() {
       // Upload images first
       addDebugLog("Starting image upload...");
       const imageUrls: Photo[] = [];
-      if (!user.uid || !user.role || !(user.role === 'landlord_unverified' || user.role === 'landlord_verified' || user.role === 'admin')) {
+      if (
+        !user.uid ||
+        !user.role ||
+        !(
+          user.role === "landlord_unverified" ||
+          user.role === "landlord_verified" ||
+          user.role === "admin"
+        )
+      ) {
         throw new Error("You don't have permission to upload listing images");
       }
-      const tempListingId = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      
+      const tempListingId = `temp_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(7)}`;
+
       for (let i = 0; i < images.length; i++) {
         const url = await uploadImage(images[i], tempListingId, user.uid);
         imageUrls.push({ id: `photo_${i}`, url, isPrimary: i === 0 });
@@ -257,12 +267,15 @@ export default function CreateListingForm() {
     }
   };
   return (
-    <Container>
+    <Container className="max-w-7xl">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <Card>
             <CardHeader>
-              <CardTitle>Create New Listing</CardTitle>
+              <div className="flex items-center gap-2 ">
+                <HousePlus className="h-6 w-6" />
+                <CardTitle className="text-xl">Create New Listing</CardTitle>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <FormField

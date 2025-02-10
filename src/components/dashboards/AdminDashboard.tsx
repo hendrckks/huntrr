@@ -29,7 +29,15 @@ import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 import type { KYCDocument } from "../../lib/types/kyc";
 import { refreshUserClaims } from "../../lib/firebase/tokenRefresh";
-import { BellDot, User2Icon, FileText, Check, X, Eye } from "lucide-react";
+import {
+  BellDot,
+  User2Icon,
+  FileText,
+  Check,
+  X,
+  Eye,
+  User,
+} from "lucide-react";
 import type { ListingDocument } from "../../lib/types/Listing";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import {
@@ -56,22 +64,26 @@ const AdminDashboard = () => {
   } = useQuery({
     queryKey: ["kyc-submissions"],
     queryFn: async () => {
-      try {          
+      try {
         const q = query(
           collection(db, "kyc"),
           where("status", "==", "pending"),
           orderBy("submittedAt", "desc")
         );
         const snapshot = await getDocs(q);
-        
+
         // Fetch user data for each KYC submission with proper typing
         const kycData = await Promise.all(
           snapshot.docs.map(async (docSnapshot) => {
             const data = docSnapshot.data();
             const userDocRef = doc(db, "users", data.userId);
             const userDoc = await getDoc(userDocRef);
-            const userData = userDoc.data() || { displayName: "N/A", email: "N/A", phoneNumber: "N/A" };
-            
+            const userData = userDoc.data() || {
+              displayName: "N/A",
+              email: "N/A",
+              phoneNumber: "N/A",
+            };
+
             return {
               id: docSnapshot.id,
               ...data,
@@ -82,9 +94,15 @@ const AdminDashboard = () => {
               userData: {
                 displayName: userData.displayName || "N/A",
                 email: userData.email || "N/A",
-                phoneNumber: userData.phoneNumber || "N/A"
-              }
-            } as KYCDocument & { userData: { displayName: string; email: string; phoneNumber: string } };
+                phoneNumber: userData.phoneNumber || "N/A",
+              },
+            } as KYCDocument & {
+              userData: {
+                displayName: string;
+                email: string;
+                phoneNumber: string;
+              };
+            };
           })
         );
 
@@ -432,7 +450,10 @@ const AdminDashboard = () => {
   return (
     <div className="container mx-auto px-4">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-medium">Admin Dashboard</h1>
+        <div className="flex items-center gap-2">
+          <User className="h-6 w-6" />
+          <h1 className="text-xl font-medium">Admin Dashboard</h1>
+        </div>{" "}
         <Button variant="outline" onClick={handleSignOut}>
           Sign Out
         </Button>
@@ -463,7 +484,7 @@ const AdminDashboard = () => {
             </span>
             Pending Listings
             {pendingListings?.length ? (
-              <Badge variant='default' className="ml-2">
+              <Badge variant="default" className="ml-2">
                 {pendingListings.length}
               </Badge>
             ) : null}

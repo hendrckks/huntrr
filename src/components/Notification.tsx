@@ -34,10 +34,10 @@ const NotificationsPage = () => {
 
   const fetchUserNotifications = async () => {
     if (!user?.uid) return;
-  
+
     setLoading(true);
     setError(null);
-  
+
     try {
       const q = query(
         collection(db, "notifications"),
@@ -47,7 +47,7 @@ const NotificationsPage = () => {
         ),
         orderBy("createdAt", "desc")
       );
-  
+
       const snapshot = await getDocs(q);
       const notifs = snapshot.docs.map((doc) =>
         normalizeNotificationDate({
@@ -55,7 +55,7 @@ const NotificationsPage = () => {
           id: doc.id,
         })
       );
-  
+
       setNotifications(notifs);
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -69,7 +69,7 @@ const NotificationsPage = () => {
   const markAsRead = async (notificationId: string, e?: React.MouseEvent) => {
     // Prevent card click event if clicking the button
     e?.stopPropagation();
-    
+
     try {
       const notificationRef = doc(db, "notifications", notificationId);
       await updateDoc(notificationRef, {
@@ -146,7 +146,7 @@ const NotificationsPage = () => {
   }
 
   return (
-    <div className="container max-w-7xl mx-auto p-4 pt-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4">
       <div className="flex items-center gap-2 mb-6">
         <Bell className="h-6 w-6" />
         <h1 className="text-xl font-medium">Notifications</h1>

@@ -44,6 +44,7 @@ import {
   Upload,
   File,
   ArchiveIcon,
+  User,
 } from "lucide-react";
 import type { ListingDocument, ListingStatus } from "../../lib/types/Listing";
 import { rejectionReasons } from "../dialogs/RejectionDialog";
@@ -150,7 +151,19 @@ const LandlordDashboard: React.FC = () => {
       recalled: "destructive",
     } as const;
 
-    return <Badge variant={variants[status] as "secondary" | "destructive" | "outline" | "default"}>{status.replace("_", " ").toUpperCase()}</Badge>;
+    return (
+      <Badge
+        variant={
+          variants[status] as
+            | "secondary"
+            | "destructive"
+            | "outline"
+            | "default"
+        }
+      >
+        {status.replace("_", " ").toUpperCase()}
+      </Badge>
+    );
   };
 
   // Filter listings by status
@@ -179,7 +192,10 @@ const LandlordDashboard: React.FC = () => {
             </p>
             {listing.status === "denied" && listing.rejectionReason && (
               <p className="text-sm text-red-500">
-                Rejection Reason: {rejectionReasons.find(r => r.value === listing.rejectionReason)?.label || listing.rejectionReason}
+                Rejection Reason:{" "}
+                {rejectionReasons.find(
+                  (r) => r.value === listing.rejectionReason
+                )?.label || listing.rejectionReason}
               </p>
             )}
           </div>
@@ -222,9 +238,10 @@ const LandlordDashboard: React.FC = () => {
   );
 
   return (
-    <div className="container mx-auto px-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
+          <User className="h-6 w-6" />
           <h1 className="text-xl font-medium">Landlord Dashboard</h1>
         </div>
         <div className="flex gap-2">
@@ -235,7 +252,8 @@ const LandlordDashboard: React.FC = () => {
                 navigate("/verify-documents");
                 toast({
                   title: "Verification Required",
-                  description: "You need to verify your account before creating listings",
+                  description:
+                    "You need to verify your account before creating listings",
                   variant: "warning",
                   duration: 10000,
                 });
@@ -289,7 +307,7 @@ const LandlordDashboard: React.FC = () => {
             <span>
               <File className="h-4 w-4" />
             </span>
-            Drafts 
+            Drafts
             {draftListings.length > 0 && (
               <Badge variant="destructive" className="ml-2">
                 {draftListings.length}

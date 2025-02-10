@@ -10,14 +10,8 @@ const Container = ({ children, className = "" }: ContainerProps) => {
     <div
       className={`
       px-2
-      md:px-20
-      sm:px-40
-      2xl:px-96
-      xl:px-64
       py-4
-      mx-auto
-      w-[75vw]
-      
+      mx-auto      
    ${className}
     `}
     >
