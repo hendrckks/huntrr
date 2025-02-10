@@ -49,21 +49,15 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export default function CreateListingForm() {
+  const { user, isAuthenticated } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [debugLog, setDebugLog] = useState<string[]>([]);
-
-  // Helper function to add debug logs
-  const addDebugLog = (message: string) => {
-    console.log(message); // Console logging
-    setDebugLog((prev) => [...prev, `${new Date().toISOString()}: ${message}`]); // UI logging
-  };
 
   const form = useForm<ListingFormData>({
     resolver: zodResolver(listingFormSchema),
@@ -140,6 +134,41 @@ export default function CreateListingForm() {
       console.log("Detailed form errors:", errors);
     }
   }, [form.formState.errors]);
+
+  // Helper function to add debug logs
+  const addDebugLog = (message: string) => {
+    console.log(message); // Console logging
+    setDebugLog((prev) => [...prev, `${new Date().toISOString()}: ${message}`]); // UI logging
+  };
+
+  // Check authentication and role
+  if (!isAuthenticated) {
+    return (
+      <Container className="max-w-7xl">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Access Denied</AlertTitle>
+          <AlertDescription>
+            You must be logged in to create a listing.
+          </AlertDescription>
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!user?.role || (user.role !== "landlord_verified" && user.role !== "admin")) {
+    return (
+      <Container className="max-w-7xl">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Verification Required</AlertTitle>
+          <AlertDescription>
+            You must be a verified landlord to create listings. Please complete the verification process.
+          </AlertDescription>
+        </Alert>
+      </Container>
+    );
+  }
 
   async function onSubmit(data: ListingFormData) {
     addDebugLog("Form submission attempted");
