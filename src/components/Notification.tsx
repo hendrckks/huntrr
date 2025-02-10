@@ -34,12 +34,11 @@ const NotificationsPage = () => {
 
   const fetchUserNotifications = async () => {
     if (!user?.uid) return;
-
+  
     setLoading(true);
     setError(null);
-
+  
     try {
-      // Create a query with OR condition for userId and landlordId
       const q = query(
         collection(db, "notifications"),
         or(
@@ -48,7 +47,7 @@ const NotificationsPage = () => {
         ),
         orderBy("createdAt", "desc")
       );
-
+  
       const snapshot = await getDocs(q);
       const notifs = snapshot.docs.map((doc) =>
         normalizeNotificationDate({
@@ -56,11 +55,12 @@ const NotificationsPage = () => {
           id: doc.id,
         })
       );
-
+  
       setNotifications(notifs);
     } catch (error) {
       console.error("Error fetching notifications:", error);
-      setError("Failed to fetch notifications. Please try again later.");
+      setError("Unable to load notifications at this time.");
+      setNotifications([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -143,10 +143,10 @@ const NotificationsPage = () => {
   }
 
   return (
-    <div className="container max-w-4xl mx-auto p-4 pt-8">
+    <div className="container max-w-7xl mx-auto p-4 pt-8">
       <div className="flex items-center gap-2 mb-6">
         <Bell className="h-6 w-6" />
-        <h1 className="text-2xl font-bold">Notifications</h1>
+        <h1 className="text-xl font-medium">Notifications</h1>
       </div>
 
       <Tabs defaultValue="unread" className="w-full">
@@ -165,7 +165,7 @@ const NotificationsPage = () => {
           {unreadNotifications.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-                <Bell className="h-12 w-12 mb-4" />
+                <Bell className="h-12 w-12" />
                 <p>No unread notifications</p>
               </CardContent>
             </Card>
@@ -181,10 +181,10 @@ const NotificationsPage = () => {
                     {getNotificationIcon(notification.type)}
                     <div className="flex-1">
                       <h3 className="font-medium mb-1">{notification.title}</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground w-2/3">
                         {notification.message}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-2">
+                      <p className="text-xs text-muted-foreground mt-2 text-white">
                         {formatDate(notification.createdAt!)}
                       </p>
                     </div>

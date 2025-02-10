@@ -31,7 +31,7 @@ const Components = {
   KYCVerification: lazy(() => import("../app/pages/KYCVerification")),
   EditListing: lazy(() => import("../app/pages/EditListing")),
   Notifications: lazy(
-    () => import("../components/notifications/Notifications")
+    () => import("../components/Notification")
   ),
 };
 
