@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { collection, query, getDocs, orderBy, limit, startAfter, QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { db } from "../../lib/firebase/clientApp";
 import type { ListingDocument } from "../../lib/types/Listing";
 import ListingCard from "../../components/ListingCard";
@@ -28,6 +28,7 @@ const Home = () => {
       queryFn: async ({ pageParam }) => {
         let q = query(
           collection(db, "listings"),
+          where("status", "==", "published"),
           orderBy("createdAt", "desc"),
           limit(LISTINGS_PER_PAGE)
         );
