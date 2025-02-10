@@ -569,7 +569,7 @@ const AdminDashboard = () => {
                                 {listing.location.area}, {listing.location.city}
                               </p>
                               <p className="text-sm">
-                                ${listing.price}/month • {listing.bedrooms} beds
+                                ${listing.price} /month • {listing.bedrooms} beds
                                 • {listing.bathrooms} baths
                               </p>
                             </div>
