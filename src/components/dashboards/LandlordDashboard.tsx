@@ -353,7 +353,7 @@ const LandlordDashboard: React.FC = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-[600px] pr-4">
+                  <ScrollArea className="h-[500px] pr-4">
                     {publishedListings.length === 0 ? (
                       <p className="text-center text-gray-500">
                         No published listings
@@ -377,7 +377,7 @@ const LandlordDashboard: React.FC = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-[600px] pr-4">
+                  <ScrollArea className="h-[500px] pr-4">
                     {pendingListings.length === 0 ? (
                       <p className="text-center text-gray-500">
                         No pending listings
@@ -401,7 +401,7 @@ const LandlordDashboard: React.FC = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-[600px] pr-4">
+                  <ScrollArea className="h-[500px] pr-4">
                     {draftListings.length === 0 ? (
                       <p className="text-center text-gray-500">
                         No draft listings
@@ -425,7 +425,7 @@ const LandlordDashboard: React.FC = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-[600px] pr-4">
+                  <ScrollArea className="h-[500px] pr-4">
                     {archivedListings.length === 0 ? (
                       <p className="text-center text-gray-500">
                         No archived listings

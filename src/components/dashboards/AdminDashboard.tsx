@@ -537,7 +537,7 @@ const AdminDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[400px] pr-4">
+              <ScrollArea className="h-[500px] pr-4">
                 {isLoadingListings ? (
                   <div className="flex items-center justify-center p-4">
                     <p className="text-gray-600">Loading listings...</p>
@@ -622,7 +622,7 @@ const AdminDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[400px] pr-4">
+              <ScrollArea className="h-[500px] pr-4">
                 {isLoadingKYC ? (
                   <div className="flex items-center justify-center p-4">
                     <p className="text-gray-600">Loading KYC submissions...</p>
@@ -758,7 +758,7 @@ const AdminDashboard = () => {
               <CardDescription>System notifications and alerts</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[400px] pr-4">
+              <ScrollArea className="h-[500px] pr-4">
                 {isLoadingNotifications ? (
                   <p>Loading notifications...</p>
                 ) : notificationsError ? (
