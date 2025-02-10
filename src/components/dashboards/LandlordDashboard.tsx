@@ -230,7 +230,19 @@ const LandlordDashboard: React.FC = () => {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => navigate("/add-listing")}
+            onClick={() => {
+              if (user?.role === "landlord_unverified") {
+                navigate("/verify-documents");
+                toast({
+                  title: "Verification Required",
+                  description: "You need to verify your account before creating listings",
+                  variant: "warning",
+                  duration: 10000,
+                });
+              } else {
+                navigate("/add-listing");
+              }
+            }}
             className="flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
