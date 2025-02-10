@@ -5,6 +5,7 @@ import { db } from "../lib/firebase/clientApp";
 import type { ListingDocument } from "../lib/types/Listing";
 import { useState } from "react";
 import ImageModal from "./ImageModal";
+import { Badge } from "./ui/badge";
 
 const ListingView = () => {
   const { id } = useParams<{ id: string }>();
@@ -134,13 +135,23 @@ const ListingView = () => {
 
         {/* Listing Details */}
         <div className="space-y-6">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">{listing.title}</h1>
-            <p className="mt-2 text-xl font-semibold text-gray-900 dark:text-white">
-              KSh {listing.price.toLocaleString()}
-            </p>
+          <div className="flex flex-col gap-2">
+            <h1 className="text-2xl font-semibold">{listing.title}</h1>
+            {listing.status !== "published" && (
+              <Badge
+                variant={
+                  listing.status === "denied"
+                    ? "destructive"
+                    : listing.status === "pending_review"
+                    ? "default"
+                    : "secondary"
+                }
+                className="w-fit"
+              >
+                {listing.status.replace("_", " ").toUpperCase()}
+              </Badge>
+            )}
           </div>
-
           <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
             <span>{listing.bedrooms} beds</span>
             <span>•</span>
