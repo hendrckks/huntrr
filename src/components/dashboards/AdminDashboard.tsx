@@ -56,24 +56,39 @@ const AdminDashboard = () => {
   } = useQuery({
     queryKey: ["kyc-submissions"],
     queryFn: async () => {
-      try {
+      try {          
         const q = query(
           collection(db, "kyc"),
           where("status", "==", "pending"),
           orderBy("submittedAt", "desc")
         );
         const snapshot = await getDocs(q);
-        return snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            submittedAt: data.submittedAt?.toDate(),
-            createdAt: data.createdAt?.toDate(),
-            updatedAt: data.updatedAt?.toDate(),
-            reviewedAt: data.reviewedAt?.toDate(),
-          } as KYCDocument;
-        });
+        
+        // Fetch user data for each KYC submission with proper typing
+        const kycData = await Promise.all(
+          snapshot.docs.map(async (docSnapshot) => {
+            const data = docSnapshot.data();
+            const userDocRef = doc(db, "users", data.userId);
+            const userDoc = await getDoc(userDocRef);
+            const userData = userDoc.data() || { displayName: "N/A", email: "N/A", phoneNumber: "N/A" };
+            
+            return {
+              id: docSnapshot.id,
+              ...data,
+              submittedAt: data.submittedAt?.toDate(),
+              createdAt: data.createdAt?.toDate(),
+              updatedAt: data.updatedAt?.toDate(),
+              reviewedAt: data.reviewedAt?.toDate(),
+              userData: {
+                displayName: userData.displayName || "N/A",
+                email: userData.email || "N/A",
+                phoneNumber: userData.phoneNumber || "N/A"
+              }
+            } as KYCDocument & { userData: { displayName: string; email: string; phoneNumber: string } };
+          })
+        );
+
+        return kycData;
       } catch (error: any) {
         if (
           error.code === "failed-precondition" ||
@@ -609,6 +624,24 @@ const AdminDashboard = () => {
                           <div className="flex justify-between items-start text-sm">
                             <div className="flex justify-between w-1/2 ">
                               <div className="space-y-1">
+                                <p>
+                                  <strong>Name:</strong>
+                                  <span className="ml-2">
+                                    {kyc.userData.displayName}
+                                  </span>
+                                </p>
+                                <p>
+                                  <strong>Email:</strong>
+                                  <span className="ml-2">
+                                    {kyc.userData.email}
+                                  </span>
+                                </p>
+                                <p>
+                                  <strong>Phone:</strong>
+                                  <span className="ml-2">
+                                    {kyc.userData.phoneNumber}
+                                  </span>
+                                </p>
                                 <p>
                                   <strong>Document Type:</strong>
                                   <span className="ml-2">
