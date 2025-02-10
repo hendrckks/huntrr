@@ -565,7 +565,7 @@ const AdminDashboard = () => {
                                 </h3>
                                 <Badge>PENDING REVIEW</Badge>
                               </div>
-                              <p className="text-sm text-gray-500">
+                              <p className="text-sm text-gray-400">
                                 {listing.location.area}, {listing.location.city}
                               </p>
                               <p className="text-sm">

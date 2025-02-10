@@ -183,7 +183,7 @@ const LandlordDashboard: React.FC = () => {
               <h3 className="font-semibold">{listing.title}</h3>
               {getStatusBadge(listing.status)}
             </div>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-400">
               {listing.location.area}, {listing.location.city}
             </p>
             <p className="text-sm">
@@ -275,7 +275,7 @@ const LandlordDashboard: React.FC = () => {
       <Tabs defaultValue="published" className="space-y-4 text-black dark:text-white">
         <TabsList className="bg-black/5">
           <TabsTrigger
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-white"
             value="published"
           >
             <span>
@@ -283,7 +283,7 @@ const LandlordDashboard: React.FC = () => {
             </span>
             Published
             {publishedListings.length > 0 && (
-              <Badge variant="secondary" className="ml-2">
+              <Badge variant="secondary" className="ml-2 ">
                 {publishedListings.length}
               </Badge>
             )}
