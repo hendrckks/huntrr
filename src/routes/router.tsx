@@ -30,9 +30,7 @@ const Components = {
   BookmarksPage: lazy(() => import("../app/pages/Bookmarks")),
   KYCVerification: lazy(() => import("../app/pages/KYCVerification")),
   EditListing: lazy(() => import("../app/pages/EditListing")),
-  Notifications: lazy(
-    () => import("../components/Notification")
-  ),
+  Notifications: lazy(() => import("../components/Notification")),
 };
 
 const createProtectedRoute = (
@@ -150,7 +148,7 @@ export const router = createBrowserRouter([
         path: "add-listing",
         element: createProtectedRoute(<Components.CreateListing />, {
           requireAuth: true,
-          allowedRoles: ["landlord_verified", "landlord_unverified"],
+          allowedRoles: ["landlord_verified"], // Remove landlord_unverified
         }),
       },
 

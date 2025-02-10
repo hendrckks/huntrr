@@ -142,33 +142,17 @@ export default function CreateListingForm() {
   };
 
   // Check authentication and role
-  if (!isAuthenticated) {
-    return (
-      <Container className="max-w-7xl">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            You must be logged in to create a listing.
-          </AlertDescription>
-        </Alert>
-      </Container>
-    );
-  }
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: location } });
+      return;
+    }
 
-  if (!user?.role || (user.role !== "landlord_verified" && user.role !== "admin")) {
-    return (
-      <Container className="max-w-7xl">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Verification Required</AlertTitle>
-          <AlertDescription>
-            You must be a verified landlord to create listings. Please complete the verification process.
-          </AlertDescription>
-        </Alert>
-      </Container>
-    );
-  }
+    if (!user?.role || user.role === "landlord_unverified") {
+      navigate("/verify-documents");
+      return;
+    }
+  }, [isAuthenticated, user, navigate]);
 
   async function onSubmit(data: ListingFormData) {
     addDebugLog("Form submission attempted");
