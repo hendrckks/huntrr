@@ -99,6 +99,7 @@ export interface AdminNotificationDocument {
     | "new_listing"
     | "flag_threshold_reached"
     | "listing_updated"
+    | "kyc_submission"
     | "listing_deleted"
     | "other";
   title: string;
@@ -107,6 +108,7 @@ export interface AdminNotificationDocument {
   createdAt: firestore.Timestamp;
   read: boolean;
   readAt?: firestore.Timestamp;
+  relatedUserId?: string;
 }
 
 export type KYCStatus = "pending" | "approved" | "rejected";

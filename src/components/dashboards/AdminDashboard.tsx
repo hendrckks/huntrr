@@ -751,56 +751,59 @@ const AdminDashboard = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="notifications">
+        <TabsContent value="notifications" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Notifications</CardTitle>
-              <CardDescription>System notifications and alerts</CardDescription>
+              <CardTitle className="text-2xl font-bold">Notifications</CardTitle>
+              <CardDescription>View and manage system notifications</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[500px] pr-4">
-                {isLoadingNotifications ? (
-                  <p>Loading notifications...</p>
-                ) : notificationsError ? (
-                  <p className="text-red-500">
-                    Error loading notifications:{" "}
-                    {(notificationsError as Error).message}
-                  </p>
-                ) : notifications?.length ? (
-                  <div className="space-y-4">
-                    {notifications?.map((notification) => (
-                      <Card key={notification.id}>
-                        <CardContent className="pt-6">
-                          <h3 className="font-semibold">
-                            {notification.title}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {notification.message}
-                          </p>
-                          {notification.type === "kyc_submission" && (
-                            <Button
-                              variant="link"
-                              className="p-0 h-auto font-normal text-blue-500"
-                              onClick={() => {
-                                (
-                                  document.querySelector(
-                                    '[value="kyc"]'
-                                  ) as HTMLElement
-                                )?.click();
-                              }}
-                            >
-                              View KYC Submission
-                            </Button>
-                          )}
-                          <p className="text-xs text-gray-400 mt-2">
-                            {notification.createdAt.toLocaleString()}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))}
+              <ScrollArea className="h-[400px] w-full rounded-md border p-4">
+                {isLoadingKYCNotifications ? (
+                  <div className="flex items-center justify-center h-full">
+                    <span className="loading loading-spinner loading-md"></span>
                   </div>
+                ) : kycNotifications && kycNotifications.length > 0 ? (
+                  kycNotifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className="flex items-start space-x-4 p-4 border-b last:border-b-0"
+                    >
+                      <div className="flex-shrink-0">
+                        <BellDot className="h-6 w-6 text-blue-500" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="font-medium">{notification.title}</p>
+                        <p className="text-sm text-gray-500">{notification.message}</p>
+                        <p className="text-xs text-gray-400">
+                          {notification.createdAt?.toLocaleString()}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Mark notification as read
+                          const notificationRef = doc(
+                            db,
+                            "adminNotifications",
+                            notification.id
+                          );
+                          setDoc(
+                            notificationRef,
+                            { read: true },
+                            { merge: true }
+                          );
+                        }}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
                 ) : (
-                  <p>No new notifications</p>
+                  <div className="text-center text-gray-500 py-8">
+                    No new notifications
+                  </div>
                 )}
               </ScrollArea>
             </CardContent>

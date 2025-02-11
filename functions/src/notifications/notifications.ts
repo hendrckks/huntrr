@@ -2,6 +2,7 @@ import {
   onDocumentCreated,
   onDocumentUpdated,
 } from "firebase-functions/v2/firestore";
+import { onKYCSubmission } from './kycNotifications';
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
 import type {
@@ -78,7 +79,7 @@ export const onListingFlagged = onDocumentUpdated(
       });
 
       // Create notification
-      const notificationRef = db.collection("adminNotifications").doc();
+      const notificationRef = db.collection("notifications").doc();
       const notification: AdminNotificationDocument = {
         id: notificationRef.id,
         type: "flag_threshold_reached",
@@ -154,6 +155,8 @@ export const cleanupOldNotifications = onSchedule(
     await batch.commit();
   }
 );
+
+export { onKYCSubmission };
 
 // Send email notifications to admins
 // export const sendAdminEmailNotifications = onDocumentCreated(
