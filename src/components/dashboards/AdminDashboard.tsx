@@ -14,6 +14,7 @@ import {
   writeBatch,
   setDoc,
   getDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase/clientApp";
 import {
@@ -37,6 +38,7 @@ import {
   X,
   Eye,
   User,
+  Trash2,
 } from "lucide-react";
 import type { ListingDocument } from "../../lib/types/Listing";
 import { getFunctions, httpsCallable } from "firebase/functions";
@@ -54,6 +56,7 @@ const AdminDashboard = () => {
     null
   );
   const [isRejectionDialogOpen, setIsRejectionDialogOpen] = useState(false);
+  const [deletingNotificationId, setDeletingNotificationId] = useState<string | null>(null);
 
   // Fetch KYC submissions (unchanged)
   const {
@@ -127,11 +130,11 @@ const AdminDashboard = () => {
     data: notifications,
     isLoading: isLoadingNotifications,
     error: notificationsError,
+    refetch: refetchNotifications,
   } = useQuery({
     queryKey: ["admin-notifications"],
     queryFn: async () => {
       try {
-        // Use the existing index (read Ascending, createdAt Descending)
         const q = query(
           collection(db, "adminNotifications"),
           where("read", "==", false),
@@ -142,7 +145,6 @@ const AdminDashboard = () => {
 
         return snapshot.docs.map((doc) => {
           const data = doc.data();
-          // Normalize the date field, checking both timestamp and createdAt
           const dateValue = data.createdAt || data.timestamp;
 
           return {
@@ -173,6 +175,44 @@ const AdminDashboard = () => {
     },
     refetchInterval: 30000,
   });
+
+  const handleDeleteNotification = async (notificationId: string) => {
+    try {
+      setDeletingNotificationId(notificationId);
+      
+      // Verify admin privileges
+      if (!auth.currentUser) {
+        throw new Error("No authenticated user found");
+      }
+      await refreshUserClaims(auth.currentUser);
+      const idTokenResult = await auth.currentUser.getIdTokenResult(true);
+      if (idTokenResult.claims.role !== "admin") {
+        throw new Error("Insufficient admin privileges");
+      }
+
+      // Delete the notification
+      const notificationRef = doc(db, "adminNotifications", notificationId);
+      await deleteDoc(notificationRef);
+
+      // Refetch notifications to update the UI
+      await refetchNotifications();
+
+      toast({
+        title: "Success",
+        description: "Notification deleted successfully",
+        variant: "success",
+      });
+    } catch (error: any) {
+      console.error("Error deleting notification:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete notification",
+        variant: "error",
+      });
+    } finally {
+      setDeletingNotificationId(null);
+    }
+  };
 
   const handleProcessKYC = async (userId: string, approved: boolean) => {
     const functions = getFunctions();
@@ -766,28 +806,27 @@ const AdminDashboard = () => {
         </TabsContent>
 
         <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notifications</CardTitle>
-              <CardDescription>System notifications and alerts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[500px] pr-4">
-                {isLoadingNotifications ? (
-                  <p>Loading notifications...</p>
-                ) : notificationsError ? (
-                  <p className="text-red-500">
-                    Error loading notifications:{" "}
-                    {(notificationsError as Error).message}
-                  </p>
-                ) : notifications?.length ? (
-                  <div className="space-y-4">
-                    {notifications?.map((notification) => (
-                      <Card key={notification.id}>
-                        <CardContent className="pt-6">
-                          <h3 className="font-semibold">
-                            {notification.title}
-                          </h3>
+      <Card>
+        <CardHeader>
+          <CardTitle>Notifications</CardTitle>
+          <CardDescription>System notifications and alerts</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[500px] pr-4">
+            {isLoadingNotifications ? (
+              <p>Loading notifications...</p>
+            ) : notificationsError ? (
+              <p className="text-red-500">
+                Error loading notifications: {(notificationsError as Error).message}
+              </p>
+            ) : notifications?.length ? (
+              <div className="space-y-4">
+                {notifications?.map((notification) => (
+                  <Card key={notification.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{notification.title}</h3>
                           <p className="text-sm text-gray-500">
                             {notification.message}
                           </p>
@@ -809,17 +848,32 @@ const AdminDashboard = () => {
                           <p className="text-xs text-gray-400 mt-2">
                             {notification.createdAt.toLocaleString()}
                           </p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <p>No new notifications</p>
-                )}
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-gray-500 hover:text-red-500"
+                          onClick={() => handleDeleteNotification(notification.id)}
+                          disabled={deletingNotificationId === notification.id}
+                        >
+                          {deletingNotificationId === notification.id ? (
+                            <span className="animate-spin">...</span>
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p>No new notifications</p>
+            )}
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </TabsContent>
 
         <RejectionDialog
           open={isRejectionDialogOpen}

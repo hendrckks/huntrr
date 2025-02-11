@@ -58,6 +58,8 @@ const Sidebar = () => {
 
   const fetchNotifications = async () => {
     try {
+      let allNotifs = [];
+
       const baseQuery = query(
         collection(db, "notifications"),
         where("userId", "==", user?.uid)
@@ -73,12 +75,28 @@ const Sidebar = () => {
         getDocs(landlordQuery)
       ]);
 
-      const allNotifs = [...userSnapshot.docs, ...landlordSnapshot.docs].map((doc) =>
+      allNotifs = [...userSnapshot.docs, ...landlordSnapshot.docs].map((doc) =>
         normalizeNotificationDate({
           ...doc.data(),
           id: doc.id,
         })
       );
+
+      // Only fetch admin notifications if user is admin
+      if (user?.role === 'admin') {
+        const adminQuery = query(
+          collection(db, "adminNotifications"),
+          where("read", "==", false)
+        );
+        const adminSnapshot = await getDocs(adminQuery);
+        const adminNotifs = adminSnapshot.docs.map((doc) => normalizeNotificationDate({
+          ...doc.data(),
+          id: doc.id,
+          type: doc.data().type || 'admin_notification',
+          message: doc.data().message || 'New admin notification'
+        }));
+        allNotifs = [...allNotifs, ...adminNotifs];
+      }
 
       setNotifications(allNotifs);
     } catch (error) {
@@ -110,7 +128,7 @@ const Sidebar = () => {
       icon: Bell, 
       label: "Notifications", 
       path: "/notifications",
-      badge: notifications.filter(n => !n.read).length > 0
+      badge: notifications.filter(n => !n.read).length > 0 || (user?.role === 'admin' && notifications.filter(n => !n.read).length > 0)
     },
     { icon: Bookmark, label: "Bookmarks", path: "/bookmarks" },
     (user?.role === "admin" || user?.role === "landlord_verified") ? 
@@ -172,7 +190,7 @@ const Sidebar = () => {
               <div className="relative">
                 <Icon className="w-5 h-5" />
                 {item.badge && (
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                 )}
               </div>
               <span className="text-sm">{item.label}</span>
