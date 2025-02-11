@@ -852,7 +852,7 @@ const AdminDashboard = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-gray-500 hover:text-red-500"
+                          className="text-gray-500 hover:text-red-500 hover:bg-white/10"
                           onClick={() => handleDeleteNotification(notification.id)}
                           disabled={deletingNotificationId === notification.id}
                         >

@@ -259,7 +259,7 @@ const NotificationsPage = () => {
                           setSelectedNotification(notification.id);
                           setIsDeleteDialogOpen(true);
                         }}
-                        className="p-2 hover:bg-destructive/10 text-destructive rounded-md transition-colors"
+                        className="p-2 text-gray-500 hover:text-red-500 hover:bg-white/10 rounded-md transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
