@@ -534,7 +534,7 @@ const AdminDashboard = () => {
             <span>
               <FileText className="h-4 w-4" />
             </span>
-            Pending Listings
+            Pendings and Recalls
             {pendingListings?.length ? (
               <Badge variant="default" className="ml-2">
                 {pendingListings.length}

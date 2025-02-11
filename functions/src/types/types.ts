@@ -101,7 +101,9 @@ export interface AdminNotificationDocument {
     | "listing_updated"
     | "kyc_submission"
     | "listing_deleted"
-    | "other";
+    | "other"
+    | "role_update"
+    | "listing_verification";
   title: string;
   message: string;
   relatedListingId?: string;

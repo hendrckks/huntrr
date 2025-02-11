@@ -11,15 +11,15 @@ import {
   PermissionError,
 } from "../../shared/CustomErrors";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import type { KYCDocument, AdminNotificationDocument, ListingDocument } from "./types/types";
+import type {
+  KYCDocument,
+  AdminNotificationDocument,
+  ListingDocument,
+} from "./types/types";
 import { onSchedule } from "firebase-functions/scheduler";
-
-
-
 
 admin.initializeApp();
 const db = getFirestore();
-
 
 interface SetCustomClaimsRequest {
   uid: string;
@@ -79,22 +79,16 @@ export const onUserRoleUpdate = onDocumentUpdated(
         // Update user document with claims update metadata
         await event.data?.after.ref.update({
           lastClaimsUpdate: admin.firestore.FieldValue.serverTimestamp(),
-          requiresReauth: true
+          requiresReauth: true,
         });
 
-        // Add a notification in Firestore about the role change
-        await admin
-          .firestore()
-          .collection("adminNotifications")
-          .add({
-            type: "role_update",
-            userId: event.params.userId,
-            previousRole: previousValue?.role,
-            newRole: newValue?.role,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            message: `User ${event.params.userId} role updated from ${previousValue?.role} to ${newValue?.role}`,
-            read: false,
-          });
+        await createAdminNotification({
+          type: "role_update",
+          title: "User Role Updated",
+          message: `User ${event.params.userId} role updated from ${previousValue?.role} to ${newValue?.role}`,
+          relatedUserId: event.params.userId,
+          createdAt: admin.firestore.Timestamp.now(),
+        });
 
         console.log(
           `Updated custom claims for user ${event.params.userId} to role: ${newValue?.role}`
@@ -210,16 +204,12 @@ export const verifyLandlord = onCall(
         });
 
         // Add admin notification about landlord verification
-        const notificationRef = admin
-          .firestore()
-          .collection("adminNotifications")
-          .doc();
-        transaction.set(notificationRef, {
-          type: "landlord_verification",
-          userId: uid,
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        await createAdminNotification({
+          type: "role_update",
+          title: "Landlord Verified",
           message: `Landlord ${uid} has been verified`,
-          read: false,
+          relatedUserId: uid,
+          createdAt: admin.firestore.Timestamp.now(),
         });
       });
 
@@ -259,10 +249,6 @@ export const onListingVerified = onDocumentUpdated(
         if (!landlordDoc.exists) {
           throw new NotFoundError("Landlord document not found");
         }
-
-        const landlordData = landlordDoc.data();
-        const notificationToken = landlordData?.notificationToken;
-
         // Add notification to the notifications collection
         await admin
           .firestore()
@@ -276,41 +262,17 @@ export const onListingVerified = onDocumentUpdated(
             read: false,
           });
 
-        // Add admin notification about listing verification
-        await admin
-          .firestore()
-          .collection("adminNotifications")
-          .add({
-            type: "listing_verification",
-            listingId: event.params.listingId,
-            landlordId: landlordId,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            message: `Listing ${event.params.listingId} has been verified and published`,
-            read: false,
-          });
-
-        if (notificationToken) {
-          await admin.messaging().send({
-            token: notificationToken,
-            notification: {
-              title: "Listing Verified",
-              body: `Your listing "${newValue.title}" has been verified and is now published.`,
-            },
-          });
-        }
-
-        // Send an email notification
-        await admin
-          .firestore()
-          .collection("mail")
-          .add({
-            to: landlordData?.email,
-            message: {
-              subject: "Your Listing Has Been Verified",
-              text: `Your listing "${newValue.title}" has been verified and is now published.`,
-            },
-          });
+        await createAdminNotification({
+          type: "listing_verification",
+          title: "Listing Verified",
+          message: `Listing ${event.params.listingId} has been verified and published`,
+          relatedListingId: event.params.listingId,
+          relatedUserId: landlordId,
+          createdAt: admin.firestore.Timestamp.now(),
+        });
       }
+
+      console.log(`Successfully recalled listing ${event.params.listingId}`);
     } catch (error) {
       console.error("Error in onListingVerified:", error);
       // Since this is a background function, we can't return an error to the client
@@ -319,8 +281,7 @@ export const onListingVerified = onDocumentUpdated(
   }
 );
 
-
-export const onListingFlagged = onDocumentUpdated( 
+export const onListingFlagged = onDocumentUpdated(
   "listings/{listingId}",
   async (event) => {
     const newData = event.data?.after?.data() as Listing | undefined;
@@ -346,21 +307,15 @@ export const onListingFlagged = onDocumentUpdated(
           archivedAt: Timestamp.now(),
         });
 
-        // Create admin notification
-        const notificationRef = db.collection("adminNotifications").doc();
-        await notificationRef.set({
+        await createAdminNotification({
           type: "flag_threshold_reached",
           title: "Listing Auto-Recalled",
           message: `Listing "${newData.title}" has been auto-recalled due to reaching the flag threshold`,
           relatedListingId: event.params.listingId,
-          createdAt: Timestamp.now(),
-          read: false,
-          id: notificationRef.id,
+          createdAt: admin.firestore.Timestamp.now(),
         });
 
-        console.log(
-          `Successfully recalled listing ${event.params.listingId}`
-        );
+        console.log(`Successfully recalled listing ${event.params.listingId}`);
       } catch (error) {
         console.error("Error updating listing status:", error);
         throw error;
@@ -368,7 +323,6 @@ export const onListingFlagged = onDocumentUpdated(
     }
   }
 );
-
 
 export const onKYCSubmission = onDocumentCreated(
   "kyc/{docId}",
@@ -378,26 +332,17 @@ export const onKYCSubmission = onDocumentCreated(
 
     const kycDoc = snapshot.data() as KYCDocument;
 
-    // Create notification reference
-    const notificationRef = admin.firestore().collection("adminNotifications").doc();
-    
-    // Prepare notification data
-    const notificationData: AdminNotificationDocument = {
-      id: notificationRef.id,
+    await createAdminNotification({
       type: "kyc_submission",
       title: "New KYC Submission",
       message: `New KYC document submitted for review. Document type: ${kycDoc.documentType}`,
       relatedUserId: kycDoc.userId,
       createdAt: admin.firestore.Timestamp.now(),
-      read: false
-    };
-
-    // Save the notification
-    await notificationRef.set(notificationData);
+    });
   }
 );
 
-const createNotification = async (
+const createAdminNotification = async (
   notification: Omit<AdminNotificationDocument, "id" | "read" | "readAt">
 ): Promise<string> => {
   const notificationRef = db.collection("adminNotifications").doc();
@@ -421,7 +366,7 @@ export const onNewListing = onDocumentCreated(
 
     const listing = snapshot.data() as ListingDocument;
 
-    await createNotification({
+    await createAdminNotification({
       type: "new_listing",
       title: "New Listing Requires Review",
       message: `New listing "${listing.title}" needs review`,
@@ -504,7 +449,7 @@ export const onListingUpdate = onDocumentUpdated(
     if (!relevantFieldsChanged) return;
 
     if (before.status === "draft" && after.status === "pending_review") {
-      await createNotification({
+      await createAdminNotification({
         type: "new_listing",
         title: "New Listing Requires Review",
         message: `Listing "${after.title}" has been submitted for review`,

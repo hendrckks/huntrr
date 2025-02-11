@@ -36,6 +36,9 @@ interface ListingCardProps {
   onBookmarkToggle?: (listingId: string) => void;
 }
 
+// Add cooldown constant at the top level of the component
+const FLAG_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes cooldown
+
 const ListingCard = ({
   listing,
   isLoading = false,
@@ -46,15 +49,97 @@ const ListingCard = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks();
-  const [localBookmarkState, setLocalBookmarkState] = useState<
-    boolean | undefined
-  >(undefined);
+  const [localBookmarkState, setLocalBookmarkState] = useState<boolean | undefined>(undefined);
   const [isDissolving, setIsDissolving] = useState(false);
   const dissolveAnimRef = useRef<SVGAnimateElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [flagReason, setFlagReason] = useState<FlagReason>();
   const [flagDescription, setFlagDescription] = useState("");
+
+  // Check if user is in cooldown period
+  const checkFlagCooldown = (userId: string): boolean => {
+    const lastFlagTime = localStorage.getItem(`lastFlag_${userId}`);
+    if (!lastFlagTime) return false;
+
+    const timeSinceLastFlag = Date.now() - parseInt(lastFlagTime);
+    return timeSinceLastFlag < FLAG_COOLDOWN_MS;
+  };
+
+  // Get remaining cooldown time in minutes
+  const getRemainingCooldownMinutes = (userId: string): number => {
+    const lastFlagTime = localStorage.getItem(`lastFlag_${userId}`);
+    if (!lastFlagTime) return 0;
+
+    const timeSinceLastFlag = Date.now() - parseInt(lastFlagTime);
+    const remainingTime = FLAG_COOLDOWN_MS - timeSinceLastFlag;
+    return Math.ceil(remainingTime / (60 * 1000));
+  };
+
+  const handleFlag = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to flag listings",
+        variant: "error",
+      });
+      return;
+    }
+
+    if (!listing || !flagReason) return;
+
+    // Check cooldown period
+    if (checkFlagCooldown(user.uid)) {
+      const remainingMinutes = getRemainingCooldownMinutes(user.uid);
+      toast({
+        title: "Cooldown Period",
+        description: `Please wait ${remainingMinutes} minute${remainingMinutes === 1 ? '' : 's'} before flagging another listing.`,
+        variant: "warning",
+      });
+      setDialogOpen(false);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await flagListing(listing.id, {
+        reason: flagReason,
+        description: flagDescription,
+        userId: user.uid,
+      });
+
+      // Set last flag time in localStorage
+      localStorage.setItem(`lastFlag_${user.uid}`, Date.now().toString());
+
+      toast({
+        title: "Success",
+        description: "Listing has been flagged for review",
+        variant: "success",
+      });
+
+      // Reset the form
+      setFlagReason(undefined);
+      setFlagDescription("");
+      setDialogOpen(false);
+    } catch (error) {
+      console.error("Error flagging listing:", error);
+      let errorMessage = "Failed to flag listing. Please try again.";
+
+      if (error instanceof Error) {
+        if (error.message.includes("Missing or insufficient permissions")) {
+          errorMessage = "You don't have permission to flag this listing. Please contact support if you think this is an error.";
+        }
+      }
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "error",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Prefetch listing details on hover
   const handleMouseEnter = () => {
@@ -145,58 +230,6 @@ const ListingCard = ({
       toast,
     ]
   );
-
-  const handleFlag = async () => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to flag listings",
-        variant: "error",
-      });
-      return;
-    }
-
-    if (!listing || !flagReason) return;
-
-    setIsSubmitting(true);
-    try {
-      await flagListing(listing.id, {
-        reason: flagReason,
-        description: flagDescription,
-        userId: user.uid,
-      });
-
-      toast({
-        title: "Success",
-        description: "Listing has been flagged for review",
-        variant: "success",
-      });
-
-      // Reset the form
-      setFlagReason(undefined);
-      setFlagDescription("");
-      setDialogOpen(false);
-    } catch (error) {
-      console.error("Error flagging listing:", error);
-      let errorMessage = "Failed to flag listing. Please try again.";
-
-      // Handle specific error cases
-      if (error instanceof Error) {
-        if (error.message.includes("Missing or insufficient permissions")) {
-          errorMessage =
-            "You don't have permission to flag this listing. Please contact support if you think this is an error.";
-        }
-      }
-
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "error",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   if (isLoading) {
     return (
