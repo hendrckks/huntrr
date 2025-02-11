@@ -116,9 +116,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               return;
             }
 
-            // Get role from token
+            // Get role from token and check for requiresReauth
             const idTokenResult = await firebaseUser.getIdTokenResult(true);
             const role = idTokenResult.claims.role as UserRole;
+            const requiresReauth = idTokenResult.claims.requiresReauth as boolean;
+
+            // If reauth is required, sign out the user
+            if (requiresReauth) {
+              console.log("Reauth required, signing out...");
+              sessionStorage.clear();
+              localStorage.removeItem("user");
+              await auth.signOut();
+              setAuthState({
+                user: null,
+                isLoading: false,
+                isInitialized: true,
+                error: new Error("Re-authentication required"),
+              });
+              return;
+            }
 
             const userData: User = { ...firebaseUser, role };
 

@@ -61,6 +61,12 @@ export const onUserRoleUpdate = onDocumentUpdated(
           role: newValue?.role,
         });
 
+        // Update user document with claims update metadata
+        await event.data?.after.ref.update({
+          lastClaimsUpdate: admin.firestore.FieldValue.serverTimestamp(),
+          requiresReauth: true
+        });
+
         // Add a notification in Firestore about the role change
         await admin
           .firestore()

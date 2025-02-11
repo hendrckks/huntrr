@@ -226,7 +226,7 @@ const AdminDashboard = () => {
         userId,
         type: "kyc_verification",
         message: approved
-          ? "Your KYC verification has been approved. You can now list properties. Please sign out and sign in again to refresh your permissions."
+          ? "Your KYC verification has been approved. You can now list properties. Please refresh your page and sign back in to update your account."
           : "Your KYC verification was not approved. Please contact support for more information.",
         read: false,
         createdAt: serverTimestamp(),
