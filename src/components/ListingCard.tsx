@@ -51,6 +51,10 @@ const ListingCard = ({
   >(undefined);
   const [isDissolving, setIsDissolving] = useState(false);
   const dissolveAnimRef = useRef<SVGAnimateElement>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [flagReason, setFlagReason] = useState<FlagReason>();
+  const [flagDescription, setFlagDescription] = useState("");
 
   // Prefetch listing details on hover
   const handleMouseEnter = () => {
@@ -142,9 +146,6 @@ const ListingCard = ({
     ]
   );
 
-  const [flagReason, setFlagReason] = useState<FlagReason>();
-  const [flagDescription, setFlagDescription] = useState("");
-
   const handleFlag = async () => {
     if (!user) {
       toast({
@@ -157,6 +158,7 @@ const ListingCard = ({
 
     if (!listing || !flagReason) return;
 
+    setIsSubmitting(true);
     try {
       await flagListing(listing.id, {
         reason: flagReason,
@@ -173,13 +175,26 @@ const ListingCard = ({
       // Reset the form
       setFlagReason(undefined);
       setFlagDescription("");
+      setDialogOpen(false);
     } catch (error) {
       console.error("Error flagging listing:", error);
+      let errorMessage = "Failed to flag listing. Please try again.";
+
+      // Handle specific error cases
+      if (error instanceof Error) {
+        if (error.message.includes("Missing or insufficient permissions")) {
+          errorMessage =
+            "You don't have permission to flag this listing. Please contact support if you think this is an error.";
+        }
+      }
+
       toast({
         title: "Error",
-        description: "Failed to flag listing. Please try again.",
+        description: errorMessage,
         variant: "error",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -256,9 +271,25 @@ const ListingCard = ({
               <h3 className="font-medium text-gray-900 dark:text-white max-w-[300px] truncate">
                 {listing.title}
               </h3>
-              <Dialog>
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 bg-white/10">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 bg-white/10"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (!user) {
+                        toast({
+                          title: "Authentication Required",
+                          description: "Please sign in to flag listings",
+                          variant: "error",
+                        });
+                        return;
+                      }
+                      setDialogOpen(true);
+                    }}
+                  >
                     <Flag className="h-3 w-3" />
                   </Button>
                 </DialogTrigger>
@@ -274,6 +305,7 @@ const ListingCard = ({
                       onValueChange={(value) =>
                         setFlagReason(value as FlagReason)
                       }
+                      value={flagReason}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a reason" />
@@ -297,8 +329,11 @@ const ListingCard = ({
                     />
                   </div>
                   <DialogFooter>
-                    <Button onClick={handleFlag} disabled={!flagReason}>
-                      Submit Flag
+                    <Button
+                      onClick={handleFlag}
+                      disabled={!flagReason || isSubmitting}
+                    >
+                      {isSubmitting ? "Submitting..." : "Submit Flag"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>

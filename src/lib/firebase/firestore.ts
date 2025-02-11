@@ -36,7 +36,7 @@ import {
 import { globalCache } from "../cache/cacheManager";
 import { uploadImage } from "./storage";
 // Remove slugify from import since we don't use it directly
-import { generateUniqueSlug } from '../utils/slugify';
+import { generateUniqueSlug } from "../utils/slugify";
 
 const LISTINGS_PER_PAGE = 20;
 // Remove the following line
@@ -100,7 +100,7 @@ export const createListing = async (
 ): Promise<string> => {
   // Generate a unique slug from the listing title
   const slug = await generateUniqueSlug(listing.title, checkSlugExists);
-  
+
   // Create a new document reference with the slug as the ID
   const listingRef = doc(collection(db, "listings"), slug);
   const timestamp = Timestamp.now();
@@ -174,7 +174,7 @@ export const updateListing = async (
 ): Promise<void> => {
   const listingRef = doc(db, "listings", listingId);
   const userDoc = await getDoc(doc(db, "users", userId));
-  
+
   // Always set status to pending_review for non-admin users
   if (userDoc.exists() && userDoc.data().role !== "admin") {
     (updates as Partial<Listing>).status = "pending_review";
@@ -288,7 +288,7 @@ export const getLandlordListings = async (
       orderBy("status") // Add this if filtering by status
     );
   }
-  
+
   const snapshot = await getDocs(q);
   const listings = snapshot.docs.map((doc) => ({
     ...convertTimestamps(doc),
@@ -391,14 +391,15 @@ export const getUserBookmarks = async (userId: string) => {
 };
 
 // Flag functions
+// In firestore.ts
 export const flagListing = async (
   listingId: string,
   flag: Omit<Flag, "createdAt" | "resolved" | "resolvedAt" | "resolvedBy">
 ): Promise<void> => {
-  await runTransaction(db, async (transaction) => {
-    const listingRef = doc(db, "listings", listingId);
-    const listingDoc = await transaction.get(listingRef);
+  const listingRef = doc(db, "listings", listingId);
 
+  await runTransaction(db, async (transaction) => {
+    const listingDoc = await transaction.get(listingRef);
     if (!listingDoc.exists()) {
       throw new Error("Listing not found");
     }
@@ -406,41 +407,22 @@ export const flagListing = async (
     const listingData = listingDoc.data() as ListingDocument;
     const timestamp = Timestamp.now();
 
+    // Create the new flag
     const newFlag: Flag = {
       ...flag,
       createdAt: timestamp.toDate(),
       resolved: false,
     };
 
-    const newFlags = [...listingData.flags, newFlag];
-    const newFlagCount = listingData.flagCount + 1;
+    const newFlags = [...(listingData.flags || []), newFlag];
+    const newFlagCount = (listingData.flagCount || 0) + 1;
 
-    const updates: Partial<ListingDocument> = {
+    // Let the cloud function handle status changes and notifications
+    transaction.update(listingRef, {
       flags: newFlags,
       flagCount: newFlagCount,
-      updatedAt: serverTimestamp() as any,
-    };
-
-    if (newFlagCount >= (listingData.FLAG_THRESHOLD || 5)) {
-      updates.status = "recalled";
-      updates.archivedAt = serverTimestamp() as any;
-
-      // Create admin notification for recalled listing
-      const notificationRef = doc(collection(db, "adminNotifications"));
-      const notificationData: AdminNotificationDocument = {
-        type: "flag_threshold_reached",
-        title: "Listing Auto-Recalled",
-        message: `Listing "${listingData.title}" has been auto-recalled due to reaching the flag threshold`,
-        relatedListingId: listingId,
-        createdAt: timestamp,
-        read: false,
-        id: notificationRef.id,
-      };
-
-      transaction.set(notificationRef, notificationData);
-    }
-
-    transaction.update(listingRef, updates);
+      updatedAt: serverTimestamp(),
+    });
   });
 
   globalCache.invalidate("listings_");
@@ -639,7 +621,7 @@ export const cleanupOldNotifications = async (daysOld = 30): Promise<void> => {
 //       }
 
 //       const snapshot = await getDocs(q);
-      
+
 //       if (snapshot.empty) {
 //         hasMore = false;
 //         continue;
@@ -657,7 +639,7 @@ export const cleanupOldNotifications = async (daysOld = 30): Promise<void> => {
 
 //         // Generate base slug
 //         const baseSlug = slugify(data.title);
-        
+
 //         // Get current count for this base slug
 //         const currentCount = slugMap.get(baseSlug) || 0;
 //         slugMap.set(baseSlug, currentCount + 1);
@@ -668,7 +650,7 @@ export const cleanupOldNotifications = async (daysOld = 30): Promise<void> => {
 //         try {
 //           // Create new document with slug as ID
 //           const newDocRef = doc(db, "listings", finalSlug);
-          
+
 //           // Prepare the new document data
 //           const newData = {
 //             ...data,
@@ -680,7 +662,7 @@ export const cleanupOldNotifications = async (daysOld = 30): Promise<void> => {
 //           // Set the new document and delete the old one
 //           batch.set(newDocRef, newData);
 //           batch.delete(doc.ref);
-          
+
 //           processed++;
 //         } catch (error: any) {
 //           errors.push(`Failed to process document ${doc.id}: ${error.message}`);
@@ -699,10 +681,10 @@ export const cleanupOldNotifications = async (daysOld = 30): Promise<void> => {
 //     globalCache.invalidate("listings_");
 //     return { success: true, processed, errors };
 //   } catch (error: any) {
-//     return { 
-//       success: false, 
-//       processed, 
-//       errors: [...errors, `Migration failed: ${error.message}`] 
+//     return {
+//       success: false,
+//       processed,
+//       errors: [...errors, `Migration failed: ${error.message}`]
 //     };
 //   }
 // };
@@ -733,7 +715,7 @@ export const cleanupOldNotifications = async (daysOld = 30): Promise<void> => {
 //     }
 
 //     const snapshot = await getDocs(q);
-    
+
 //     if (snapshot.empty) {
 //       hasMore = false;
 //       continue;
@@ -742,7 +724,7 @@ export const cleanupOldNotifications = async (daysOld = 30): Promise<void> => {
 //     for (const doc of snapshot.docs) {
 //       total++;
 //       const data = doc.data();
-      
+
 //       if (data.slug) {
 //         withSlug++;
 //         slugCounts.set(data.slug, (slugCounts.get(data.slug) || 0) + 1);

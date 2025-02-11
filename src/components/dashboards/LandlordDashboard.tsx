@@ -170,7 +170,7 @@ const LandlordDashboard: React.FC = () => {
   const publishedListings = listings.filter((l) => l.status === "published");
   const pendingListings = listings.filter((l) => l.status === "pending_review");
   const draftListings = listings.filter((l) =>
-    ["draft", "denied"].includes(l.status)
+    ["draft", "denied", "recalled"].includes(l.status)
   );
   const archivedListings = listings.filter((l) => l.status === "archived");
 
