@@ -28,7 +28,7 @@ const MainLayout: React.FC = () => {
         <ScrollToTop />
         {!shouldHideNavbar && <Sidebar />}
         <div className={`flex-1 flex flex-col ${!shouldHideNavbar ? 'ml-[calc(0.5rem+16rem)]' : ''} mt-2 overflow-hidden`}>
-          <main className="flex-1 font-clash tracking-normal p-6 mb-2 mx-2 bg-white/60 dark:bg-[#171717] shadow-lg rounded-xl overflow-y-auto h-[calc(100vh-1rem)]">
+          <main className="flex-1 font-clash tracking-normal p-6 mb-2 mx-2 bg-white/60 dark:bg-[#171717] shadow-lg backdrop-blur-3xl rounded-xl overflow-y-auto h-[calc(100vh-1rem)]">
             {!shouldHideNavbar && <BreadcrumbNav />}
             <Outlet />
           </main>
