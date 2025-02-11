@@ -10,12 +10,22 @@ import {
   NotFoundError,
   PermissionError,
 } from "../../shared/CustomErrors";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
 admin.initializeApp();
+const db = getFirestore();
+
 
 interface SetCustomClaimsRequest {
   uid: string;
   role: string;
+}
+
+interface Listing {
+  id: string;
+  title: string;
+  flagCount: number;
+  status: string;
 }
 
 // Constants for roles
@@ -334,6 +344,55 @@ export const onNewListing = onDocumentCreated(
       console.error("Error in onNewListing:", error);
       // Since this is a background function, we can't return an error to the client
       // But we can log it for monitoring purposes
+    }
+  }
+);
+
+export const onListingFlagged = onDocumentUpdated( 
+  "listings/{listingId}",
+  async (event) => {
+    const newData = event.data?.after?.data() as Listing | undefined;
+    const previousData = event.data?.before?.data() as Listing | undefined;
+
+    if (!newData || !previousData) {
+      console.log("No data available");
+      return;
+    }
+
+    // Check if listing should be recalled based on flag count, regardless of increment
+    if (newData.flagCount >= 5 && newData.status !== "recalled") {
+      const listingRef = event.data?.after?.ref;
+
+      if (!listingRef) {
+        console.error("Listing reference is undefined");
+        return;
+      }
+
+      try {
+        await listingRef.update({
+          status: "recalled",
+          archivedAt: Timestamp.now(),
+        });
+
+        // Create admin notification
+        const notificationRef = db.collection("adminNotifications").doc();
+        await notificationRef.set({
+          type: "flag_threshold_reached",
+          title: "Listing Auto-Recalled",
+          message: `Listing "${newData.title}" has been auto-recalled due to reaching the flag threshold`,
+          relatedListingId: event.params.listingId,
+          createdAt: Timestamp.now(),
+          read: false,
+          id: notificationRef.id,
+        });
+
+        console.log(
+          `Successfully recalled listing ${event.params.listingId}`
+        );
+      } catch (error) {
+        console.error("Error updating listing status:", error);
+        throw error;
+      }
     }
   }
 );

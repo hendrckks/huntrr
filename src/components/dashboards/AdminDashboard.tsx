@@ -313,7 +313,7 @@ const AdminDashboard = () => {
       try {
         const q = query(
           collection(db, "listings"),
-          where("status", "==", "pending_review"),
+          where("status", "in", ["pending_review", "recalled"]),
           orderBy("createdAt", "desc")
         );
         const snapshot = await getDocs(q);
@@ -358,15 +358,27 @@ const AdminDashboard = () => {
       const batch = writeBatch(db);
       const listingRef = doc(db, "listings", listingId);
 
-      batch.update(listingRef, {
-        status: "published",
-        reviewedAt: serverTimestamp(),
-        reviewedBy: auth.currentUser.uid,
-      });
-
-      // Create notification for the landlord
+      // Reset flagCount when approving a recalled listing
       const listingDoc = await getDoc(listingRef);
       const listingData = listingDoc.data();
+
+      if (listingData?.status === "recalled") {
+        batch.update(listingRef, {
+          status: "published",
+          reviewedAt: serverTimestamp(),
+          reviewedBy: auth.currentUser.uid,
+          flagCount: 0, // Reset flag count
+          flags: [] // Clear all flags
+        });
+      } else {
+        batch.update(listingRef, {
+          status: "published",
+          reviewedAt: serverTimestamp(),
+          reviewedBy: auth.currentUser.uid,
+        });
+      }
+
+      // Create notification for the landlord
 
       if (listingData) {
         const notificationRef = doc(collection(db, "notifications"));
@@ -563,7 +575,9 @@ const AdminDashboard = () => {
                                 <h3 className="font-semibold">
                                   {listing.title}
                                 </h3>
-                                <Badge>PENDING REVIEW</Badge>
+                                <Badge variant={listing.status === "recalled" ? "destructive" : "default"}>
+                                  {listing.status === "recalled" ? "RECALLED" : "PENDING REVIEW"}
+                                </Badge>
                               </div>
                               <p className="text-sm text-gray-400">
                                 {listing.location.area}, {listing.location.city}
