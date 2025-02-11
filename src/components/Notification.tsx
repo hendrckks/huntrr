@@ -43,28 +43,62 @@ const NotificationsPage = () => {
     setError(null);
 
     try {
-      const q = query(
-        collection(db, "notifications"),
-        or(
-          where("userId", "==", user.uid),
-          where("landlordId", "==", user.uid)
-        ),
-        orderBy("createdAt", "desc")
-      );
+      let q;
+      if (user.role === 'admin') {
+        // Admin notifications query
+        q = query(
+          collection(db, "adminNotifications"),
+          where("read", "==", false),
+          orderBy("createdAt", "desc")
+        );
+      } else {
+        // Regular user notifications query
+        q = query(
+          collection(db, "notifications"),
+          or(
+            where("userId", "==", user.uid),
+            where("landlordId", "==", user.uid)
+          ),
+          orderBy("createdAt", "desc")
+        );
+      }
 
       const snapshot = await getDocs(q);
-      const notifs = snapshot.docs.map((doc) =>
-        normalizeNotificationDate({
-          ...doc.data(),
-          id: doc.id,
-        })
-      );
+      const notifs = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        // Normalize the date field, checking both timestamp and createdAt
+        const dateValue = data.createdAt || data.timestamp;
+
+        if (user.role === 'admin') {
+          return {
+            id: doc.id,
+            title: data.title || "Notification",
+            message: data.message || "No message provided",
+            createdAt: dateValue?.toDate() || new Date(),
+            read: data.read ?? false,
+            type: data.type || "general",
+            priority: data.priority || "normal",
+            relatedUserId: data.userId || data.relatedUserId || null,
+            relatedListingId: data.relatedListingId || null,
+            metadata: data.metadata || {}
+          };
+        } else {
+          return normalizeNotificationDate({
+            ...data,
+            id: doc.id,
+          });
+        }
+      });
 
       setNotifications(notifs);
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-      setError("Unable to load notifications at this time.");
-      setNotifications([]); // Set empty array on error
+    } catch (error: any) {
+      console.error("Raw error:", error);
+      if (error.code === "failed-precondition" || error.message?.includes("index")) {
+        setError("Database index is being created. Please wait a few minutes and try again.");
+      } else {
+        setError("Unable to load notifications at this time.");
+      }
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -168,7 +202,9 @@ const NotificationsPage = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4">
       <div className="flex items-center gap-2 mb-6">
-        <Bell className="h-6 w-6" />
+        <div className="relative">
+          <Bell className="h-6 w-6" />
+        </div>
         <h1 className="text-xl font-medium">Notifications</h1>
       </div>
 
