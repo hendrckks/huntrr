@@ -119,8 +119,10 @@ export const termsSchema = z.object({
 export type Terms = z.infer<typeof termsSchema>;
 
 // Main listing schema
+// In the listingSchema definition
 export const listingSchema = z.object({
   id: z.string(),
+  slug: z.string().optional(),  // Changed from optional to required
   imageUrls: z.array(z.string()).optional(),
   photos: z.array(photoSchema).optional(),
   title: z.string().min(5).max(100),
@@ -225,6 +227,7 @@ export interface ListingDocument
     Listing,
     "createdAt" | "updatedAt" | "publishedAt" | "archivedAt" | "verifiedAt"
   > {
+  slug: string;  // Add this line
   photos?: Photo[];
   createdAt: Timestamp;
   updatedAt: Timestamp;

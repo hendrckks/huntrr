@@ -8,21 +8,28 @@ import ImageModal from "./ImageModal";
 import { Badge } from "./ui/badge";
 
 const ListingView = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>(); // Change from id to slug
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: listing, isLoading } = useQuery<ListingDocument>({
-    queryKey: ["listing", id],
+    queryKey: ["listing", slug],
     queryFn: async () => {
-      const docRef = doc(db, "listings", id!);
+      // Since we're using the slug as the document ID, we can query directly
+      const docRef = doc(db, "listings", slug!);
       const docSnap = await getDoc(docRef);
+      
       if (!docSnap.exists()) {
         throw new Error("Listing not found");
       }
-      return { ...docSnap.data(), id: docSnap.id } as ListingDocument;
+      
+      return { 
+        ...docSnap.data(), 
+        id: docSnap.id,
+        slug: docSnap.id // Ensure slug is included
+      } as ListingDocument;
     },
-    enabled: !!id,
+    enabled: !!slug,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 

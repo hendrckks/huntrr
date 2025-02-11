@@ -35,6 +35,8 @@ import {
 } from "../types/Listing";
 import { globalCache } from "../cache/cacheManager";
 import { uploadImage } from "./storage";
+// Remove slugify from import since we don't use it directly
+import { generateUniqueSlug } from '../utils/slugify';
 
 const LISTINGS_PER_PAGE = 20;
 // Remove the following line
@@ -83,13 +85,24 @@ const convertTimestamps = <T extends { [key: string]: any }>(
 
   return convertValue(doc.data()) as T;
 };
+
+const checkSlugExists = async (slug: string): Promise<boolean> => {
+  const q = query(collection(db, "listings"), where("slug", "==", slug));
+  const snapshot = await getDocs(q);
+  return !snapshot.empty;
+};
+
 // Listing functions
 export const createListing = async (
-  listing: Omit<Listing, "id" | "status" | "createdAt" | "updatedAt">,
+  listing: Omit<Listing, "id" | "status" | "createdAt" | "updatedAt" | "slug">,
   images: File[],
   status: ListingStatus = "pending_review"
 ): Promise<string> => {
-  const listingRef = doc(collection(db, "listings"));
+  // Generate a unique slug from the listing title
+  const slug = await generateUniqueSlug(listing.title, checkSlugExists);
+  
+  // Create a new document reference with the slug as the ID
+  const listingRef = doc(collection(db, "listings"), slug);
   const timestamp = Timestamp.now();
 
   try {
@@ -98,9 +111,8 @@ export const createListing = async (
     const photos: Photo[] = [];
 
     for (const image of images) {
-      const url = await uploadImage(image, listingRef.id, listing.landlordId);
+      const url = await uploadImage(image, slug, listing.landlordId);
       imageUrls.push(url);
-
       photos.push({
         id: `photo_${photos.length}`,
         url,
@@ -108,10 +120,11 @@ export const createListing = async (
       });
     }
 
-    // Create the listing data, explicitly setting optional fields to null instead of undefined
+    // Create the listing data with the slug
     const listingData: ListingDocument = {
       ...listing,
-      id: listingRef.id,
+      id: slug,
+      slug,
       status,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -122,7 +135,6 @@ export const createListing = async (
       FLAG_THRESHOLD: 5,
       photos,
       imageUrls,
-      // Explicitly set optional fields to null
       verifiedAt: null,
       verifiedBy: null,
       publishedAt: null,
@@ -605,3 +617,151 @@ export const cleanupOldNotifications = async (daysOld = 30): Promise<void> => {
   await batch.commit();
   globalCache.invalidate("admin_notifications");
 };
+// Add this new function at the end of the file
+// export const migrateListingSlugs = async (): Promise<{ success: boolean; processed: number; errors: string[] }> => {
+//   const batchSize = 500; // Firestore batch limit
+//   let processed = 0;
+//   let hasMore = true;
+//   let lastDoc: QueryDocumentSnapshot | null = null;
+//   const errors: string[] = [];
+//   const slugMap = new Map<string, number>(); // Track slug counts for proper suffixing
+
+//   try {
+//     while (hasMore) {
+//       let q = query(
+//         collection(db, "listings"),
+//         orderBy("createdAt", "desc"),
+//         limit(batchSize)
+//       );
+
+//       if (lastDoc) {
+//         q = query(q, startAfter(lastDoc));
+//       }
+
+//       const snapshot = await getDocs(q);
+      
+//       if (snapshot.empty) {
+//         hasMore = false;
+//         continue;
+//       }
+
+//       const batch = writeBatch(db);
+
+//       // Process documents sequentially to handle duplicates properly
+//       for (const doc of snapshot.docs) {
+//         const data = doc.data();
+//         if (!data.title) {
+//           errors.push(`Document ${doc.id} has no title, skipping`);
+//           continue;
+//         }
+
+//         // Generate base slug
+//         const baseSlug = slugify(data.title);
+        
+//         // Get current count for this base slug
+//         const currentCount = slugMap.get(baseSlug) || 0;
+//         slugMap.set(baseSlug, currentCount + 1);
+
+//         // Generate final slug with suffix if needed
+//         const finalSlug = currentCount === 0 ? baseSlug : `${baseSlug}-${currentCount}`;
+
+//         try {
+//           // Create new document with slug as ID
+//           const newDocRef = doc(db, "listings", finalSlug);
+          
+//           // Prepare the new document data
+//           const newData = {
+//             ...data,
+//             id: finalSlug,
+//             slug: finalSlug,
+//             updatedAt: serverTimestamp()
+//           };
+
+//           // Set the new document and delete the old one
+//           batch.set(newDocRef, newData);
+//           batch.delete(doc.ref);
+          
+//           processed++;
+//         } catch (error: any) {
+//           errors.push(`Failed to process document ${doc.id}: ${error.message}`);
+//         }
+//       }
+
+//       try {
+//         await batch.commit();
+//         lastDoc = snapshot.docs[snapshot.docs.length - 1];
+//       } catch (error: any) {
+//         errors.push(`Batch update failed: ${error.message}`);
+//         continue;
+//       }
+//     }
+
+//     globalCache.invalidate("listings_");
+//     return { success: true, processed, errors };
+//   } catch (error: any) {
+//     return { 
+//       success: false, 
+//       processed, 
+//       errors: [...errors, `Migration failed: ${error.message}`] 
+//     };
+//   }
+// };
+
+// // Add a new function to verify the migration results
+// export const verifyListingSlugs = async (): Promise<{
+//   total: number;
+//   withSlug: number;
+//   withoutSlug: number;
+//   duplicates: { slug: string; count: number }[];
+// }> => {
+//   const slugCounts = new Map<string, number>();
+//   let total = 0;
+//   let withSlug = 0;
+//   let withoutSlug = 0;
+//   let lastDoc: QueryDocumentSnapshot | null = null;
+//   let hasMore = true;
+
+//   while (hasMore) {
+//     let q = query(
+//       collection(db, "listings"),
+//       orderBy("createdAt", "desc"),
+//       limit(500)
+//     );
+
+//     if (lastDoc) {
+//       q = query(q, startAfter(lastDoc));
+//     }
+
+//     const snapshot = await getDocs(q);
+    
+//     if (snapshot.empty) {
+//       hasMore = false;
+//       continue;
+//     }
+
+//     for (const doc of snapshot.docs) {
+//       total++;
+//       const data = doc.data();
+      
+//       if (data.slug) {
+//         withSlug++;
+//         slugCounts.set(data.slug, (slugCounts.get(data.slug) || 0) + 1);
+//       } else {
+//         withoutSlug++;
+//       }
+//     }
+
+//     lastDoc = snapshot.docs[snapshot.docs.length - 1];
+//   }
+
+//   const duplicates = Array.from(slugCounts.entries())
+//     .filter(([_, count]) => count > 1)
+//     .map(([slug, count]) => ({ slug, count }));
+
+//   return {
+//     total,
+//     withSlug,
+//     withoutSlug,
+//     duplicates
+//   };
+// };

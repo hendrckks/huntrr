@@ -40,7 +40,8 @@ const Home = () => {
         const querySnapshot = await getDocs(q);
         const listings = querySnapshot.docs.map((doc) => ({
           ...doc.data(),
-          id: doc.id,
+          id: doc.id
+          // Remove redundant slug assignment since it's the same as id
         })) as ListingDocument[];
 
         return {

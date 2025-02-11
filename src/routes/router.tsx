@@ -129,7 +129,7 @@ export const router = createBrowserRouter([
         }),
       },
       {
-        path: "listings/:id",
+        path: "listings/:slug", // Change from :id to :slug
         element: (
           <Suspense fallback={<SpinningLoader />}>
             <Components.ListingView />
