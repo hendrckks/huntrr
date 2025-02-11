@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Card, CardContent } from "./ui/card";
-import { Bell, CheckCheck, Clock } from "lucide-react";
+import { Bell, CheckCheck, Clock, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
 import {
   collection,
   query,
@@ -12,6 +13,7 @@ import {
   doc,
   Timestamp,
   or,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
 import { useAuth } from "../contexts/AuthContext";
@@ -24,6 +26,8 @@ const NotificationsPage = () => {
   const [notifications, setNotifications] = useState<BaseNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedNotification, setSelectedNotification] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -63,6 +67,22 @@ const NotificationsPage = () => {
       setNotifications([]); // Set empty array on error
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedNotification) return;
+
+    try {
+      const notificationRef = doc(db, "notifications", selectedNotification);
+      await deleteDoc(notificationRef);
+
+      setNotifications((prev) => prev.filter((n) => n.id !== selectedNotification));
+      setIsDeleteDialogOpen(false);
+      setSelectedNotification(null);
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      setError("Failed to delete notification. Please try again.");
     }
   };
 
@@ -190,12 +210,24 @@ const NotificationsPage = () => {
                         {formatDate(notification.createdAt!)}
                       </p>
                     </div>
-                    <button
-                      onClick={(e) => markAsRead(notification.id, e)}
-                      className="px-3 py-1 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
-                    >
-                      Mark as read
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => markAsRead(notification.id, e)}
+                        className="px-3 py-1 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
+                      >
+                        Mark as read
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedNotification(notification.id);
+                          setIsDeleteDialogOpen(true);
+                        }}
+                        className="p-2 hover:bg-destructive/10 text-destructive rounded-md transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -226,6 +258,16 @@ const NotificationsPage = () => {
                         {formatDate(notification.createdAt!)}
                       </p>
                     </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedNotification(notification.id);
+                        setIsDeleteDialogOpen(true);
+                      }}
+                      className="p-2 hover:bg-destructive/10 text-destructive rounded-md transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </CardContent>
                 </Card>
               ))}
@@ -233,6 +275,26 @@ const NotificationsPage = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Notification</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this notification? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
