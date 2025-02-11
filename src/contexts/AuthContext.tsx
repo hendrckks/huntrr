@@ -55,83 +55,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Subscribe to auth state changes
   useEffect((): (() => void) => {
     const authManager = getAuthStateManager();
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (sessionStorage.getItem("suppressAuth") === "true") {
-        return;
-      }
-
-      try {
-        if (firebaseUser) {
-          if (!firebaseUser.emailVerified) {
-            setAuthState({
-              user: null,
-              isLoading: false,
-              isInitialized: true,
-              error: new Error("Email not verified"),
-            });
-            return;
-          }
-
-          // Get role from token and force refresh
-          const idTokenResult = await firebaseUser.getIdTokenResult(true);
-          const role = idTokenResult.claims.role as UserRole;
-
-          // Check if role has changed
-          const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-          if (currentUser.role && currentUser.role !== role) {
-            // Clear session storage to force re-authentication
-            sessionStorage.clear();
-            localStorage.removeItem("user");
-            // Force token refresh
-            await firebaseUser.getIdToken(true);
-          }
-
-          const userData: User = { ...firebaseUser, role };
-
-          // Set session expiration (2 hours from now)
-          const expiresAt = Date.now() + 2 * 60 * 60 * 1000;
-          sessionStorage.setItem("sessionExpiration", expiresAt.toString());
-
-          // Store user data
-          sessionStorage.setItem("user", JSON.stringify(userData));
-          localStorage.setItem("user", JSON.stringify(userData));
-
-          setAuthState({
-            user: userData,
-            isLoading: false,
-            isInitialized: true,
-            error: null,
-          });
-        } else {
-          // Clear storage and state
-          sessionStorage.clear();
-          localStorage.removeItem("user");
-
-          setAuthState({
-            user: null,
-            isLoading: false,
-            isInitialized: true,
-            error: null,
-          });
-        }
-      } catch (error) {
-        console.error("Auth state change error:", error);
-        sessionStorage.clear();
-        localStorage.removeItem("user");
-
-        setAuthState({
-          user: null,
-          isLoading: false,
-          isInitialized: true,
-          error: error as Error,
-        });
-      }
+    const unsubscribe = authManager.subscribeToAuthState(() => {
+      setAuthState({
+        user: null,
+        isLoading: false,
+        isInitialized: true,
+        error: null,
+      });
     });
 
-    return () => {
-      unsubscribe();
-      authManager.cleanup();
-    };
+    return () => unsubscribe();
   }, []);
 
   // Initialize from session storage immediately
