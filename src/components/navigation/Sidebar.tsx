@@ -185,7 +185,7 @@ const Sidebar = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-lg border border-black/10 transition-colors ${isActive ? "dark:bg-white/10 bg-black/10 shadow-lg" : "hover:bg-white/5"}`}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg  transition-colors ${isActive ? "dark:bg-white/10 bg-black/10 border border-black/10 shadow-lg" : "hover:bg-white/5"}`}
             >
               <div className="relative">
                 <Icon className="w-5 h-5" />
@@ -193,7 +193,7 @@ const Sidebar = () => {
                   <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                 )}
               </div>
-              <span className="text-sm">{item.label}</span>
+              <span className="text-sm dark:font-normal font-medium">{item.label}</span>
             </Link>
           );
         })}

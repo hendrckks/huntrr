@@ -214,7 +214,7 @@ const ListingView = () => {
                   {listing.utilities.waterAvailability.replace(/_/g, " ")}
                 </dd>
               </div>
-              <div>
+              <div className="text-sm">
                 <dt className="text-gray-500 dark:text-gray-400">Carrier Coverage</dt>
                 <dd className="text-gray-900 dark:text-white capitalize">
                   {listing.utilities.carrierCoverage}
@@ -223,7 +223,7 @@ const ListingView = () => {
             </dl>
             {listing.utilities.includedUtilities.length > 0 && (
               <div className="mt-4">
-                <dt className="text-gray-500 dark:text-white font-medium mb-2">Included Utilities</dt>
+                <dt className="text-gray-600 dark:text-white font-semibold mb-2">Included Utilities</dt>
                 <dd className="flex flex-wrap gap-2 text-sm">
                   {listing.utilities.includedUtilities.map((utility) => (
                     <span
