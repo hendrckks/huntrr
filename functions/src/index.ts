@@ -379,7 +379,7 @@ export const onKYCSubmission = onDocumentCreated(
     const kycDoc = snapshot.data() as KYCDocument;
 
     // Create notification reference
-    const notificationRef = admin.firestore().collection("AdminNotifications").doc();
+    const notificationRef = admin.firestore().collection("adminNotifications").doc();
     
     // Prepare notification data
     const notificationData: AdminNotificationDocument = {
