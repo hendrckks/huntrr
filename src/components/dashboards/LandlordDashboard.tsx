@@ -275,7 +275,7 @@ const LandlordDashboard: React.FC = () => {
       <Tabs defaultValue="published" className="space-y-4 text-black dark:text-white">
         <TabsList className="bg-black/5">
           <TabsTrigger
-            className="flex items-center gap-2 bg-white"
+            className="flex items-center gap-2"
             value="published"
           >
             <span>
