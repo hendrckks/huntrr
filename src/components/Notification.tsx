@@ -14,6 +14,7 @@ import {
   Timestamp,
   or,
   deleteDoc,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
 import { useAuth } from "../contexts/AuthContext";
@@ -67,33 +68,53 @@ const NotificationsPage = () => {
       }
 
       const snapshot = await getDocs(q);
-      const notifs = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        // Normalize the date field, checking both timestamp and createdAt
-        const dateValue = data.createdAt || data.timestamp;
+      const validNotifs: BaseNotification[] = [];
+      
+      // Group notifications into batches of 10 for efficient checking
+      const batchSize = 10;
+      const batches = [];
+      for (let i = 0; i < snapshot.docs.length; i += batchSize) {
+        batches.push(snapshot.docs.slice(i, i + batchSize));
+      }
 
-        if (user.role === 'admin') {
-          return {
-            id: doc.id,
-            title: data.title || "Notification",
-            message: data.message || "No message provided",
-            createdAt: dateValue?.toDate() || new Date(),
-            read: data.read ?? false,
-            type: data.type || "general",
-            priority: data.priority || "normal",
-            relatedUserId: data.userId || data.relatedUserId || null,
-            relatedListingId: data.relatedListingId || null,
-            metadata: data.metadata || {}
-          };
-        } else {
-          return normalizeNotificationDate({
-            ...data,
-            id: doc.id,
-          });
-        }
-      });
+      // Process each batch
+      for (const batch of batches) {
+        const existenceChecks = await Promise.all(
+          batch.map(doc => getDoc(doc.ref))
+        );
 
-      setNotifications(notifs);
+        // Process documents that still exist
+        batch.forEach((doc, index) => {
+          if (!existenceChecks[index].exists()) {
+            console.warn(`Notification ${doc.id} no longer exists`);
+            return;
+          }
+
+          const data = existenceChecks[index].data();
+          // Normalize the date field, checking both timestamp and createdAt
+          const dateValue = data.createdAt || data.timestamp;
+
+          if (user.role === 'admin') {
+            validNotifs.push({
+              id: doc.id,
+              title: data.title || "Notification",
+              message: data.message || "No message provided",
+              createdAt: dateValue?.toDate() || new Date(),
+              read: data.read ?? false,
+              type: data.type || "general",
+              relatedUserId: data.userId || data.relatedUserId || null,
+              relatedListingId: data.relatedListingId || null,
+            });
+          } else {
+            validNotifs.push(normalizeNotificationDate({
+              ...data,
+              id: doc.id,
+            }));
+          }
+        });
+      }
+
+      setNotifications(validNotifs);
     } catch (error: any) {
       console.error("Raw error:", error);
       if (error.code === "failed-precondition" || error.message?.includes("index")) {
@@ -133,11 +154,22 @@ const NotificationsPage = () => {
 
     try {
       const notificationRef = doc(db, "notifications", notificationId);
+      
+      // Check if document exists before updating
+      const docSnap = await getDoc(notificationRef);
+      if (!docSnap.exists()) {
+        console.error(`Notification document ${notificationId} does not exist`);
+        setError("This notification no longer exists.");
+        // Remove the non-existent notification from local state
+        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+        return;
+      }
+    
       await updateDoc(notificationRef, {
         read: true,
         readAt: Timestamp.now(),
       });
-
+    
       // Update local state with animation
       setNotifications((prevNotifications) =>
         prevNotifications.map((notification) =>
@@ -194,7 +226,7 @@ const NotificationsPage = () => {
             <p>{error}</p>
             <button
               onClick={fetchUserNotifications}
-              className="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+              className="mt-4 px-4 py-2 bg-primary dark:text-black text-sm text-white rounded-md hover:bg-primary/90"
             >
               Retry
             </button>
