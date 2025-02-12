@@ -213,7 +213,7 @@ const FilterModal = () => {
         </Button>
       </DialogTrigger>
       <DialogContent 
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:max-w-[800px] max-h-[90vh] overflow-y-auto dark:bg-[#121212]  w-[95vw]" 
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:max-w-[800px] max-h-[90vh] overflow-y-auto dark:bg-[#121212] shadow-2xl backdrop-blur-3xl w-[95vw]" 
         ref={contentRef}
         onScroll={handleScroll}
       >
