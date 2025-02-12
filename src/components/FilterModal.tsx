@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -32,9 +34,34 @@ interface FilterState {
     pets: boolean;
   };
   waterAvailability: string;
+  location: {
+    area: string;
+    neighborhood: string;
+    city: string;
+  };
 }
 
 const FilterModal = () => {
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = () => {
+    if (contentRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 20; // 20px threshold
+      setShowScrollButton(!isAtBottom);
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (contentRef.current) {
+      contentRef.current.scrollTo({
+        top: contentRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
+  };
+
   const [filters, setFilters] = useState<FilterState>({
     priceRange: [0, 100000],
     propertyType: "",
@@ -47,6 +74,11 @@ const FilterModal = () => {
       pets: false,
     },
     waterAvailability: "",
+    location: {
+      area: "",
+      neighborhood: "",
+      city: "",
+    },
   });
 
   const handlePriceChange = (value: [number, number]) => {
@@ -79,6 +111,16 @@ const FilterModal = () => {
     setFilters((prev) => ({ ...prev, waterAvailability: value }));
   };
 
+  const handleLocationChange = (field: keyof typeof filters.location, value: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      location: {
+        ...prev.location,
+        [field]: value,
+      },
+    }));
+  };
+
   const handleReset = () => {
     setFilters({
       priceRange: [0, 100000],
@@ -92,6 +134,11 @@ const FilterModal = () => {
         pets: false,
       },
       waterAvailability: "",
+      location: {
+        area: "",
+        neighborhood: "",
+        city: "",
+      },
     });
   };
 
@@ -142,6 +189,15 @@ const FilterModal = () => {
       });
     }
 
+    Object.entries(filters.location).forEach(([key, value]) => {
+      if (value) {
+        applied.push({
+          id: `location_${key}`,
+          label: `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`,
+        });
+      }
+    });
+
     return applied;
   };
 
@@ -156,12 +212,16 @@ const FilterModal = () => {
           <Filter className="h-5 w-5 dark:text-muted-foreground text-black/50" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] dark:bg-[#121212]">
+      <DialogContent 
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:max-w-[800px] max-h-[90vh] overflow-y-auto dark:bg-[#121212]  w-[95vw]" 
+        ref={contentRef}
+        onScroll={handleScroll}
+      >
         <DialogHeader>
           <DialogTitle>Filter Properties</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4 dark:bg-[#121212]">
+        <div className="space-y-4 py-3 dark:bg-[#121212]">
           {/* Price Range */}
           <div className="space-y-2">
             <Label>Price Range (KSh)</Label>
@@ -277,20 +337,91 @@ const FilterModal = () => {
             </div>
           </div>
 
-          {/* Water Availability */}
+          {/* Location Filters */}
           <div className="space-y-2">
+            <Label>Location</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">Area</Label>
+                <Select value={filters.location.area} onValueChange={(value) => handleLocationChange("area", value)}>
+                  <SelectTrigger className="w-full dark:bg-zinc-900">
+                    <SelectValue placeholder="Select area" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="westlands">Westlands</SelectItem>
+                    <SelectItem value="kilimani">Kilimani</SelectItem>
+                    <SelectItem value="karen">Karen</SelectItem>
+                    <SelectItem value="lavington">Lavington</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">City</Label>
+                <Select value={filters.location.city} onValueChange={(value) => handleLocationChange("city", value)}>
+                  <SelectTrigger className="w-full dark:bg-zinc-900">
+                    <SelectValue placeholder="Select city" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nairobi">Nairobi</SelectItem>
+                    <SelectItem value="mombasa">Mombasa</SelectItem>
+                    <SelectItem value="kisumu">Kisumu</SelectItem>
+                    <SelectItem value="nakuru">Nakuru</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Water Availability */}
+          <div className="space-y-4">
             <Label>Water Availability</Label>
-            <Select value={filters.waterAvailability} onValueChange={handleWaterAvailabilityChange}>
-              <SelectTrigger className="w-full dark:bg-zinc-900">
-                <SelectValue placeholder="Select availability" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="24_7">24/7</SelectItem>
-                <SelectItem value="scheduled_daily">Scheduled Daily</SelectItem>
-                <SelectItem value="scheduled_weekly">Scheduled Weekly</SelectItem>
-                <SelectItem value="irregular">Irregular</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">Availability</Label>
+                <Select value={filters.waterAvailability} onValueChange={handleWaterAvailabilityChange}>
+                  <SelectTrigger className="w-full dark:bg-zinc-900">
+                    <SelectValue placeholder="Select availability" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="24_7">24/7</SelectItem>
+                    <SelectItem value="scheduled_daily">Scheduled Daily</SelectItem>
+                    <SelectItem value="scheduled_weekly">Scheduled Weekly</SelectItem>
+                    <SelectItem value="irregular">Irregular</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">Area</Label>
+                <Select value={filters.location.area} onValueChange={(value) => handleLocationChange("area", value)}>
+                  <SelectTrigger className="w-full dark:bg-zinc-900">
+                    <SelectValue placeholder="Select area" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="westlands">Westlands</SelectItem>
+                    <SelectItem value="kilimani">Kilimani</SelectItem>
+                    <SelectItem value="karen">Karen</SelectItem>
+                    <SelectItem value="lavington">Lavington</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">City</Label>
+                <Select value={filters.location.city} onValueChange={(value) => handleLocationChange("city", value)}>
+                  <SelectTrigger className="w-full dark:bg-zinc-900">
+                    <SelectValue placeholder="Select city" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nairobi">Nairobi</SelectItem>
+                    <SelectItem value="mombasa">Mombasa</SelectItem>
+                    <SelectItem value="kisumu">Kisumu</SelectItem>
+                    <SelectItem value="nakuru">Nakuru</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           {/* Applied Filters */}
@@ -317,6 +448,27 @@ const FilterModal = () => {
             <Button className="w-full">Apply Filters</Button>
           </div>
         </div>
+
+        <AnimatePresence>
+          {showScrollButton && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50"
+            >
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-10 w-10 rounded-full shadow-lg dark:bg-zinc-800 dark:hover:bg-zinc-700"
+                onClick={scrollToBottom}
+              >
+                <ArrowDown className="h-5 w-5" />
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </DialogContent>
     </Dialog>
   );
