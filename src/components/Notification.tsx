@@ -22,6 +22,7 @@ import {
   type BaseNotification,
 } from "../lib/utils/NotificationUtils";
 import SpinningLoader from "./SpinningLoader";
+import { useNavigate } from "react-router-dom";
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState<BaseNotification[]>([]);
@@ -30,6 +31,7 @@ const NotificationsPage = () => {
   const [selectedNotification, setSelectedNotification] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user?.uid) {
@@ -104,6 +106,10 @@ const NotificationsPage = () => {
       setLoading(false);
     }
   };
+
+  const handleViewKYCSubmission = () => {
+    navigate("/admin-dashboard")
+  }
 
   const handleDelete = async () => {
     if (!selectedNotification) return;
@@ -246,6 +252,14 @@ const NotificationsPage = () => {
                       </p>
                     </div>
                     <div className="flex gap-2">
+                      {user?.role === 'admin' && notification.type === 'kyc_submission' && (
+                        <button
+                          onClick={handleViewKYCSubmission}
+                          className="px-3 py-1 text-sm dark:bg-primary bg-black/80 hover:bg-black/50 dark:hover:bg-primary/90 dark:text-black text-white rounded-md transition-colors"
+                        >
+                          View KYC Submission
+                        </button>
+                      )}
                       <button
                         onClick={(e) => markAsRead(notification.id, e)}
                         className="px-3 py-1 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
