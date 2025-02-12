@@ -13,6 +13,7 @@ import {
   HousePlus,
   HelpCircle,
   FileCheck,
+  Filter,
   // LucideIcon,
 } from "lucide-react";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -72,7 +73,7 @@ const Sidebar = () => {
 
       const [userSnapshot, landlordSnapshot] = await Promise.all([
         getDocs(baseQuery),
-        getDocs(landlordQuery)
+        getDocs(landlordQuery),
       ]);
 
       allNotifs = [...userSnapshot.docs, ...landlordSnapshot.docs].map((doc) =>
@@ -83,18 +84,20 @@ const Sidebar = () => {
       );
 
       // Only fetch admin notifications if user is admin
-      if (user?.role === 'admin') {
+      if (user?.role === "admin") {
         const adminQuery = query(
           collection(db, "adminNotifications"),
           where("read", "==", false)
         );
         const adminSnapshot = await getDocs(adminQuery);
-        const adminNotifs = adminSnapshot.docs.map((doc) => normalizeNotificationDate({
-          ...doc.data(),
-          id: doc.id,
-          type: doc.data().type || 'admin_notification',
-          message: doc.data().message || 'New admin notification'
-        }));
+        const adminNotifs = adminSnapshot.docs.map((doc) =>
+          normalizeNotificationDate({
+            ...doc.data(),
+            id: doc.id,
+            type: doc.data().type || "admin_notification",
+            message: doc.data().message || "New admin notification",
+          })
+        );
         allNotifs = [...allNotifs, ...adminNotifs];
       }
 
@@ -124,15 +127,19 @@ const Sidebar = () => {
 
   const navItems = [
     { icon: HomeIcon, label: "Home", path: "/" },
-    { 
-      icon: Bell, 
-      label: "Notifications", 
+    {
+      icon: Bell,
+      label: "Notifications",
       path: "/notifications",
-      badge: notifications.filter(n => !n.read).length > 0 || (user?.role === 'admin' && notifications.filter(n => !n.read).length > 0)
+      badge:
+        notifications.filter((n) => !n.read).length > 0 ||
+        (user?.role === "admin" &&
+          notifications.filter((n) => !n.read).length > 0),
     },
     { icon: Bookmark, label: "Bookmarks", path: "/bookmarks" },
-    (user?.role === "admin" || user?.role === "landlord_verified") ? 
-      { icon: HousePlus, label: "List your property", path: "/add-listing" } : null,
+    user?.role === "admin" || user?.role === "landlord_verified"
+      ? { icon: HousePlus, label: "List your property", path: "/add-listing" }
+      : null,
     {
       icon: User,
       label: "Profile",
@@ -144,11 +151,13 @@ const Sidebar = () => {
           ? "/dashboard"
           : "/profile",
     },
-    user?.role === "landlord_unverified" ? {
-      icon: FileCheck,
-      label: "Verify Documents",
-      path: "/verify-documents",
-    } : null,
+    user?.role === "landlord_unverified"
+      ? {
+          icon: FileCheck,
+          label: "Verify Documents",
+          path: "/verify-documents",
+        }
+      : null,
     { icon: Settings, label: "Settings & privacy", path: "/account-settings" },
     { icon: HelpCircle, label: "Help & support", path: "/spend-groups" },
   ].filter((item): item is Exclude<typeof item, null> => item !== null);
@@ -162,17 +171,20 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="w-auto bg-transparent dark:bg-[#121212] text-foreground h-[calc(100vh-1rem)] ml-2 fixed left-0 top-0 p-4 mt-4 mr-2 flex flex-col overflow-y-auto">
+    <div className="w-64 bg-transparent dark:bg-[#121212] text-foreground h-[calc(100vh-1rem)] ml-2 fixed left-0 top-0 p-4 mt-4 mr-2 flex flex-col overflow-y-auto">
       {/* Search Bar */}
-      <div className="mb-4 border border-black/15 dark:border-transparent rounded-md">
-        <div className="relative">
+      <div className="mb-4 rounded-lg flex gap-2">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Explore"
-            className="w-full bg-white/5 text-sm text-foreground pl-10 pr-4 py-2 rounded-lg border border-white/10 focus:outline-none focus:ring-1 focus:ring-white/20 hover:bg-white/10 transition-colors"
+            className="w-full bg-background/50 dark:bg-white/5 text-sm text-foreground pl-10 pr-4 py-2 rounded-lg border dark:border-white/10 border-black/10 focus:outline-none focus:ring-1 focus:ring-primary/20 hover:bg-background/80 dark:hover:bg-white/10 transition-colors placeholder:text-black/80 dark:placeholder:text-muted-foreground"
           />
         </div>
+        <button className="px-3 bg-background/50 dark:bg-white/5 text-sm text-foreground rounded-lg border dark:border-white/10 border-black/10 hover:bg-background/80 dark:hover:bg-white/10 transition-colors">
+          <Filter className="h-4 w-4 text-black/50 dark:text-muted-foreground" />
+        </button>
       </div>
 
       {/* Navigation Items */}
@@ -185,7 +197,11 @@ const Sidebar = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-lg  transition-colors ${isActive ? "dark:bg-white/10 bg-black/10 border border-black/10 shadow-lg" : "hover:bg-white/5"}`}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg  transition-colors ${
+                isActive
+                  ? "dark:bg-white/10 bg-black/10 border border-black/10 shadow-lg"
+                  : "hover:bg-white/5"
+              }`}
             >
               <div className="relative">
                 <Icon className="w-5 h-5" />
@@ -193,7 +209,9 @@ const Sidebar = () => {
                   <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                 )}
               </div>
-              <span className="text-sm dark:font-normal font-medium">{item.label}</span>
+              <span className="text-sm dark:font-normal font-medium">
+                {item.label}
+              </span>
             </Link>
           );
         })}
