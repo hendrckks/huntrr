@@ -2,7 +2,16 @@ import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Card, CardContent } from "./ui/card";
 import { Bell, CheckCheck, Clock, Trash2 } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import {
   collection,
   query,
@@ -24,12 +33,16 @@ import {
 } from "../lib/utils/NotificationUtils";
 import SpinningLoader from "./SpinningLoader";
 import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from "./ui/alert";
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState<BaseNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedNotification, setSelectedNotification] = useState<string | null>(null);
+  const [operationError, setOperationError] = useState<string | null>(null);
+  const [selectedNotification, setSelectedNotification] = useState<
+    string | null
+  >(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -40,6 +53,52 @@ const NotificationsPage = () => {
     }
   }, [user?.uid]);
 
+  useEffect(() => {
+    if (operationError) {
+      const timer = setTimeout(() => {
+        setOperationError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [operationError]);
+
+  const removeNonExistentNotification = async (notificationId: string) => {
+    setNotifications((prev) => {
+      const filtered = prev.filter((n) => n.id !== notificationId);
+      if (filtered.length !== prev.length) {
+        setOperationError(
+          "This notification no longer exists and has been removed from your list."
+        );
+      }
+      return filtered;
+    });
+
+    if (selectedNotification === notificationId) {
+      setIsDeleteDialogOpen(false);
+      setSelectedNotification(null);
+    }
+  };
+
+  const verifyNotificationExists = async (
+    notificationId: string
+  ): Promise<boolean> => {
+    try {
+      // Determine which collection to check based on user role
+      const collectionName = user?.role === "admin" ? "adminNotifications" : "notifications";
+      const notificationRef = doc(db, collectionName, notificationId);
+      const docSnap = await getDoc(notificationRef);
+      
+      if (!docSnap.exists()) {
+        await removeNonExistentNotification(notificationId);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error verifying notification:", error);
+      return false;
+    }
+  };
+
   const fetchUserNotifications = async () => {
     if (!user?.uid) return;
 
@@ -48,15 +107,13 @@ const NotificationsPage = () => {
 
     try {
       let q;
-      if (user.role === 'admin') {
-        // Admin notifications query
+      if (user.role === "admin") {
         q = query(
           collection(db, "adminNotifications"),
           where("read", "==", false),
           orderBy("createdAt", "desc")
         );
       } else {
-        // Regular user notifications query
         q = query(
           collection(db, "notifications"),
           or(
@@ -69,21 +126,19 @@ const NotificationsPage = () => {
 
       const snapshot = await getDocs(q);
       const validNotifs: BaseNotification[] = [];
-      
-      // Group notifications into batches of 10 for efficient checking
+
+      // Process notifications in batches for efficiency
       const batchSize = 10;
       const batches = [];
       for (let i = 0; i < snapshot.docs.length; i += batchSize) {
         batches.push(snapshot.docs.slice(i, i + batchSize));
       }
 
-      // Process each batch
       for (const batch of batches) {
         const existenceChecks = await Promise.all(
-          batch.map(doc => getDoc(doc.ref))
+          batch.map((doc) => getDoc(doc.ref))
         );
 
-        // Process documents that still exist
         batch.forEach((doc, index) => {
           if (!existenceChecks[index].exists()) {
             console.warn(`Notification ${doc.id} no longer exists`);
@@ -91,10 +146,9 @@ const NotificationsPage = () => {
           }
 
           const data = existenceChecks[index].data();
-          // Normalize the date field, checking both timestamp and createdAt
           const dateValue = data.createdAt || data.timestamp;
 
-          if (user.role === 'admin') {
+          if (user.role === "admin") {
             validNotifs.push({
               id: doc.id,
               title: data.title || "Notification",
@@ -106,10 +160,12 @@ const NotificationsPage = () => {
               relatedListingId: data.relatedListingId || null,
             });
           } else {
-            validNotifs.push(normalizeNotificationDate({
-              ...data,
-              id: doc.id,
-            }));
+            validNotifs.push(
+              normalizeNotificationDate({
+                ...data,
+                id: doc.id,
+              })
+            );
           }
         });
       }
@@ -117,8 +173,13 @@ const NotificationsPage = () => {
       setNotifications(validNotifs);
     } catch (error: any) {
       console.error("Raw error:", error);
-      if (error.code === "failed-precondition" || error.message?.includes("index")) {
-        setError("Database index is being created. Please wait a few minutes and try again.");
+      if (
+        error.code === "failed-precondition" ||
+        error.message?.includes("index")
+      ) {
+        setError(
+          "Database index is being created. Please wait a few minutes and try again."
+        );
       } else {
         setError("Unable to load notifications at this time.");
       }
@@ -129,50 +190,51 @@ const NotificationsPage = () => {
   };
 
   const handleViewKYCSubmission = () => {
-    navigate("/admin-dashboard")
-  }
+    navigate("/admin-dashboard");
+  };
 
   const handleDelete = async () => {
     if (!selectedNotification) return;
 
     try {
-      const notificationRef = doc(db, "notifications", selectedNotification);
+      if (!(await verifyNotificationExists(selectedNotification))) {
+        return;
+      }
+
+      // Use the correct collection based on user role
+      const collectionName = user?.role === "admin" ? "adminNotifications" : "notifications";
+      const notificationRef = doc(db, collectionName, selectedNotification);
       await deleteDoc(notificationRef);
 
-      setNotifications((prev) => prev.filter((n) => n.id !== selectedNotification));
+      setNotifications((prev) =>
+        prev.filter((n) => n.id !== selectedNotification)
+      );
       setIsDeleteDialogOpen(false);
       setSelectedNotification(null);
     } catch (error) {
       console.error("Error deleting notification:", error);
-      setError("Failed to delete notification. Please try again.");
+      setOperationError("Failed to delete notification. Please try again.");
     }
   };
 
   const markAsRead = async (notificationId: string, e?: React.MouseEvent) => {
-    // Prevent card click event if clicking the button
     e?.stopPropagation();
 
     try {
-      const notificationRef = doc(db, "notifications", notificationId);
-      
-      // Check if document exists before updating
-      const docSnap = await getDoc(notificationRef);
-      if (!docSnap.exists()) {
-        console.error(`Notification document ${notificationId} does not exist`);
-        setError("This notification no longer exists.");
-        // Remove the non-existent notification from local state
-        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+      if (!(await verifyNotificationExists(notificationId))) {
         return;
       }
-    
+
+      // Use the correct collection based on user role
+      const collectionName = user?.role === "admin" ? "adminNotifications" : "notifications";
+      const notificationRef = doc(db, collectionName, notificationId);
       await updateDoc(notificationRef, {
         read: true,
         readAt: Timestamp.now(),
       });
-    
-      // Update local state with animation
-      setNotifications((prevNotifications) =>
-        prevNotifications.map((notification) =>
+
+      setNotifications((prev) =>
+        prev.map((notification) =>
           notification.id === notificationId
             ? { ...notification, read: true, readAt: Timestamp.now() }
             : notification
@@ -180,7 +242,9 @@ const NotificationsPage = () => {
       );
     } catch (error) {
       console.error("Error marking notification as read:", error);
-      setError("Failed to mark notification as read. Please try again.");
+      setOperationError(
+        "Failed to mark notification as read. Please try again."
+      );
     }
   };
 
@@ -212,9 +276,7 @@ const NotificationsPage = () => {
   const readNotifications = notifications.filter((n) => n.read);
 
   if (loading) {
-    return (
-      <SpinningLoader />
-    );
+    return <SpinningLoader />;
   }
 
   if (error) {
@@ -244,6 +306,12 @@ const NotificationsPage = () => {
         </div>
         <h1 className="text-xl font-medium">Notifications</h1>
       </div>
+
+      {operationError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{operationError}</AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="unread" className="w-full">
         <TabsList className="mb-4">
@@ -284,14 +352,15 @@ const NotificationsPage = () => {
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      {user?.role === 'admin' && notification.type === 'kyc_submission' && (
-                        <button
-                          onClick={handleViewKYCSubmission}
-                          className="px-3 py-1 text-sm dark:bg-primary bg-black/80 hover:bg-black/50 dark:hover:bg-primary/90 dark:text-black text-white rounded-md transition-colors"
-                        >
-                          View KYC Submission
-                        </button>
-                      )}
+                      {user?.role === "admin" &&
+                        notification.type === "kyc_submission" && (
+                          <button
+                            onClick={handleViewKYCSubmission}
+                            className="px-3 py-1 text-sm dark:bg-primary bg-black/80 hover:bg-black/50 dark:hover:bg-primary/90 dark:text-black text-white rounded-md transition-colors"
+                          >
+                            View KYC Submission
+                          </button>
+                        )}
                       <button
                         onClick={(e) => markAsRead(notification.id, e)}
                         className="px-3 py-1 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
@@ -365,12 +434,16 @@ const NotificationsPage = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Notification</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this notification? This action cannot be undone.
+              Are you sure you want to delete this notification? This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
