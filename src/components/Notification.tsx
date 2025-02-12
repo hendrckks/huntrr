@@ -247,7 +247,7 @@ const NotificationsPage = () => {
                       <p className="text-sm dark:text-muted-foreground text-black w-2/3">
                         {notification.message}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-2 dark:text-white text-black">
+                      <p className="text-xs mt-2 dark:text-white text-black">
                         {formatDate(notification.createdAt!)}
                       </p>
                     </div>
@@ -303,7 +303,7 @@ const NotificationsPage = () => {
                       <p className="text-sm dark:text-muted-foreground text-black">
                         {notification.message}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-2">
+                      <p className="text-xs mt-2 dark:text-white text-black">
                         {formatDate(notification.createdAt!)}
                       </p>
                     </div>
