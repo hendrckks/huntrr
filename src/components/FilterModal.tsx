@@ -1,6 +1,9 @@
 import { useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, Loader2 } from "lucide-react";
+import { getLocationSuggestions } from "../lib/firebase/firestore";
+import { Command } from "cmdk";
 import {
   Dialog,
   DialogContent,
@@ -15,12 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+
 import { Slider } from "../components/ui/slider";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Checkbox } from "../components/ui/checkbox";
 import { Filter } from "lucide-react";
+import { Input } from "./ui/input";
 
 interface FilterState {
   priceRange: [number, number];
@@ -36,14 +41,66 @@ interface FilterState {
   waterAvailability: string;
   location: {
     area: string;
-    neighborhood: string;
     city: string;
   };
 }
 
 const FilterModal = () => {
+  const [, setSearchParams] = useSearchParams();
+  const [isLoading, setIsLoading] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Add state for location suggestions
+  const [areaSuggestions, setAreaSuggestions] = useState<string[]>([]);
+  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
+
+  // Debounce function
+  const debounce = <T extends (...args: any[]) => any>(
+    func: T,
+    wait: number
+  ): ((...args: Parameters<T>) => void) => {
+    let timeout: NodeJS.Timeout;
+    return (...args: any[]) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  };
+
+  // Fetch suggestions handler
+  const fetchSuggestions = async (value: string, field: "area" | "city") => {
+    if (value.length >= 3) {
+      try {
+        console.log(`Fetching suggestions for ${field}: ${value}`);
+        const suggestions = await getLocationSuggestions(value, field);
+        console.log(`Got suggestions for ${field}:`, suggestions);
+        switch (field) {
+          case "area":
+            setAreaSuggestions(suggestions);
+            break;
+          case "city":
+            setCitySuggestions(suggestions);
+            break;
+        }
+      } catch (error) {
+        console.error("Error fetching suggestions:", error);
+      }
+    } else {
+      // Clear suggestions if input is too short
+      console.log(`Clearing suggestions for ${field} - input too short`);
+      switch (field) {
+        case "area":
+          setAreaSuggestions([]);
+          break;
+        case "city":
+          setCitySuggestions([]);
+          break;
+      }
+    }
+  };
+
+  // Debounced fetch suggestions
+  const debouncedFetchSuggestions = debounce(fetchSuggestions, 300);
 
   const handleScroll = () => {
     if (contentRef.current) {
@@ -57,7 +114,7 @@ const FilterModal = () => {
     if (contentRef.current) {
       contentRef.current.scrollTo({
         top: contentRef.current.scrollHeight,
-        behavior: "smooth"
+        behavior: "smooth",
       });
     }
   };
@@ -76,7 +133,6 @@ const FilterModal = () => {
     waterAvailability: "",
     location: {
       area: "",
-      neighborhood: "",
       city: "",
     },
   });
@@ -111,7 +167,10 @@ const FilterModal = () => {
     setFilters((prev) => ({ ...prev, waterAvailability: value }));
   };
 
-  const handleLocationChange = (field: keyof typeof filters.location, value: string) => {
+  const handleLocationChange = (
+    field: keyof typeof filters.location,
+    value: string
+  ) => {
     setFilters((prev) => ({
       ...prev,
       location: {
@@ -136,7 +195,6 @@ const FilterModal = () => {
       waterAvailability: "",
       location: {
         area: "",
-        neighborhood: "",
         city: "",
       },
     });
@@ -148,21 +206,27 @@ const FilterModal = () => {
     if (filters.propertyType) {
       applied.push({
         id: "propertyType",
-        label: filters.propertyType.charAt(0).toUpperCase() + filters.propertyType.slice(1),
+        label:
+          filters.propertyType.charAt(0).toUpperCase() +
+          filters.propertyType.slice(1),
       });
     }
 
     if (filters.bedrooms) {
       applied.push({
         id: "bedrooms",
-        label: `${filters.bedrooms} ${filters.bedrooms === "1" ? "Bedroom" : "Bedrooms"}`,
+        label: `${filters.bedrooms} ${
+          filters.bedrooms === "1" ? "Bedroom" : "Bedrooms"
+        }`,
       });
     }
 
     if (filters.bathrooms) {
       applied.push({
         id: "bathrooms",
-        label: `${filters.bathrooms} ${filters.bathrooms === "1" ? "Bathroom" : "Bathrooms"}`,
+        label: `${filters.bathrooms} ${
+          filters.bathrooms === "1" ? "Bathroom" : "Bathrooms"
+        }`,
       });
     }
 
@@ -212,8 +276,8 @@ const FilterModal = () => {
           <Filter className="h-5 w-5 dark:text-muted-foreground text-black/50" />
         </Button>
       </DialogTrigger>
-      <DialogContent 
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:max-w-[800px] max-h-[90vh] overflow-y-auto dark:bg-[#121212] shadow-2xl backdrop-blur-3xl w-[95vw]" 
+      <DialogContent
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:max-w-[800px] max-h-[90vh] overflow-y-auto dark:bg-[#121212] shadow-2xl backdrop-blur-3xl w-[95vw]"
         ref={contentRef}
         onScroll={handleScroll}
       >
@@ -239,11 +303,13 @@ const FilterModal = () => {
               <span>KSh {filters.priceRange[1].toLocaleString()}</span>
             </div>
           </div>
-
           {/* Property Type */}
           <div className="space-y-2">
             <Label>Property Type</Label>
-            <Select value={filters.propertyType} onValueChange={handlePropertyTypeChange}>
+            <Select
+              value={filters.propertyType}
+              onValueChange={handlePropertyTypeChange}
+            >
               <SelectTrigger className="w-full dark:bg-zinc-900">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
@@ -255,12 +321,14 @@ const FilterModal = () => {
               </SelectContent>
             </Select>
           </div>
-
           {/* Bedrooms & Bathrooms */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Bedrooms</Label>
-              <Select value={filters.bedrooms} onValueChange={handleBedroomsChange}>
+              <Select
+                value={filters.bedrooms}
+                onValueChange={handleBedroomsChange}
+              >
                 <SelectTrigger className="w-full dark:bg-zinc-900">
                   <SelectValue placeholder="Any" />
                 </SelectTrigger>
@@ -275,7 +343,10 @@ const FilterModal = () => {
             </div>
             <div className="space-y-2">
               <Label>Bathrooms</Label>
-              <Select value={filters.bathrooms} onValueChange={handleBathroomsChange}>
+              <Select
+                value={filters.bathrooms}
+                onValueChange={handleBathroomsChange}
+              >
                 <SelectTrigger className="w-full dark:bg-zinc-900">
                   <SelectValue placeholder="Any" />
                 </SelectTrigger>
@@ -289,7 +360,6 @@ const FilterModal = () => {
               </Select>
             </div>
           </div>
-
           {/* Amenities */}
           <div className="space-y-2">
             <Label>Amenities</Label>
@@ -336,116 +406,184 @@ const FilterModal = () => {
               </div>
             </div>
           </div>
+          {/* Location Section */}
 
-          {/* Location Filters */}
           <div className="space-y-2">
             <Label>Location</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Area</Label>
-                <Select value={filters.location.area} onValueChange={(value) => handleLocationChange("area", value)}>
-                  <SelectTrigger className="w-full dark:bg-zinc-900">
-                    <SelectValue placeholder="Select area" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="westlands">Westlands</SelectItem>
-                    <SelectItem value="kilimani">Kilimani</SelectItem>
-                    <SelectItem value="karen">Karen</SelectItem>
-                    <SelectItem value="lavington">Lavington</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">City</Label>
-                <Select value={filters.location.city} onValueChange={(value) => handleLocationChange("city", value)}>
-                  <SelectTrigger className="w-full dark:bg-zinc-900">
-                    <SelectValue placeholder="Select city" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nairobi">Nairobi</SelectItem>
-                    <SelectItem value="mombasa">Mombasa</SelectItem>
-                    <SelectItem value="kisumu">Kisumu</SelectItem>
-                    <SelectItem value="nakuru">Nakuru</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {["area", "city"].map((field) => (
+                <div key={field} className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">
+                    {field.charAt(0).toUpperCase() + field.slice(1)}
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      placeholder={`Enter ${field}`}
+                      value={
+                        filters.location[field as keyof typeof filters.location]
+                      }
+                      onChange={(e) => {
+                        handleLocationChange(
+                          field as keyof typeof filters.location,
+                          e.target.value
+                        );
+                        debouncedFetchSuggestions(
+                          e.target.value,
+                          field as "area" | "city"
+                        );
+                      }}
+                      className="w-full dark:bg-zinc-900"
+                    />
+                    {(field === "area" ? areaSuggestions : citySuggestions)
+                      .length > 0 && (
+                      <div className="absolute w-full mt-1 py-1 bg-popover border rounded-md shadow-md z-10">
+                        <Command>
+                          <Command.List>
+                            {(field === "area"
+                              ? areaSuggestions
+                              : citySuggestions
+                            ).map((suggestion) => (
+                              <Command.Item
+                                key={suggestion}
+                                onSelect={() => {
+                                  handleLocationChange(
+                                    field as keyof typeof filters.location,
+                                    suggestion
+                                  );
+                                  if (field === "area") {
+                                    setAreaSuggestions([]);
+                                  } else {
+                                    setCitySuggestions([]);
+                                  }
+                                }}
+                                className="px-2 py-1.5 hover:bg-accent text-xs cursor-pointer"
+                              >
+                                {suggestion}
+                              </Command.Item>
+                            ))}
+                          </Command.List>
+                        </Command>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-
           {/* Water Availability */}
           <div className="space-y-4">
             <Label>Water Availability</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Availability</Label>
-                <Select value={filters.waterAvailability} onValueChange={handleWaterAvailabilityChange}>
-                  <SelectTrigger className="w-full dark:bg-zinc-900">
-                    <SelectValue placeholder="Select availability" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="24_7">24/7</SelectItem>
-                    <SelectItem value="scheduled_daily">Scheduled Daily</SelectItem>
-                    <SelectItem value="scheduled_weekly">Scheduled Weekly</SelectItem>
-                    <SelectItem value="irregular">Irregular</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Area</Label>
-                <Select value={filters.location.area} onValueChange={(value) => handleLocationChange("area", value)}>
-                  <SelectTrigger className="w-full dark:bg-zinc-900">
-                    <SelectValue placeholder="Select area" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="westlands">Westlands</SelectItem>
-                    <SelectItem value="kilimani">Kilimani</SelectItem>
-                    <SelectItem value="karen">Karen</SelectItem>
-                    <SelectItem value="lavington">Lavington</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">City</Label>
-                <Select value={filters.location.city} onValueChange={(value) => handleLocationChange("city", value)}>
-                  <SelectTrigger className="w-full dark:bg-zinc-900">
-                    <SelectValue placeholder="Select city" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nairobi">Nairobi</SelectItem>
-                    <SelectItem value="mombasa">Mombasa</SelectItem>
-                    <SelectItem value="kisumu">Kisumu</SelectItem>
-                    <SelectItem value="nakuru">Nakuru</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">
+                Availability
+              </Label>
+              <Select
+                value={filters.waterAvailability}
+                onValueChange={handleWaterAvailabilityChange}
+              >
+                <SelectTrigger className="w-full dark:bg-zinc-900">
+                  <SelectValue placeholder="Select availability" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="24_7">24/7</SelectItem>
+                  <SelectItem value="scheduled_daily">
+                    Scheduled Daily
+                  </SelectItem>
+                  <SelectItem value="scheduled_weekly">
+                    Scheduled Weekly
+                  </SelectItem>
+                  <SelectItem value="irregular">Irregular</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-
           {/* Applied Filters */}
           <div className="space-y-2">
             <Label>Applied Filters</Label>
             <div className="flex flex-wrap gap-2">
               {getAppliedFilters().map((filter) => (
-                <Badge key={filter.id} variant="secondary" className="dark:bg-zinc-800 font-medium text-sm py-1.5 px-3">
+                <Badge
+                  key={filter.id}
+                  variant="secondary"
+                  className="dark:bg-zinc-800 font-medium text-sm py-1.5 px-3"
+                >
                   {filter.label}
                 </Badge>
               ))}
             </div>
           </div>
-
           {/* Action Buttons */}
           <div className="flex gap-4 pt-4">
             <Button
               variant="outline"
               className="w-full dark:bg-zinc-900 dark:hover:bg-zinc-800"
               onClick={handleReset}
+              disabled={isLoading}
             >
               Reset
             </Button>
-            <Button className="w-full">Apply Filters</Button>
+            <Button
+              className="w-full"
+              onClick={() => {
+                setIsLoading(true);
+                try {
+                  // Build the search params
+                  const params = new URLSearchParams();
+
+                  if (filters.propertyType) {
+                    params.set("type", filters.propertyType);
+                  }
+
+                  if (filters.bedrooms) {
+                    params.set("bedrooms", filters.bedrooms);
+                  }
+
+                  if (filters.bathrooms) {
+                    params.set("bathrooms", filters.bathrooms);
+                  }
+
+                  if (filters.priceRange[1] < 100000) {
+                    params.set("maxPrice", filters.priceRange[1].toString());
+                  }
+                  if (filters.priceRange[0] > 0) {
+                    params.set("minPrice", filters.priceRange[0].toString());
+                  }
+
+                  // Handle amenities
+                  const activeAmenities = Object.entries(filters.amenities)
+                    .filter(([, value]) => value)
+                    .map(([key]) => key);
+                  if (activeAmenities.length > 0) {
+                    params.set("amenities", activeAmenities.join(","));
+                  }
+
+                  if (filters.waterAvailability) {
+                    params.set("water", filters.waterAvailability);
+                  }
+
+                  // Handle location
+                  Object.entries(filters.location).forEach(([key, value]) => {
+                    if (value) {
+                      params.set(`location_${key}`, value);
+                    }
+                  });
+
+                  setSearchParams(params);
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Applying...
+                </>
+              ) : (
+                "Apply Filters"
+              )}
+            </Button>
           </div>
         </div>
 

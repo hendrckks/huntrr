@@ -19,6 +19,7 @@ import {
   type WriteBatch,
   serverTimestamp,
   runTransaction,
+  QueryConstraint,
 } from "firebase/firestore";
 import { db } from "./clientApp";
 import {
@@ -63,6 +64,18 @@ const LISTINGS_PER_PAGE = 20;
 //     }
 //   }
 // };
+interface FilterParams {
+  type?: string;
+  bedrooms?: string;
+  bathrooms?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  amenities?: string[];
+  water?: string;
+  location_area?: string;
+  location_city?: string;
+  location_neighborhood?: string;
+}
 
 // Utility functions
 const convertTimestamps = <T extends { [key: string]: any }>(
@@ -90,6 +103,147 @@ const checkSlugExists = async (slug: string): Promise<boolean> => {
   const q = query(collection(db, "listings"), where("slug", "==", slug));
   const snapshot = await getDocs(q);
   return !snapshot.empty;
+};
+
+export const getFilteredListings = async (
+  params: FilterParams,
+  lastDoc?: any,
+  pageSize: number = 9
+) => {
+  // Base constraints that will always be applied
+  const baseConstraints: QueryConstraint[] = [
+    where("status", "==", "published"),
+  ];
+
+  // Handle property type
+  if (params.type) {
+    baseConstraints.push(where("type", "==", params.type));
+  }
+
+  // Handle bedrooms - use the existing compound index
+  if (params.bedrooms) {
+    if (params.bedrooms === "5+") {
+      baseConstraints.push(where("bedrooms", ">=", 5));
+    } else {
+      baseConstraints.push(where("bedrooms", "==", parseInt(params.bedrooms)));
+    }
+  }
+
+  // Price filtering will be handled client-side after fetching results
+
+  // Water availability
+  if (params.water) {
+    baseConstraints.push(
+      where("utilities.waterAvailability", "==", params.water)
+    );
+  }
+
+  // Security amenities - use separate queries for each security feature
+  if (params.amenities) {
+    if (params.amenities.includes("security")) {
+      baseConstraints.push(where("security.hasGuard", "==", true));
+    }
+    if (params.amenities.includes("cctv")) {
+      baseConstraints.push(where("security.hasCCTV", "==", true));
+    }
+    if (params.amenities.includes("parking")) {
+      baseConstraints.push(where("security.hasSecureParking", "==", true));
+    }
+    if (params.amenities.includes("pets")) {
+      baseConstraints.push(where("terms.petsAllowed", "==", true));
+    }
+  }
+
+  // Location search using array-contains
+  if (
+    params.location_area ||
+    params.location_city ||
+    params.location_neighborhood
+  ) {
+    const searchTerm = [
+      params.location_area,
+      params.location_city,
+      params.location_neighborhood,
+    ]
+      .find(Boolean)
+      ?.toLowerCase();
+
+    if (searchTerm) {
+      baseConstraints.push(
+        where("location.searchKeywords", "array-contains", searchTerm)
+      );
+    }
+  }
+
+  // Add pagination constraints
+  if (lastDoc) {
+    baseConstraints.push(startAfter(lastDoc));
+  }
+  baseConstraints.push(limit(pageSize));
+
+  // Create and execute the query
+  const listingsQuery = query(collection(db, "listings"), ...baseConstraints);
+  const querySnapshot = await getDocs(listingsQuery);
+
+  // Transform the results and filter by price
+  const listings = querySnapshot.docs
+    .filter((doc) => {
+      const price = doc.data().price;
+      return (
+        (!params.minPrice || price >= params.minPrice) &&
+        (!params.maxPrice || price <= params.maxPrice)
+      );
+    })
+    .map((doc) => ({
+      ...doc.data(),
+      id: doc.id,
+    })) as ListingDocument[];
+
+  // Handle bathrooms filter in memory since it's less commonly used
+  const filteredListings = params.bathrooms
+    ? listings.filter((listing) => {
+        const bathroomsNum = parseInt(params.bathrooms!);
+        if (params.bathrooms === "4+") {
+          return listing.bathrooms >= 4;
+        }
+        return listing.bathrooms === bathroomsNum;
+      })
+    : listings;
+
+  return {
+    listings: filteredListings.slice(0, pageSize),
+    lastDoc: querySnapshot.docs[querySnapshot.docs.length - 1] || null,
+  };
+};
+
+export const getLocationSuggestions = async (
+  searchTerm: string,
+  field: "area" | "city" | "neighborhood"
+): Promise<string[]> => {
+  if (!searchTerm || searchTerm.length < 3) return [];
+
+  const searchTermLower = searchTerm.toLowerCase();
+
+  // Query using searchKeywords instead of direct field
+  const q = query(
+    collection(db, "listings"),
+    where("status", "==", "published"),
+    where("location.searchKeywords", "array-contains", searchTermLower),
+    limit(5)
+  );
+
+  const querySnapshot = await getDocs(q);
+
+  // Extract unique location values from the specific field
+  const suggestions = new Set<string>();
+  querySnapshot.docs.forEach((doc) => {
+    const location = doc.data().location[field];
+    if (location && location.toLowerCase().includes(searchTermLower)) {
+      suggestions.add(location);
+    }
+  });
+
+  return Array.from(suggestions);
 };
 
 // Listing functions
@@ -120,7 +274,14 @@ export const createListing = async (
       });
     }
 
-    // Create the listing data with the slug
+    // Generate search keywords from location
+    const searchKeywords = generateLocationSearchKeywords(
+      listing.location.area,
+      listing.location.city,
+      listing.location.neighborhood
+    );
+
+    // Create the listing data with the slug and search keywords
     const listingData: ListingDocument = {
       ...listing,
       id: slug,
@@ -139,6 +300,10 @@ export const createListing = async (
       verifiedBy: null,
       publishedAt: null,
       archivedAt: null,
+      location: {
+        ...listing.location,
+        searchKeywords,
+      },
     };
 
     // Validate the data
@@ -227,6 +392,55 @@ export const updateListing = async (
   globalCache.invalidate("listings_");
 };
 
+const normalizeText = (text: string): string => {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s]/g, "") // Remove special characters
+    .replace(/\s+/g, " "); // Normalize spaces
+};
+
+export const generateLocationSearchKeywords = (
+  area: string,
+  city: string,
+  neighborhood: string
+): string[] => {
+  const keywords = new Set<string>();
+  const locations = [area, city, neighborhood];
+
+  // Process each location field
+  locations.forEach((location) => {
+    const normalizedLocation = normalizeText(location);
+    const words = normalizedLocation.split(" ");
+
+    // Add individual words
+    words.forEach((word) => {
+      if (word.length >= 2) {
+        keywords.add(word);
+      }
+    });
+
+    // Add pairs of consecutive words
+    for (let i = 0; i < words.length - 1; i++) {
+      keywords.add(`${words[i]} ${words[i + 1]}`);
+    }
+
+    // Add complete normalized location
+    keywords.add(normalizedLocation);
+
+    // Add partial matches (substrings of 2 or more characters)
+    words.forEach((word) => {
+      for (let i = 0; i < word.length - 1; i++) {
+        for (let j = i + 2; j <= word.length; j++) {
+          keywords.add(word.slice(i, j));
+        }
+      }
+    });
+  });
+
+  return Array.from(keywords);
+};
+
 export const getListingsByStatus = async (
   status: ListingStatus,
   lastDoc?: QueryDocumentSnapshot<ListingDocument>,
@@ -234,11 +448,9 @@ export const getListingsByStatus = async (
 ): Promise<ListingDocument[]> => {
   const cacheKey = `listings_${status}_${lastDoc?.id}_${pageSize}`;
 
-  // Remove explicit type argument and use type inference
   const cached = globalCache.get(cacheKey);
 
   if (cached) {
-    // Add type assertion since we know this cache entry contains ListingDocument[]
     return cached as ListingDocument[];
   }
 
@@ -263,7 +475,6 @@ export const getListingsByStatus = async (
   return listings;
 };
 
-// In firestore.ts, modify the getLandlordListings function
 export const getLandlordListings = async (
   landlordId: string,
   status?: ListingStatus

@@ -87,6 +87,7 @@ export const locationSchema = z.object({
   area: z.string().min(1, "Area is required"),
   neighborhood: z.string().min(1, "Neighborhood is required"),
   city: z.string().min(1, "City is required"),
+  searchKeywords: z.array(z.string()).optional(),
 });
 export type Location = z.infer<typeof locationSchema>;
 
@@ -122,7 +123,7 @@ export type Terms = z.infer<typeof termsSchema>;
 // In the listingSchema definition
 export const listingSchema = z.object({
   id: z.string(),
-  slug: z.string().optional(),  // Changed from optional to required
+  slug: z.string().optional(), // Changed from optional to required
   imageUrls: z.array(z.string()).optional(),
   photos: z.array(photoSchema).optional(),
   title: z.string().min(5).max(100),
@@ -227,7 +228,7 @@ export interface ListingDocument
     Listing,
     "createdAt" | "updatedAt" | "publishedAt" | "archivedAt" | "verifiedAt"
   > {
-  slug: string;  // Add this line
+  slug: string; // Add this line
   photos?: Photo[];
   createdAt: Timestamp;
   updatedAt: Timestamp;

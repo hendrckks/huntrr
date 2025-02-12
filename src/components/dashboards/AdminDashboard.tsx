@@ -39,6 +39,7 @@ import {
   Eye,
   User,
   Trash2,
+  WrenchIcon,
 } from "lucide-react";
 import type { ListingDocument } from "../../lib/types/Listing";
 import { getFunctions, httpsCallable } from "firebase/functions";
@@ -47,6 +48,7 @@ import {
   type RejectionReason,
   rejectionReasons,
 } from "../dialogs/RejectionDialog";
+import { migrateListingsSearchKeywords } from "../../lib/firebase/migration/migrations";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -60,8 +62,41 @@ const AdminDashboard = () => {
     string | null
   >(null);
   const [activeTab, setActiveTab] = useState("kyc");
+  const [isMigrating, setIsMigrating] = useState(false);
 
-  // Fetch KYC submissions (unchanged)
+  const handleMigrateListings = async () => {
+    try {
+      setIsMigrating(true);
+      
+      // Verify admin privileges
+      if (!auth.currentUser) {
+        throw new Error("No authenticated user found");
+      }
+      await refreshUserClaims(auth.currentUser);
+      const idTokenResult = await auth.currentUser.getIdTokenResult(true);
+      if (idTokenResult.claims.role !== "admin") {
+        throw new Error("Insufficient admin privileges");
+      }
+
+      await migrateListingsSearchKeywords();
+      
+      toast({
+        title: "Success",
+        description: "Listings migration completed successfully",
+        variant: "success",
+      });
+    } catch (error: any) {
+      console.error("Error migrating listings:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to migrate listings",
+        variant: "error",
+      });
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   const {
     data: kycSubmissions,
     isLoading: isLoadingKYC,
@@ -579,14 +614,12 @@ const AdminDashboard = () => {
               </Badge>
             ) : null}
           </TabsTrigger>
-          {/* <TabsTrigger value="listings">
-            Pending Listings
-            {pendingListings && pendingListings.length > 0 && (
-              <Badge variant="destructive" className="ml-2">
-                {pendingListings.length}
-              </Badge>
-            )}
-          </TabsTrigger> */}
+          <TabsTrigger value="maintenance" className="flex items-center gap-2">
+            <span>
+              <WrenchIcon className="h-4 w-4" />
+            </span>
+            Maintenance
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="listings" className="space-y-4">
@@ -889,6 +922,33 @@ const AdminDashboard = () => {
                   <p>No new notifications</p>
                 )}
               </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="maintenance">
+          <Card>
+            <CardHeader>
+              <CardTitle>System Maintenance</CardTitle>
+              <CardDescription>
+                Perform system maintenance tasks and migrations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="p-4 border rounded-lg">
+                  <h3 className="font-medium mb-2">Listings Migration</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Update listings with search keywords for improved location searching.
+                  </p>
+                  <Button 
+                    onClick={handleMigrateListings}
+                    disabled={isMigrating}
+                  >
+                    {isMigrating ? "Migration in Progress..." : "Migrate Listings"}
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
