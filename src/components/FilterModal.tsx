@@ -218,7 +218,7 @@ const FilterModal = () => {
         onScroll={handleScroll}
       >
         <DialogHeader>
-          <DialogTitle>Filter Properties</DialogTitle>
+          <DialogTitle className="font-medium">Filter Properties</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-3 dark:bg-[#121212]">
