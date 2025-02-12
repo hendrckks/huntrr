@@ -182,7 +182,7 @@ const Sidebar = () => {
             className="w-full bg-background/50 dark:bg-white/5 text-sm text-foreground pl-10 pr-4 py-2 rounded-lg border dark:border-white/10 border-black/10 focus:outline-none focus:ring-1 focus:ring-primary/20 hover:bg-background/80 dark:hover:bg-white/10 transition-colors placeholder:text-black/80 dark:placeholder:text-muted-foreground"
           />
         </div>
-        <FilterModal /> {/* Replace the button with this */}
+        <FilterModal />
       </div>
 
       {/* Navigation Items */}

@@ -271,9 +271,9 @@ const FilterModal = () => {
         <Button
           variant="outline"
           size="icon"
-          className="dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 dark:border-white/10 h-10 w-10"
+          className="dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 dark:border-white/10 h-[38px] w-[38px]"
         >
-          <Filter className="h-5 w-5 dark:text-muted-foreground text-black/50" />
+          <Filter className="h-4 w-4 dark:text-muted-foreground text-black/50" />
         </Button>
       </DialogTrigger>
       <DialogContent
