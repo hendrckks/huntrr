@@ -56,7 +56,10 @@ const AdminDashboard = () => {
     null
   );
   const [isRejectionDialogOpen, setIsRejectionDialogOpen] = useState(false);
-  const [deletingNotificationId, setDeletingNotificationId] = useState<string | null>(null);
+  const [deletingNotificationId, setDeletingNotificationId] = useState<
+    string | null
+  >(null);
+  const [activeTab, setActiveTab] = useState("kyc");
 
   // Fetch KYC submissions (unchanged)
   const {
@@ -179,7 +182,7 @@ const AdminDashboard = () => {
   const handleDeleteNotification = async (notificationId: string) => {
     try {
       setDeletingNotificationId(notificationId);
-      
+
       // Verify admin privileges
       if (!auth.currentUser) {
         throw new Error("No authenticated user found");
@@ -408,7 +411,7 @@ const AdminDashboard = () => {
           reviewedAt: serverTimestamp(),
           reviewedBy: auth.currentUser.uid,
           flagCount: 0, // Reset flag count
-          flags: [] // Clear all flags
+          flags: [], // Clear all flags
         });
       } else {
         batch.update(listingRef, {
@@ -499,6 +502,14 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
+  const navigateToKYCTab = () => {
+    setActiveTab("kyc");
+  };
+
   return (
     <div className="container mx-auto px-4">
       <div className="flex justify-between items-center mb-4">
@@ -511,12 +522,13 @@ const AdminDashboard = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="kyc" className="space-y-4 text-black dark:text-white" >
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="space-y-4 text-black dark:text-white"
+      >
         <TabsList>
-          <TabsTrigger
-            value="kyc"
-            className="flex items-center gap-2"
-          >
+          <TabsTrigger value="kyc" className="flex items-center gap-2">
             <span>
               <User2Icon className="h-4 w-4" />
             </span>
@@ -527,10 +539,7 @@ const AdminDashboard = () => {
               </Badge>
             ) : null}
           </TabsTrigger>
-          <TabsTrigger
-            value="listings"
-            className="flex items-center gap-2"
-          >
+          <TabsTrigger value="listings" className="flex items-center gap-2">
             <span>
               <FileText className="h-4 w-4" />
             </span>
@@ -615,16 +624,24 @@ const AdminDashboard = () => {
                                 <h3 className="font-semibold">
                                   {listing.title}
                                 </h3>
-                                <Badge variant={listing.status === "recalled" ? "destructive" : "default"}>
-                                  {listing.status === "recalled" ? "RECALLED" : "PENDING REVIEW"}
+                                <Badge
+                                  variant={
+                                    listing.status === "recalled"
+                                      ? "destructive"
+                                      : "default"
+                                  }
+                                >
+                                  {listing.status === "recalled"
+                                    ? "RECALLED"
+                                    : "PENDING REVIEW"}
                                 </Badge>
                               </div>
                               <p className="text-sm text-gray-400">
                                 {listing.location.area}, {listing.location.city}
                               </p>
                               <p className="text-sm">
-                                ${listing.price} /month • {listing.bedrooms} beds
-                                • {listing.bathrooms} baths
+                                ${listing.price} /month • {listing.bedrooms}{" "}
+                                beds • {listing.bathrooms} baths
                               </p>
                             </div>
                             <div className="flex gap-2">
@@ -806,74 +823,75 @@ const AdminDashboard = () => {
         </TabsContent>
 
         <TabsContent value="notifications">
-      <Card>
-        <CardHeader>
-          <CardTitle>Notifications</CardTitle>
-          <CardDescription>System notifications and alerts</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[500px] pr-4">
-            {isLoadingNotifications ? (
-              <p>Loading notifications...</p>
-            ) : notificationsError ? (
-              <p className="text-red-500">
-                Error loading notifications: {(notificationsError as Error).message}
-              </p>
-            ) : notifications?.length ? (
-              <div className="space-y-4">
-                {notifications?.map((notification) => (
-                  <Card key={notification.id}>
-                    <CardContent className="pt-6">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="font-semibold">{notification.title}</h3>
-                          <p className="text-sm text-gray-500">
-                            {notification.message}
-                          </p>
-                          {notification.type === "kyc_submission" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Notifications</CardTitle>
+              <CardDescription>System notifications and alerts</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[500px] pr-4">
+                {isLoadingNotifications ? (
+                  <p>Loading notifications...</p>
+                ) : notificationsError ? (
+                  <p className="text-red-500">
+                    Error loading notifications:{" "}
+                    {(notificationsError as Error).message}
+                  </p>
+                ) : notifications?.length ? (
+                  <div className="space-y-4">
+                    {notifications?.map((notification) => (
+                      <Card key={notification.id}>
+                        <CardContent className="pt-6">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="font-semibold">
+                                {notification.title}
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                {notification.message}
+                              </p>
+                              {notification.type === "kyc_submission" && (
+                                <Button
+                                  variant="link"
+                                  className="p-0 h-auto font-normal text-blue-500"
+                                  onClick={navigateToKYCTab}
+                                >
+                                  View KYC Submission
+                                </Button>
+                              )}
+                              <p className="text-xs text-gray-400 mt-2">
+                                {notification.createdAt.toLocaleString()}
+                              </p>
+                            </div>
                             <Button
-                              variant="link"
-                              className="p-0 h-auto font-normal text-blue-500"
-                              onClick={() => {
-                                (
-                                  document.querySelector(
-                                    '[value="kyc"]'
-                                  ) as HTMLElement
-                                )?.click();
-                              }}
+                              variant="ghost"
+                              size="icon"
+                              className="text-gray-500 hover:text-red-500 dark:hover:bg-white/10 hover:bg-black/10"
+                              onClick={() =>
+                                handleDeleteNotification(notification.id)
+                              }
+                              disabled={
+                                deletingNotificationId === notification.id
+                              }
                             >
-                              View KYC Submission
+                              {deletingNotificationId === notification.id ? (
+                                <span className="animate-spin">...</span>
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
                             </Button>
-                          )}
-                          <p className="text-xs text-gray-400 mt-2">
-                            {notification.createdAt.toLocaleString()}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-gray-500 hover:text-red-500 dark:hover:bg-white/10 hover:bg-black/10"
-                          onClick={() => handleDeleteNotification(notification.id)}
-                          disabled={deletingNotificationId === notification.id}
-                        >
-                          {deletingNotificationId === notification.id ? (
-                            <span className="animate-spin">...</span>
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <p>No new notifications</p>
-            )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
-    </TabsContent>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p>No new notifications</p>
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <RejectionDialog
           open={isRejectionDialogOpen}
