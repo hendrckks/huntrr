@@ -327,18 +327,38 @@ export const onListingFlagged = onDocumentUpdated(
 export const onKYCSubmission = onDocumentCreated(
   "kyc/{docId}",
   async (event) => {
-    const snapshot = event.data;
-    if (!snapshot) return;
+    const kycDoc = event.data?.data() as KYCDocument | undefined;
 
-    const kycDoc = snapshot.data() as KYCDocument;
+    if (!kycDoc) {
+      console.log("No data available");
+      return;
+    }
 
-    await createAdminNotification({
-      type: "kyc_submission",
-      title: "New KYC Submission",
-      message: `New KYC document submitted for review. Document type: ${kycDoc.documentType}`,
-      relatedUserId: kycDoc.userId,
-      createdAt: admin.firestore.Timestamp.now(),
-    });
+    try {
+      // Use transaction to ensure atomic updates
+      await db.runTransaction(async (transaction) => {
+        const notificationRef = db.collection("adminNotifications").doc();
+
+        const notification: AdminNotificationDocument = {
+          id: notificationRef.id,
+          type: "kyc_submission",
+          title: "New KYC Submission",
+          message: `New KYC document submitted for review. Document type: ${kycDoc.documentType}`,
+          relatedUserId: kycDoc.userId,
+          createdAt: admin.firestore.Timestamp.now(),
+          read: false,
+        };
+
+        transaction.set(notificationRef, notification);
+      });
+
+      console.log(
+        `Successfully created KYC submission notification for user ${kycDoc.userId}`
+      );
+    } catch (error) {
+      console.error("Error in onKYCSubmission:", error);
+      throw error;
+    }
   }
 );
 
@@ -361,18 +381,40 @@ const createAdminNotification = async (
 export const onNewListing = onDocumentCreated(
   "listings/{listingId}",
   async (event) => {
-    const snapshot = event.data;
-    if (!snapshot) return;
+    const listing = event.data?.data() as ListingDocument | undefined;
+    const listingId = event.data?.id;
 
-    const listing = snapshot.data() as ListingDocument;
+    if (!listing || !listingId) {
+      console.log("No data available");
+      return;
+    }
 
-    await createAdminNotification({
-      type: "new_listing",
-      title: "New Listing Requires Review",
-      message: `New listing "${listing.title}" needs review`,
-      relatedListingId: snapshot.id,
-      createdAt: admin.firestore.Timestamp.now(),
-    });
+    try {
+      // Use transaction to ensure atomic updates
+      await db.runTransaction(async (transaction) => {
+        const notificationRef = db.collection("adminNotifications").doc();
+
+        const notification: AdminNotificationDocument = {
+          id: notificationRef.id,
+          type: "new_listing",
+          title: "New Listing Requires Review",
+          message: `New listing "${listing.title}" needs review`,
+          relatedListingId: listingId,
+          relatedUserId: listing.landlordId, // Add this if available in your ListingDocument
+          createdAt: admin.firestore.Timestamp.now(),
+          read: false,
+        };
+
+        transaction.set(notificationRef, notification);
+      });
+
+      console.log(
+        `Successfully created new listing notification for listing ${listingId}`
+      );
+    } catch (error) {
+      console.error("Error in onNewListing:", error);
+      throw error;
+    }
   }
 );
 
@@ -429,38 +471,44 @@ export const onListingUpdate = onDocumentUpdated(
   async (event) => {
     const before = event.data?.before.data() as ListingDocument | undefined;
     const after = event.data?.after.data() as ListingDocument | undefined;
+    const listingId = event.params.listingId;
 
-    if (!before || !after) return;
-
-    // Only proceed if relevant fields changed
-    const relevantFieldsChanged = [
-      "title",
-      "price",
-      "description",
-      "photos",
-      "location",
-      "status",
-    ].some(
-      (field) =>
-        JSON.stringify(before[field as keyof ListingDocument]) !==
-        JSON.stringify(after[field as keyof ListingDocument])
-    );
-
-    if (!relevantFieldsChanged) return;
-
-    if (before.status === "draft" && after.status === "pending_review") {
-      await createAdminNotification({
-        type: "new_listing",
-        title: "New Listing Requires Review",
-        message: `Listing "${after.title}" has been submitted for review`,
-        relatedListingId: event.params.listingId,
-        createdAt: admin.firestore.Timestamp.now(),
-      });
+    if (!before || !after) {
+      console.log("No data available");
       return;
+    }
+
+    // Only proceed if status changes from draft to pending_review
+    if ((before.status === "draft" || before.status === "published") && after.status === "pending_review") {
+      try {
+        // Use transaction to ensure atomic updates
+        await db.runTransaction(async (transaction) => {
+          const notificationRef = db.collection("adminNotifications").doc();
+
+          const notification: AdminNotificationDocument = {
+            id: notificationRef.id,
+            type: "listing_updated",
+            title: "Listing Submitted for Review",
+            message: `Listing "${after.title}" has been submitted for review`,
+            relatedListingId: listingId,
+            relatedUserId: after.landlordId, // Add this if available in your ListingDocument
+            createdAt: admin.firestore.Timestamp.now(),
+            read: false,
+          };
+
+          transaction.set(notificationRef, notification);
+        });
+
+        console.log(
+          `Successfully created listing update notification for listing ${listingId}`
+        );
+      } catch (error) {
+        console.error("Error in onListingUpdate:", error);
+        throw error;
+      }
     }
   }
 );
-
 // Cleanup old notifications
 export const cleanupOldNotifications = onSchedule(
   "every 24 hours",
