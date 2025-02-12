@@ -13,7 +13,6 @@ import {
   HousePlus,
   HelpCircle,
   FileCheck,
-  Filter,
   // LucideIcon,
 } from "lucide-react";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -36,6 +35,7 @@ import { toast } from "../../hooks/useToast";
 import { signOut } from "../../lib/firebase/auth";
 import { useEffect, useState } from "react";
 import { BaseNotification } from "../../lib/utils/NotificationUtils";
+import FilterModal from "../FilterModal";
 
 // type NavItem = {
 //   icon: LucideIcon;
@@ -182,9 +182,7 @@ const Sidebar = () => {
             className="w-full bg-background/50 dark:bg-white/5 text-sm text-foreground pl-10 pr-4 py-2 rounded-lg border dark:border-white/10 border-black/10 focus:outline-none focus:ring-1 focus:ring-primary/20 hover:bg-background/80 dark:hover:bg-white/10 transition-colors placeholder:text-black/80 dark:placeholder:text-muted-foreground"
           />
         </div>
-        <button className="px-3 bg-background/50 dark:bg-white/5 text-sm text-foreground rounded-lg border dark:border-white/10 border-black/10 hover:bg-background/80 dark:hover:bg-white/10 transition-colors">
-          <Filter className="h-4 w-4 text-black/50 dark:text-muted-foreground" />
-        </button>
+        <FilterModal /> {/* Replace the button with this */}
       </div>
 
       {/* Navigation Items */}
