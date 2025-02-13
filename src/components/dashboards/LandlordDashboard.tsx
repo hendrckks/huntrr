@@ -280,7 +280,7 @@ const LandlordDashboard: React.FC = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-4">
+    <div className="max-w-7xl mx-auto px-0 md:px-4">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
         <div className="flex items-center gap-2">
           <User className="h-6 w-6" />
