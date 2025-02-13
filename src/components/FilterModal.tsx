@@ -49,6 +49,7 @@ const FilterModal = () => {
   const [, setSearchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [open, setOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
   // Add state for location suggestions
@@ -266,7 +267,7 @@ const FilterModal = () => {
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
           variant="outline"
@@ -278,7 +279,7 @@ const FilterModal = () => {
         </Button>
       </DialogTrigger>
       <DialogContent
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:max-w-[800px] max-h-[90vh] overflow-y-auto dark:bg-[#121212] shadow-2xl backdrop-blur-3xl w-[95vw] "
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:max-w-[800px] max-h-[90vh] overflow-y-auto dark:bg-[#121212] shadow-2xl w-[95vw] md:backdrop-blur-3xl backdrop-blur-none bg-white"
         ref={contentRef}
         onScroll={handleScroll}
       >
@@ -526,7 +527,7 @@ const FilterModal = () => {
             </Button>
             <Button
               className="w-full"
-              onClick={() => {
+              onClick={async () => {
                 setIsLoading(true);
                 try {
                   // Build the search params
@@ -571,6 +572,8 @@ const FilterModal = () => {
                   });
 
                   setSearchParams(params);
+                  // Close the dialog after successful submission
+                  setOpen(false);
                 } finally {
                   setIsLoading(false);
                 }
@@ -596,7 +599,7 @@ const FilterModal = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.2 }}
-              className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50"
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
             >
               <Button
                 variant="secondary"
