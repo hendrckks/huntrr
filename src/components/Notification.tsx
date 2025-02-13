@@ -299,12 +299,12 @@ const NotificationsPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4">
-      <div className="flex items-center gap-2 mb-6">
+    <div className="max-w-7xl mx-auto sm:px-6 lg:px-4">
+      <div className="flex items-center gap-2 mb-4 sm:mb-6">
         <div className="relative">
-          <Bell className="h-6 w-6" />
+          <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
         </div>
-        <h1 className="text-xl font-medium">Notifications</h1>
+        <h1 className="text-lg sm:text-xl font-medium">Notifications</h1>
       </div>
 
       {operationError && (
@@ -314,13 +314,13 @@ const NotificationsPage = () => {
       )}
 
       <Tabs defaultValue="unread" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="unread" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
+        <TabsList className="mb-4 w-max md:min-w-fit">
+          <TabsTrigger value="unread" className="flex items-center gap-2 text-sm">
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
             Unread ({unreadNotifications.length})
           </TabsTrigger>
-          <TabsTrigger value="read" className="flex items-center gap-2">
-            <CheckCheck className="h-4 w-4" />
+          <TabsTrigger value="read" className="flex items-center gap-2 text-sm sm:text-base">
+            <CheckCheck className="h-3 w-3 sm:h-4 sm:w-4" />
             Read ({readNotifications.length})
           </TabsTrigger>
         </TabsList>
@@ -328,42 +328,44 @@ const NotificationsPage = () => {
         <TabsContent value="unread">
           {unreadNotifications.length === 0 ? (
             <Card>
-              <CardContent className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-                <Bell className="h-12 w-12" />
-                <p>No unread notifications</p>
+              <CardContent className="flex flex-col items-center justify-center py-6 sm:py-8 text-center text-muted-foreground">
+                <Bell className="h-8 w-8 sm:h-12 sm:w-12" />
+                <p className="text-sm sm:text-base">No unread notifications</p>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {unreadNotifications.map((notification) => (
                 <Card
                   key={notification.id}
                   className="hover:bg-accent/50 transition-colors"
                 >
-                  <CardContent className="flex items-start gap-4 p-4">
-                    {getNotificationIcon(notification.type)}
-                    <div className="flex-1">
-                      <h3 className="font-medium mb-1">{notification.title}</h3>
-                      <p className="text-sm dark:text-muted-foreground text-black w-2/3">
+                  <CardContent className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 p-3 sm:p-4">
+                    <div className="hidden sm:block">
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <h3 className="font-medium text-sm sm:text-base">{notification.title}</h3>
+                      <p className="text-xs sm:text-sm dark:text-muted-foreground text-black w-full sm:w-2/3">
                         {notification.message}
                       </p>
-                      <p className="text-xs mt-2 dark:text-white text-black">
+                      <p className="text-[10px] sm:text-xs dark:text-white text-black">
                         {formatDate(notification.createdAt!)}
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-row sm:flex-nowrap gap-2 w-full sm:w-auto mt-2 sm:mt-0 justify-end">
                       {user?.role === "admin" &&
                         notification.type === "kyc_submission" && (
                           <button
                             onClick={handleViewKYCSubmission}
-                            className="px-3 py-1 text-sm dark:bg-primary bg-black/80 hover:bg-black/50 dark:hover:bg-primary/90 dark:text-black text-white rounded-md transition-colors"
+                            className="flex-1 sm:flex-initial px-2 sm:px-3 py-1 text-xs sm:text-sm dark:bg-primary bg-black/80 hover:bg-black/50 dark:hover:bg-primary/90 dark:text-black text-white rounded-md transition-colors"
                           >
-                            View KYC Submission
+                            View KYC
                           </button>
                         )}
                       <button
                         onClick={(e) => markAsRead(notification.id, e)}
-                        className="px-3 py-1 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
+                        className="flex-1 sm:flex-initial px-2 sm:px-3 py-1 text-xs sm:text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
                       >
                         Mark as read
                       </button>
@@ -373,9 +375,9 @@ const NotificationsPage = () => {
                           setSelectedNotification(notification.id);
                           setIsDeleteDialogOpen(true);
                         }}
-                        className="p-2 text-gray-500 hover:text-red-500 dark:hover:bg-white/10 hover:bg-black/10 rounded-md transition-colors"
+                        className="flex-none p-1 sm:p-2 text-gray-500 hover:text-red-500 dark:hover:bg-white/10 hover:bg-black/10 rounded-md transition-colors flex items-center justify-center"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                       </button>
                     </div>
                   </CardContent>
@@ -388,23 +390,25 @@ const NotificationsPage = () => {
         <TabsContent value="read">
           {readNotifications.length === 0 ? (
             <Card>
-              <CardContent className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-                <CheckCheck className="h-12 w-12 mb-4" />
-                <p>No read notifications</p>
+              <CardContent className="flex flex-col items-center justify-center py-6 sm:py-8 text-center text-muted-foreground">
+                <CheckCheck className="h-8 w-8 sm:h-12 sm:w-12 mb-2 sm:mb-4" />
+                <p className="text-sm sm:text-base">No read notifications</p>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {readNotifications.map((notification) => (
                 <Card key={notification.id} className="opacity-75">
-                  <CardContent className="flex items-start gap-4 p-4">
-                    {getNotificationIcon(notification.type)}
-                    <div className="flex-1">
-                      <h3 className="font-medium mb-1">{notification.title}</h3>
-                      <p className="text-sm dark:text-muted-foreground text-black">
+                  <CardContent className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 p-3 sm:p-4">
+                    <div className="hidden sm:block">
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <h3 className="font-medium text-sm sm:text-base">{notification.title}</h3>
+                      <p className="text-xs sm:text-sm dark:text-muted-foreground text-black">
                         {notification.message}
                       </p>
-                      <p className="text-xs mt-2 dark:text-white text-black">
+                      <p className="text-[10px] sm:text-xs dark:text-white text-black">
                         {formatDate(notification.createdAt!)}
                       </p>
                     </div>
@@ -414,9 +418,9 @@ const NotificationsPage = () => {
                         setSelectedNotification(notification.id);
                         setIsDeleteDialogOpen(true);
                       }}
-                      className="p-2 text-gray-500 hover:text-red-500 dark:hover:bg-white/10 hover:bg-black/10 rounded-md transition-colors"
+                      className="w-full sm:w-auto p-1 sm:p-2 text-gray-500 hover:text-red-500 dark:hover:bg-white/10 hover:bg-black/10 rounded-md transition-colors flex items-center justify-center mt-2 sm:mt-0"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                     </button>
                   </CardContent>
                 </Card>
@@ -430,19 +434,19 @@ const NotificationsPage = () => {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Notification</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-lg sm:text-xl">Delete Notification</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm sm:text-base">
               Are you sure you want to delete this notification? This action
               cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel className="text-sm sm:text-base">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-sm sm:text-base"
             >
               Delete
             </AlertDialogAction>

@@ -137,7 +137,7 @@ const Home = () => {
   const hasListings = data?.pages?.[0]?.listings?.length ?? 0 > 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4">
+    <div className="max-w-7xl mx-auto px-0 md:px-4">
       <h1 className="text-xl font-medium mb-4">Available Properties</h1>
 
       {searchParams.toString() && (

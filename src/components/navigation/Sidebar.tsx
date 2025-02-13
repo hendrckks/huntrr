@@ -170,125 +170,144 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="w-64 bg-transparent dark:bg-[#121212] text-foreground h-[calc(100vh-1rem)] ml-2 fixed left-0 top-0 p-4 mt-4 mr-2 flex flex-col overflow-y-auto">
-      {/* Logo Section */}
-      <Link to="/" className="flex items-center mb-6 gap-2 mx-2">
-        <img
-          src={theme === "dark" ? "/dark.png" : "/light.png"}
-          alt="Huntrr Logo"
-          className="h-4
-           w-auto"
-        />
-        <span className="text-xs font-medium mt-1">beta</span>
-      </Link>
-
-      {/* Search Bar */}
-      <div className="mb-4 rounded-lg flex gap-2">
-        {/* <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Explore"
-            className="w-full bg-background/50 dark:bg-white/5 text-sm text-foreground pl-10 pr-4 py-2 rounded-lg border dark:border-white/10 border-black/10 focus:outline-none focus:ring-1 focus:ring-primary/20 hover:bg-background/80 dark:hover:bg-white/10 transition-colors placeholder:text-black/80 dark:placeholder:text-muted-foreground"
+    <>
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex w-64 bg-transparent dark:bg-[#121212] text-foreground h-[calc(100vh-1rem)] ml-2 fixed left-0 top-0 p-4 mt-4 mr-2 flex-col overflow-y-auto">
+        {/* Logo Section */}
+        <Link to="/" className="flex items-center mb-6 gap-2 mx-2">
+          <img
+            src={theme === "dark" ? "/dark.png" : "/light.png"}
+            alt="Huntrr Logo"
+            className="h-4 w-auto"
           />
-        </div> */}
-        <FilterModal />
-      </div>
-
-      {/* Navigation Items */}
-      <nav className="flex-1 space-y-2">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path;
-
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-lg  transition-colors ${
-                isActive
+          <span className="text-xs font-medium mt-1">beta</span>
+        </Link>
+    
+        {/* Search Bar */}
+        <div className="mb-4 rounded-lg flex gap-2">
+          <FilterModal />
+        </div>
+    
+        {/* Navigation Items */}
+        <nav className="flex-1 space-y-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+    
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive
                   ? "dark:bg-white/10 bg-black/10 border border-black/10 shadow-lg backdrop-blur-3xl"
                   : "hover:bg-white/5"
-              }`}
+                  }`}
+              >
+                <div className="relative">
+                  <Icon className="w-5 h-5" />
+                  {item.badge && (
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  )}
+                </div>
+                <span className="text-sm dark:font-normal font-medium">
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
+    
+        {/* User Profile Section with Theme Toggle */}
+        <div className="border-t dark:border-white/10 border-black/10 pt-4 mt-4 text-sm">
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center justify-between py-2 rounded-lg transition-colors">
+              {isLoading ? (
+                <div className="flex items-center space-x-2">
+                  <div className="h-10 w-10 rounded-full bg-white/10 animate-pulse" />
+                  <div className="space-y-2">
+                    <div className="h-4 w-24 bg-white/10 rounded animate-pulse" />
+                    <div className="h-3 w-32 bg-white/10 rounded animate-pulse" />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Avatar className="h-10 w-10 mr-2 border dark:border-white/10 border-black/15">
+                    <AvatarImage src={user?.photoURL || ""} />
+                    <AvatarFallback>
+                      {user?.displayName ? getInitials(user.displayName) : "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-medium text-sm">
+                      {user?.displayName || "User Name"}
+                    </h3>
+                    <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                      {user?.email || "user@email.com"}
+                    </p>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="hover:bg-white/10 p-2 rounded-full transition-colors">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-[232px] mt-3">
+                      <DropdownMenuItem
+                        onClick={handleSignOut}
+                        className="text-red-500 focus:text-red-500"
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sign out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              )}
+            </div>
+            <button
+              className="flex items-center justify-between bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 px-4 py-2 rounded-lg transition-colors"
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
             >
-              <div className="relative">
-                <Icon className="w-5 h-5" />
-                {item.badge && (
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                )}
-              </div>
-              <span className="text-sm dark:font-normal font-medium">
-                {item.label}
+              <span className="text-sm">
+                {theme === "dark" ? "Dark Mode" : "Light Mode"}
               </span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* User Profile Section with Theme Toggle */}
-      <div className="border-t dark:border-white/10 border-black/10 pt-4 mt-4 text-sm">
-        <div className="flex flex-col space-y-4">
-          <div className="flex items-center justify-between py-2 rounded-lg transition-colors">
-            {isLoading ? (
-              <div className="flex items-center space-x-2">
-                <div className="h-10 w-10 rounded-full bg-white/10 animate-pulse" />
-                <div className="space-y-2">
-                  <div className="h-4 w-24 bg-white/10 rounded animate-pulse" />
-                  <div className="h-3 w-32 bg-white/10 rounded animate-pulse" />
-                </div>
-              </div>
-            ) : (
-              <>
-                <Avatar className="h-10 w-10 mr-2 border dark:border-white/10 border-black/15">
-                  <AvatarImage src={user?.photoURL || ""} />
-                  <AvatarFallback>
-                    {user?.displayName ? getInitials(user.displayName) : "?"}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-medium text-sm">
-                    {user?.displayName || "User Name"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground truncate max-w-[150px]">
-                    {user?.email || "user@email.com"}
-                  </p>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="hover:bg-white/10 p-2 rounded-full transition-colors">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[232px] mt-3">
-                    <DropdownMenuItem
-                      onClick={handleSignOut}
-                      className="text-red-500 focus:text-red-500"
-                    >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Sign out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            )}
+              {theme === "dark" ? (
+                <Sun className="w-5 h-5" />
+              ) : (
+                <Moon className="w-5 h-5" />
+              )}
+            </button>
           </div>
-          <button
-            className="flex items-center justify-between bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 px-4 py-2 rounded-lg transition-colors"
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-          >
-            <span className="text-sm">
-              {theme === "dark" ? "Dark Mode" : "Light Mode"}
-            </span>
-            {theme === "dark" ? (
-              <Sun className="w-5 h-5" />
-            ) : (
-              <Moon className="w-5 h-5" />
-            )}
-          </button>
         </div>
       </div>
-    </div>
+    
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#121212] backdrop-blur-lg border-t dark:border-white/10 border-black/10 p-2 z-50 overflow-x-auto">
+        <nav className="flex items-center justify-between px-2 min-w-max">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+    
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex flex-col items-center p-2 rounded-lg mx-1 min-w-[4.5rem] ${isActive ? "text-primary" : "text-muted-foreground"}`}
+              >
+                <div className="relative">
+                  <Icon className="w-5 h-5" />
+                  {item.badge && (
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  )}
+                </div>
+                <span className="text-xs mt-1 whitespace-nowrap">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+    </>
   );
 };
 

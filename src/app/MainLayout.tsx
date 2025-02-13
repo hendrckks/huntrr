@@ -27,8 +27,8 @@ const MainLayout: React.FC = () => {
       <div className="flex fixed inset-0 tracking-wide word-spacing-sm bg-black/5 dark:bg-[#121212] font-clash overflow-hidden">
         <ScrollToTop />
         {!shouldHideNavbar && <Sidebar />}
-        <div className={`flex-1 flex flex-col ${!shouldHideNavbar ? 'ml-[calc(0.5rem+16rem)]' : ''} mt-2 overflow-hidden`}>
-          <main className="flex-1 font-clash tracking-normal p-6 mb-2 mx-2 bg-white/60 dark:bg-[#171717] shadow-lg backdrop-blur-3xl rounded-xl overflow-y-auto h-[calc(100vh-1rem)]">
+        <div className={`flex-1 flex flex-col ${!shouldHideNavbar ? 'md:ml-[calc(0.5rem+16rem)]' : ''} mt-2 overflow-hidden`}>
+          <main className="flex-1 font-clash tracking-normal p-4 md:p-6 mb-2 mx-2 bg-white/60 dark:bg-[#171717] shadow-lg backdrop-blur-3xl rounded-xl overflow-y-auto h-[calc(100vh-1rem)] pb-20 md:pb-6">
             {!shouldHideNavbar && <BreadcrumbNav />}
             <Outlet />
           </main>

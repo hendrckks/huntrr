@@ -213,23 +213,23 @@ const LandlordDashboard: React.FC = () => {
   const archivedListings = listings.filter((l) => l.status === "archived");
 
   const ListingCard: React.FC<ListingCardProps> = ({ listing }) => (
-    <Card key={listing.id} className="mb-4">
-      <CardContent className="pt-6">
-        <div className="flex justify-between items-start">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold">{listing.title}</h3>
+    <Card key={listing.id} className="mb-4 w-full">
+      <CardContent className="pt-6 px-3 sm:px-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+          <div className="space-y-2 w-full sm:w-auto">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold break-words">{listing.title}</h3>
               {getStatusBadge(listing.status)}
             </div>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-400 break-words">
               {listing.location.area}, {listing.location.city}
             </p>
-            <p className="text-sm">
+            <p className="text-sm break-words">
               ${listing.price} /month • {listing.bedrooms} beds •{" "}
               {listing.bathrooms} baths
             </p>
             {listing.status === "denied" && listing.rejectionReason && (
-              <p className="text-sm text-red-500">
+              <p className="text-sm text-red-500 break-words">
                 Rejection Reason:{" "}
                 {rejectionReasons.find(
                   (r) => r.value === listing.rejectionReason
@@ -237,11 +237,11 @@ const LandlordDashboard: React.FC = () => {
               </p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto justify-end">
             <Button
               variant="outline"
               size="icon"
-              onClick={() => navigate(`/listings/${listing.id}`)} // Changed from "/listing" to "/listings"
+              onClick={() => navigate(`/listings/${listing.id}`)}
             >
               <Eye className="h-4 w-4" />
             </Button>
@@ -280,13 +280,13 @@ const LandlordDashboard: React.FC = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4">
-      <div className="flex justify-between items-center mb-4">
+    <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-4">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
         <div className="flex items-center gap-2">
           <User className="h-6 w-6" />
           <h1 className="text-xl font-medium">Landlord Dashboard</h1>
         </div>
-        <div className="flex gap-2 ">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             onClick={() => {
@@ -303,107 +303,111 @@ const LandlordDashboard: React.FC = () => {
                 navigate("/add-listing");
               }
             }}
-            className="flex items-center gap-2 shadow-md"
+            className="flex items-center gap-2 shadow-md w-full sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             Add Listing
           </Button>
-          <Button variant="outline" onClick={handleSignOut} className="shadow-md">
+          <Button variant="outline" onClick={handleSignOut} className="shadow-md w-full sm:w-auto">
             Sign Out
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="published" className="space-y-4 text-black dark:text-white">
-        <TabsList className="bg-black/5">
-          <TabsTrigger
-            className="flex items-center gap-2"
-            value="published"
-          >
-            <span>
-              <Upload className="h-4 w-4" />
-            </span>
-            Published
-            {publishedListings.length > 0 && (
-              <Badge variant="secondary" className="ml-2 ">
-                {publishedListings.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger
-            value="pending"
-            className="flex items-center gap-2 "
-          >
-            <span>
-              <FileText className="h-4 w-4" />
-            </span>
-            Pending Review
-            {pendingListings.length > 0 && (
-              <Badge className="ml-2">{pendingListings.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger
-            value="drafts"
-            className="flex items-center gap-2"
-          >
-            <span>
-              <File className="h-4 w-4" />
-            </span>
-            Drafts
-            {draftListings.length > 0 && (
-              <Badge variant="destructive" className="ml-2">
-                {draftListings.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger
-            value="archived"
-            className="flex items-center gap-2"
-          >
-            <span>
-              <ArchiveIcon className="h-4 w-4" />
-            </span>
-            Archived
-            {archivedListings.length > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {archivedListings.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="published" className="space-y-4 text-black dark:text-white w-full">
+        <div className="w-full overflow-x-auto pb-2">
+          <TabsList className="bg-black/5 w-max md:min-w-fit overflow-auto inline-flex">
+            <TabsTrigger
+              className="flex items-center gap-2 whitespace-nowrap"
+              value="published"
+            >
+              <span>
+                <Upload className="h-4 w-4" />
+              </span>
+              Published
+              {publishedListings.length > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {publishedListings.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="pending"
+              className="flex items-center gap-2 whitespace-nowrap"
+            >
+              <span>
+                <FileText className="h-4 w-4" />
+              </span>
+              Pending Review
+              {pendingListings.length > 0 && (
+                <Badge className="ml-2">{pendingListings.length}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="drafts"
+              className="flex items-center gap-2 whitespace-nowrap"
+            >
+              <span>
+                <File className="h-4 w-4" />
+              </span>
+              Drafts
+              {draftListings.length > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {draftListings.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="archived"
+              className="flex items-center gap-2 whitespace-nowrap"
+            >
+              <span>
+                <ArchiveIcon className="h-4 w-4" />
+              </span>
+              Archived
+              {archivedListings.length > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {archivedListings.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {isLoading ? (
-          <Card>
-            <CardContent className="p-6">
+          <Card className="w-full">
+            <CardContent className="p-4 sm:p-6">
               <p className="text-center text-gray-500">Loading listings...</p>
             </CardContent>
           </Card>
         ) : error ? (
-          <Card>
-            <CardContent className="p-6">
+          <Card className="w-full">
+            <CardContent className="p-4 sm:p-6">
               <p className="text-center text-red-500">Error loading listings</p>
             </CardContent>
           </Card>
         ) : (
           <>
             <TabsContent value="published">
-              <Card>
-                <CardHeader>
+              <Card className="w-full">
+                <CardHeader className="p-4 sm:p-6">
                   <CardTitle>Published Listings</CardTitle>
                   <CardDescription>
                     Your active listings that are visible to tenants
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[500px] pr-4">
+                <CardContent className="p-2 sm:p-6">
+                  <ScrollArea className="h-[calc(100vh-20rem)] pr-2 sm:pr-4">
                     {publishedListings.length === 0 ? (
                       <p className="text-center text-gray-500">
                         No published listings
                       </p>
                     ) : (
-                      publishedListings.map((listing) => (
-                        <ListingCard key={listing.id} listing={listing} />
-                      ))
+                      <div className="space-y-4">
+                        {publishedListings.map((listing) => (
+                          <ListingCard key={listing.id} listing={listing} />
+                        ))}
+                      </div>
                     )}
                   </ScrollArea>
                 </CardContent>
@@ -411,15 +415,15 @@ const LandlordDashboard: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="pending">
-              <Card>
-                <CardHeader>
+              <Card className="w-full">
+                <CardHeader className="p-4 sm:p-6">
                   <CardTitle>Pending Review</CardTitle>
                   <CardDescription>
                     Listings waiting for admin approval
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[500px] pr-4">
+                <CardContent className="p-2 sm:p-6">
+                  <ScrollArea className="h-[500px] pr-2 sm:pr-4">
                     {pendingListings.length === 0 ? (
                       <p className="text-center text-gray-500">
                         No pending listings
@@ -435,15 +439,15 @@ const LandlordDashboard: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="drafts">
-              <Card>
-                <CardHeader>
+              <Card className="w-full">
+                <CardHeader className="p-4 sm:p-6">
                   <CardTitle>Drafts</CardTitle>
                   <CardDescription>
                     Saved drafts and rejected listings
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[500px] pr-4">
+                <CardContent className="p-2 sm:p-6">
+                  <ScrollArea className="h-[500px] pr-2 sm:pr-4">
                     {draftListings.length === 0 ? (
                       <p className="text-center text-gray-500">
                         No draft listings
@@ -459,15 +463,15 @@ const LandlordDashboard: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="archived">
-              <Card>
-                <CardHeader>
+              <Card className="w-full">
+                <CardHeader className="p-4 sm:p-6">
                   <CardTitle>Archived Listings</CardTitle>
                   <CardDescription>
                     Previously published listings that are no longer active
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[500px] pr-4">
+                <CardContent className="p-2 sm:p-6">
+                  <ScrollArea className="h-[500px] pr-2 sm:pr-4">
                     {archivedListings.length === 0 ? (
                       <p className="text-center text-gray-500">
                         No archived listings
