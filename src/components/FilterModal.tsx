@@ -271,14 +271,14 @@ const FilterModal = () => {
         <Button
           variant="outline"
           size="icon"
-          className="dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 p-5 rounded-lg shadow-lg backdrop-blur-3xl font-medium w-full flex justify-start"
+          className="dark:bg-white/5 mb-4 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 md:p-5 p-4 rounded-lg md:shadow-lg shadow-md backdrop-blur-3xl font-medium w-full flex justify-start"
         >
-          <Filter className="h-4 w-4 dark:text-muted-foreground text-black/50" />
+          <Filter className="h-4 w-4 dark:text-muted-foreground text-muted-foreground md:text-black/50" />
           Filter Listings
         </Button>
       </DialogTrigger>
       <DialogContent
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:max-w-[800px] max-h-[90vh] overflow-y-auto dark:bg-[#121212] shadow-2xl backdrop-blur-3xl w-[95vw]"
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:max-w-[800px] max-h-[90vh] overflow-y-auto dark:bg-[#121212] shadow-2xl backdrop-blur-3xl w-[95vw] "
         ref={contentRef}
         onScroll={handleScroll}
       >
