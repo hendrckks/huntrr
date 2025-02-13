@@ -102,23 +102,45 @@ const ListingView = () => {
               className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-in-out transform hover:scale-[1.02]"
             />
           </div>
-          <div className="grid grid-cols-4 gap-3">
-            {listing.photos?.map((photo, index) => (
-              <div 
-                key={photo.id} 
-                className="relative w-full pb-[100%] rounded-lg overflow-hidden cursor-pointer"
-                onClick={() => {
-                  setSelectedImageIndex(index);
-                  setIsModalOpen(true);
-                }}
-              >
-                <img
-                  src={photo.url}
-                  alt={photo.caption || listing.title}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                />
+          <div className="relative">
+            <div className="overflow-x-auto scroll-smooth" style={{ scrollBehavior: 'smooth' }}>
+              <div className="flex gap-3 pb-4">
+                {listing.photos?.map((photo, index) => (
+                  <div 
+                    key={photo.id} 
+                    className="flex-none w-[calc(25%-9px)] relative pb-[calc(25%-9px)] rounded-lg overflow-hidden cursor-pointer"
+                    onClick={() => {
+                      setSelectedImageIndex(index);
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    <img
+                      src={photo.url}
+                      alt={photo.caption || listing.title}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+            <style>
+              {`
+              .overflow-x-auto::-webkit-scrollbar {
+                height: 8px;
+              }
+              .overflow-x-auto::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 4px;
+              }
+              .overflow-x-auto::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 4px;
+              }
+              .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+                background: #555;
+              }
+              `}
+            </style>
           </div>
 
           {/* Contact Landlord Section */}

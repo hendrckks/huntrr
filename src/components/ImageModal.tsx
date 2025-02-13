@@ -1,5 +1,6 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
+import ReactDOM from "react-dom"; // Add this import
 
 interface ImageModalProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface ImageModalProps {
 }
 
 const ImageModal = ({ isOpen, onClose, imageUrl, alt }: ImageModalProps) => {
-  return (
+  return ReactDOM.createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -19,6 +20,7 @@ const ImageModal = ({ isOpen, onClose, imageUrl, alt }: ImageModalProps) => {
           onClick={onClose}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
         >
+          {/* Rest of the modal content remains the same */}
           <motion.div
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -42,7 +44,8 @@ const ImageModal = ({ isOpen, onClose, imageUrl, alt }: ImageModalProps) => {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body // Portal to body element
   );
 };
 
