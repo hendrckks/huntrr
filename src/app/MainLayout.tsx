@@ -39,7 +39,7 @@ const MainLayout: React.FC = () => {
                 <FilterModal />
                 <button
                   onClick={toggleTheme}
-                  className="p-2 mb-4 dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 dark:border-white/10 rounded-lg md:shadow-lg shadow-md backdrop-blur-3xl transition-colors flex items-center justify-center"
+                  className="p-2 mb-4 dark:bg-white/5 bg-background/40 dark:hover:bg-white/10 hover:bg-black/5 dark:border-white/10 rounded-lg md:shadow-lg shadow-md backdrop-blur-3xl transition-colors flex items-center justify-center"
                   aria-label="Toggle theme"
                 >
                   {theme === "dark" ? (
