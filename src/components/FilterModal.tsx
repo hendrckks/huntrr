@@ -296,7 +296,8 @@ const FilterModal = () => {
                 onValueChange={handlePriceChange}
                 max={100000}
                 step={1000}
-                className="w-full"
+                className="w-full [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:rounded-full"
+                minStepsBetweenThumbs={1}
               />
             </div>
             <div className="flex justify-between text-sm text-muted-foreground">
