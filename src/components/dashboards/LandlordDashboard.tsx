@@ -48,6 +48,8 @@ import {
 } from "lucide-react";
 import type { ListingDocument, ListingStatus } from "../../lib/types/Listing";
 import { rejectionReasons } from "../dialogs/RejectionDialog";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { db } from "../../lib/firebase/clientApp";
 
 interface ListingCardProps {
   listing: ListingDocument;
@@ -103,7 +105,16 @@ const LandlordDashboard: React.FC = () => {
 
   const handleArchive = async (listingId: string) => {
     try {
-      await updateListingStatus(listingId, "archived");
+      const listingRef = doc(db, 'listings', listingId);
+      const listingDoc = await getDoc(listingRef);
+      const currentStatus = listingDoc.data()?.status;
+  
+      await updateDoc(listingRef, {
+        status: 'archived',
+        previousStatus: currentStatus,
+        archivedAt: new Date()
+      });
+  
       refetch();
       toast({
         title: "Success",
@@ -114,6 +125,33 @@ const LandlordDashboard: React.FC = () => {
       toast({
         title: "Error",
         description: "Failed to archive listing",
+        variant: "error",
+      });
+    }
+  };
+
+  const handleUnarchive = async (listingId: string) => {
+    try {
+      const listingRef = doc(db, 'listings', listingId);
+      const listingDoc = await getDoc(listingRef);
+      const previousStatus = listingDoc.data()?.previousStatus || 'draft';
+  
+      await updateDoc(listingRef, {
+        status: previousStatus,
+        previousStatus: null,
+        archivedAt: null
+      });
+  
+      refetch();
+      toast({
+        title: "Success",
+        description: "Listing unarchived successfully",
+        variant: "success",
+      });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to unarchive listing",
         variant: "error",
       });
     }
@@ -217,9 +255,13 @@ const LandlordDashboard: React.FC = () => {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => handleArchive(listing.id)}
+              onClick={() => listing.status === 'archived' ? handleUnarchive(listing.id) : handleArchive(listing.id)}
             >
-              <Archive className="h-4 w-4" />
+              {listing.status === 'archived' ? (
+                <Upload className="h-4 w-4" />
+              ) : (
+                <Archive className="h-4 w-4" />
+              )}
             </Button>
             <Button
               variant="destructive"
