@@ -36,7 +36,6 @@ import { signOut } from "../../lib/firebase/auth";
 import { useEffect, useState } from "react";
 import { BaseNotification } from "../../lib/utils/NotificationUtils";
 import FilterModal from "../FilterModal";
-
 // type NavItem = {
 //   icon: LucideIcon;
 //   label: string;
@@ -172,6 +171,17 @@ const Sidebar = () => {
 
   return (
     <div className="w-64 bg-transparent dark:bg-[#121212] text-foreground h-[calc(100vh-1rem)] ml-2 fixed left-0 top-0 p-4 mt-4 mr-2 flex flex-col overflow-y-auto">
+      {/* Logo Section */}
+      <Link to="/" className="flex items-center mb-6 gap-2 mx-2">
+        <img
+          src={theme === "dark" ? "/dark.png" : "/light.png"}
+          alt="Huntrr Logo"
+          className="h-4
+           w-auto"
+        />
+        <span className="text-xs font-medium mt-1">beta</span>
+      </Link>
+
       {/* Search Bar */}
       <div className="mb-4 rounded-lg flex gap-2">
         {/* <div className="relative flex-1">
