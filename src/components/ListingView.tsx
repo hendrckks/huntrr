@@ -123,7 +123,7 @@ const ListingView = () => {
                 ))}
               </div>
             </div>
-            <style>
+            {/* <style>
               {`
               .listing-gallery-scroll::-webkit-scrollbar {
                 height: 8px;
@@ -140,7 +140,7 @@ const ListingView = () => {
                 background: #555;
               }
               `}
-            </style>
+            </style> */}
           </div>
 
           {/* Contact Landlord Section */}
