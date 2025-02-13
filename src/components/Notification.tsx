@@ -345,11 +345,11 @@ const NotificationsPage = () => {
                       {getNotificationIcon(notification.type)}
                     </div>
                     <div className="flex-1 space-y-2">
-                      <h3 className="font-medium text-sm sm:text-base">{notification.title}</h3>
-                      <p className="text-xs sm:text-sm dark:text-muted-foreground text-black w-full sm:w-2/3">
+                      <h3 className="font-medium text-base">{notification.title}</h3>
+                      <p className="md:text-base text-[12px] dark:text-muted-foreground text-black">
                         {notification.message}
                       </p>
-                      <p className="text-[10px] sm:text-xs dark:text-white text-black">
+                      <p className="text-[12px] dark:text-white text-black">
                         {formatDate(notification.createdAt!)}
                       </p>
                     </div>
@@ -365,7 +365,7 @@ const NotificationsPage = () => {
                         )}
                       <button
                         onClick={(e) => markAsRead(notification.id, e)}
-                        className="flex-1 sm:flex-initial px-2 sm:px-3 py-1 text-xs sm:text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
+                        className="flex-1 sm:flex-initial px-2 sm:px-3 py-2 text-sm sm:text-base bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
                       >
                         Mark as read
                       </button>
@@ -404,11 +404,11 @@ const NotificationsPage = () => {
                       {getNotificationIcon(notification.type)}
                     </div>
                     <div className="flex-1 space-y-2">
-                      <h3 className="font-medium text-sm sm:text-base">{notification.title}</h3>
-                      <p className="text-xs sm:text-sm dark:text-muted-foreground text-black">
+                      <h3 className="font-medium text-base">{notification.title}</h3>
+                      <p className="md:text-base text-[12px] dark:text-muted-foreground text-black">
                         {notification.message}
                       </p>
-                      <p className="text-[10px] sm:text-xs dark:text-white text-black">
+                      <p className="text-[12px]  dark:text-white text-black">
                         {formatDate(notification.createdAt!)}
                       </p>
                     </div>
