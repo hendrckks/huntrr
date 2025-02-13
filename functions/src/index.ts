@@ -31,6 +31,7 @@ interface Listing {
   title: string;
   flagCount: number;
   status: string;
+  landlordId: string;
 }
 
 // Constants for roles
@@ -307,6 +308,7 @@ export const onListingFlagged = onDocumentUpdated(
           archivedAt: Timestamp.now(),
         });
 
+        // Create admin notification
         await createAdminNotification({
           type: "flag_threshold_reached",
           title: "Listing Auto-Recalled",
@@ -315,7 +317,17 @@ export const onListingFlagged = onDocumentUpdated(
           createdAt: admin.firestore.Timestamp.now(),
         });
 
-        console.log(`Successfully recalled listing ${event.params.listingId}`);
+        // Create user notification
+        await admin.firestore().collection("notifications").add({
+          listingId: event.params.listingId,
+          landlordId: newData.landlordId,
+          message: `Your listing "${newData.title}" has been recalled due to receiving multiple flags from users. Please review our content guidelines or contact support for more information.`,
+          type: "listing_recalled",
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          read: false,
+        });
+
+        console.log(`Successfully recalled listing ${event.params.listingId} and created notifications`);
       } catch (error) {
         console.error("Error updating listing status:", error);
         throw error;
