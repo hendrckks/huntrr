@@ -103,7 +103,7 @@ const ListingView = () => {
             />
           </div>
           <div className="relative">
-            <div className="overflow-x-auto scroll-smooth" style={{ scrollBehavior: 'smooth' }}>
+            <div className="overflow-x-auto scroll-smooth listing-gallery-scroll" style={{ scrollBehavior: 'smooth' }}>
               <div className="flex gap-3 pb-4">
                 {listing.photos?.map((photo, index) => (
                   <div 
@@ -125,18 +125,18 @@ const ListingView = () => {
             </div>
             <style>
               {`
-              .overflow-x-auto::-webkit-scrollbar {
+              .listing-gallery-scroll::-webkit-scrollbar {
                 height: 8px;
               }
-              .overflow-x-auto::-webkit-scrollbar-track {
+              .listing-gallery-scroll::-webkit-scrollbar-track {
                 background: #f1f1f1;
                 border-radius: 4px;
               }
-              .overflow-x-auto::-webkit-scrollbar-thumb {
+              .listing-gallery-scroll::-webkit-scrollbar-thumb {
                 background: #888;
                 border-radius: 4px;
               }
-              .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+              .listing-gallery-scroll::-webkit-scrollbar-thumb:hover {
                 background: #555;
               }
               `}
