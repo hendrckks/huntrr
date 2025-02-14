@@ -3,52 +3,52 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: 'ClashDisplay';
-  src: local('ClashDisplay Light'),
-       url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Light.woff2') format('woff2');
+  font-family: "ClashDisplay";
+  src: url("/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Light.woff2")
+    format("woff2");
   font-weight: 300;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'ClashDisplay';
-  src: local('ClashDisplay ExtraLight'),
-       url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Extralight.woff2') format('woff2');
+  font-family: "ClashDisplay";
+  src: url("/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Extralight.woff2")
+    format("woff2");
   font-weight: 200;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'ClashDisplay';
-  src: local('ClashDisplay Regular'),
-       url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Regular.woff2') format('woff2');
+  font-family: "ClashDisplay";
+  src: url("/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Regular.woff2")
+    format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'ClashDisplay';
-  src: local('ClashDisplay Medium'),
-       url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Medium.woff2') format('woff2');
+  font-family: "ClashDisplay";
+  src: url("/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Medium.woff2")
+    format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'ClashDisplay';
-  src: local('ClashDisplay Bold'),
-       url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Bold.woff2') format('woff2');
+  font-family: "ClashDisplay";
+  src: url("/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Bold.woff2")
+    format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'ClashDisplay';
-  src: local('ClashDisplay SemiBold'),
-       url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Semibold.woff2') format('woff2');
+  font-family: "ClashDisplay";
+  src: url("/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Semibold.woff2")
+    format("woff2");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -80,7 +80,7 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem
+    --radius: 0.5rem;
   }
   .dark {
     --background: 0 0% 11%;
@@ -106,7 +106,7 @@
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%
+    --chart-5: 340 75% 55%;
   }
 }
 @layer base {
