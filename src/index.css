@@ -4,14 +4,16 @@
 
 @font-face {
   font-family: 'ClashDisplay';
-  src: url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Light.woff2') format('woff2');
+  src: local('ClashDisplay Light'),
+       url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Light.woff2') format('woff2');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'ClashDisplay';
-  src: url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Extralight.woff2') format('woff2');
+  src: local('ClashDisplay ExtraLight'),
+       url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Extralight.woff2') format('woff2');
   font-weight: 200;
   font-style: normal;
   font-display: swap;
@@ -19,7 +21,8 @@
 
 @font-face {
   font-family: 'ClashDisplay';
-  src: url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Regular.woff2') format('woff2');
+  src: local('ClashDisplay Regular'),
+       url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -27,7 +30,8 @@
 
 @font-face {
   font-family: 'ClashDisplay';
-  src: url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Medium.woff2') format('woff2');
+  src: local('ClashDisplay Medium'),
+       url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Medium.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -35,14 +39,16 @@
 
 @font-face {
   font-family: 'ClashDisplay';
-  src: url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Bold.woff2') format('woff2');
+  src: local('ClashDisplay Bold'),
+       url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'ClashDisplay';
-  src: url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Semibold.woff2') format('woff2');
+  src: local('ClashDisplay SemiBold'),
+       url('/ClashDisplay/Fonts/WEB/fonts/ClashDisplay-Semibold.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
