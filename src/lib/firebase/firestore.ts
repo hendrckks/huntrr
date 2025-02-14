@@ -628,6 +628,25 @@ export const flagListing = async (
     const newFlags = [...(listingData.flags || []), newFlag];
     const newFlagCount = (listingData.flagCount || 0) + 1;
 
+    // Update analytics collection
+    const analyticsRef = doc(db, "analytics", listingId);
+    const analyticsDoc = await transaction.get(analyticsRef);
+
+    if (analyticsDoc.exists()) {
+      transaction.update(analyticsRef, {
+        flagCount: increment(1),
+        lastUpdated: serverTimestamp(),
+      });
+    } else {
+      transaction.set(analyticsRef, {
+        listingId,
+        flagCount: 1,
+        viewCount: 0,
+        bookmarkCount: 0,
+        lastUpdated: serverTimestamp(),
+      });
+    }
+
     // Let the cloud function handle status changes and notifications
     transaction.update(listingRef, {
       flags: newFlags,

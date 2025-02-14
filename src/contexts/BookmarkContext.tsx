@@ -19,6 +19,7 @@ import { db } from "../lib/firebase/clientApp";
 import { useAuth } from "./AuthContext";
 import { useToast } from "../hooks/useToast";
 import { useQueryClient } from "@tanstack/react-query";
+import { incrementAnalyticMetric, decrementAnalyticMetric } from "../lib/firebase/analytics";
 
 interface BookmarkContextType {
   bookmarks: Set<string>;
@@ -196,6 +197,13 @@ export const BookmarkProvider: React.FC<{ children: React.ReactNode }> = ({
       // Optimistic update
       setBookmarks((prev) => new Set([...prev, listingId]));
       setPendingUpdates((prev) => new Map(prev).set(listingId, true));
+
+      // Update analytics
+      try {
+        await incrementAnalyticMetric(listingId, "bookmark");
+      } catch (error) {
+        console.error("Error updating bookmark analytics:", error);
+      }
     },
     [user]
   );
@@ -211,6 +219,13 @@ export const BookmarkProvider: React.FC<{ children: React.ReactNode }> = ({
         return newBookmarks;
       });
       setPendingUpdates((prev) => new Map(prev).set(listingId, false));
+
+      // Update analytics
+      try {
+        await decrementAnalyticMetric(listingId, "bookmark");
+      } catch (error) {
+        console.error("Error updating bookmark analytics:", error);
+      }
     },
     [user]
   );

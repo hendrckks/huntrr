@@ -46,10 +46,14 @@ import {
   ArchiveIcon,
   User,
 } from "lucide-react";
+import { BarChart } from "lucide-react";
+import AnalyticsTab from "./AnalyticsTab";
 import type { ListingDocument, ListingStatus } from "../../lib/types/Listing";
+import { getMultipleListingsAnalytics } from "../../lib/firebase/analytics";
 import { rejectionReasons } from "../dialogs/RejectionDialog";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase/clientApp";
+import type { ListingAnalytics } from "../../lib/types/Analytics";
 
 interface ListingCardProps {
   listing: ListingDocument;
@@ -84,6 +88,24 @@ const LandlordDashboard: React.FC = () => {
     refetchInterval: 30000,
   });
 
+  const analyticsQuery = useQuery<ListingAnalytics[]>({    
+      queryKey: ["listings-analytics", listings.map((l) => l.id)],
+      queryFn: async () => {
+        console.log("Fetching analytics for listings:", listings.map(l => l.id));
+        try {
+          const result = await getMultipleListingsAnalytics(listings.map(l => l.id));
+          console.log("Fetched analytics result:", result);
+          return result;
+        } catch (error) {
+          console.error("Error fetching analytics:", error);
+          throw error;
+        }
+      },
+      enabled: listings.length > 0,
+      retry: 3,
+      retryDelay: 1000
+    });
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -105,16 +127,16 @@ const LandlordDashboard: React.FC = () => {
 
   const handleArchive = async (listingId: string) => {
     try {
-      const listingRef = doc(db, 'listings', listingId);
+      const listingRef = doc(db, "listings", listingId);
       const listingDoc = await getDoc(listingRef);
       const currentStatus = listingDoc.data()?.status;
-  
+
       await updateDoc(listingRef, {
-        status: 'archived',
+        status: "archived",
         previousStatus: currentStatus,
-        archivedAt: new Date()
+        archivedAt: new Date(),
       });
-  
+
       refetch();
       toast({
         title: "Success",
@@ -132,16 +154,16 @@ const LandlordDashboard: React.FC = () => {
 
   const handleUnarchive = async (listingId: string) => {
     try {
-      const listingRef = doc(db, 'listings', listingId);
+      const listingRef = doc(db, "listings", listingId);
       const listingDoc = await getDoc(listingRef);
-      const previousStatus = listingDoc.data()?.previousStatus || 'draft';
-  
+      const previousStatus = listingDoc.data()?.previousStatus || "draft";
+
       await updateDoc(listingRef, {
         status: previousStatus,
         previousStatus: null,
-        archivedAt: null
+        archivedAt: null,
       });
-  
+
       refetch();
       toast({
         title: "Success",
@@ -213,20 +235,25 @@ const LandlordDashboard: React.FC = () => {
   const archivedListings = listings.filter((l) => l.status === "archived");
 
   const ListingCard: React.FC<ListingCardProps> = ({ listing }) => (
-    <Card key={listing.id} className="mb-4 w-full">
-      <CardContent className="pt-6 px-3 sm:px-6">
+    <Card
+      key={listing.id}
+      className="mb-4 w-full hover:shadow-lg transition-shadow duration-200"
+    >
+      <CardContent className="pt-6 px-4 sm:px-6">
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-          <div className="space-y-2 w-full sm:w-auto">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold break-words">{listing.title}</h3>
+          <div className="space-y-3 w-full sm:w-auto max-w-[70%]">
+            <div className="flex items-start gap-2 flex-wrap">
+              <h3 className="font-semibold break-words text-base">
+                {listing.title}
+              </h3>
               {getStatusBadge(listing.status)}
             </div>
-            <p className="text-sm text-gray-400 break-words">
+            <p className="text-sm text-gray-500 break-words">
               {listing.location.area}, {listing.location.city}
             </p>
             <p className="text-sm break-words">
-              ${listing.price} /month • {listing.bedrooms} beds •{" "}
-              {listing.bathrooms} baths
+              ${listing.price.toLocaleString()} /month • {listing.bedrooms} beds
+              • {listing.bathrooms} baths
             </p>
             {listing.status === "denied" && listing.rejectionReason && (
               <p className="text-sm text-red-500 break-words">
@@ -237,10 +264,11 @@ const LandlordDashboard: React.FC = () => {
               </p>
             )}
           </div>
-          <div className="flex gap-2 w-full sm:w-auto justify-end">
+          <div className="flex gap-2 w-full sm:w-auto justify-end items-center">
             <Button
               variant="outline"
               size="icon"
+              className="hover:bg-gray-100"
               onClick={() => navigate(`/listings/${listing.id}`)}
             >
               <Eye className="h-4 w-4" />
@@ -248,6 +276,7 @@ const LandlordDashboard: React.FC = () => {
             <Button
               variant="outline"
               size="icon"
+              className="hover:bg-gray-100"
               onClick={() => navigate(`/edit-listing/${listing.id}`)}
             >
               <Pencil className="h-4 w-4" />
@@ -255,9 +284,14 @@ const LandlordDashboard: React.FC = () => {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => listing.status === 'archived' ? handleUnarchive(listing.id) : handleArchive(listing.id)}
+              className="hover:bg-gray-100"
+              onClick={() =>
+                listing.status === "archived"
+                  ? handleUnarchive(listing.id)
+                  : handleArchive(listing.id)
+              }
             >
-              {listing.status === 'archived' ? (
+              {listing.status === "archived" ? (
                 <Upload className="h-4 w-4" />
               ) : (
                 <Archive className="h-4 w-4" />
@@ -266,6 +300,7 @@ const LandlordDashboard: React.FC = () => {
             <Button
               variant="destructive"
               size="icon"
+              className="hover:bg-red-600"
               onClick={() => {
                 setSelectedListing(listing.id);
                 setIsDeleteDialogOpen(true);
@@ -280,13 +315,13 @@ const LandlordDashboard: React.FC = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-0 md:px-4">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+    <div className="container mx-auto max-w-7xl px-4 py-6 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-2">
           <User className="h-6 w-6" />
           <h1 className="text-xl font-medium">Landlord Dashboard</h1>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
             onClick={() => {
@@ -303,27 +338,29 @@ const LandlordDashboard: React.FC = () => {
                 navigate("/add-listing");
               }
             }}
-            className="flex items-center gap-2 shadow-md w-full sm:w-auto"
+            className="flex items-center gap-2 shadow-md w-full sm:w-auto justify-center"
           >
             <Plus className="h-4 w-4" />
             Add Listing
           </Button>
-          <Button variant="outline" onClick={handleSignOut} className="shadow-md w-full sm:w-auto">
+          <Button
+            variant="outline"
+            onClick={handleSignOut}
+            className="shadow-md w-full sm:w-auto justify-center"
+          >
             Sign Out
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="published" className="space-y-4 text-black dark:text-white w-full">
-        <div className="w-full overflow-x-auto pb-2">
-          <TabsList className="bg-black/5 w-max md:min-w-fit overflow-auto inline-flex">
+      <Tabs defaultValue="published" className="w-full">
+        <div className="w-full overflow-x-auto pb-4">
+          <TabsList className="bg-black/5 w-max md:min-w-fit overflow-auto inline-flex p-1 gap-2">
             <TabsTrigger
-              className="flex items-center gap-2 whitespace-nowrap"
+              className="flex items-center gap-2 whitespace-nowrap px-4 py-2"
               value="published"
             >
-              <span>
-                <Upload className="h-4 w-4" />
-              </span>
+              <Upload className="h-4 w-4" />
               Published
               {publishedListings.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
@@ -358,6 +395,15 @@ const LandlordDashboard: React.FC = () => {
               )}
             </TabsTrigger>
             <TabsTrigger
+              value="analytics"
+              className="flex items-center gap-2 whitespace-nowrap"
+            >
+              <span>
+                <BarChart className="h-4 w-4" />
+              </span>
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger
               value="archived"
               className="flex items-center gap-2 whitespace-nowrap"
             >
@@ -375,29 +421,29 @@ const LandlordDashboard: React.FC = () => {
         </div>
 
         {isLoading ? (
-          <Card className="w-full">
-            <CardContent className="p-4 sm:p-6">
+          <Card className="w-full mt-4">
+            <CardContent className="p-6">
               <p className="text-center text-gray-500">Loading listings...</p>
             </CardContent>
           </Card>
         ) : error ? (
-          <Card className="w-full">
-            <CardContent className="p-4 sm:p-6">
+          <Card className="w-full mt-4">
+            <CardContent className="p-6">
               <p className="text-center text-red-500">Error loading listings</p>
             </CardContent>
           </Card>
         ) : (
-          <>
+          <div className="mt-4 space-y-4">
             <TabsContent value="published">
               <Card className="w-full">
-                <CardHeader className="p-4 sm:p-6">
+                <CardHeader className="p-6">
                   <CardTitle>Published Listings</CardTitle>
                   <CardDescription>
                     Your active listings that are visible to tenants
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-2 sm:p-6">
-                  <ScrollArea className="h-[calc(100vh-20rem)] pr-2 sm:pr-4">
+                <CardContent className="p-6">
+                  <ScrollArea className="h-[calc(100vh-24rem)]">
                     {publishedListings.length === 0 ? (
                       <p className="text-center text-gray-500">
                         No published listings
@@ -416,13 +462,13 @@ const LandlordDashboard: React.FC = () => {
 
             <TabsContent value="pending">
               <Card className="w-full">
-                <CardHeader className="p-4 sm:p-6">
+                <CardHeader className="p-6">
                   <CardTitle>Pending Review</CardTitle>
                   <CardDescription>
                     Listings waiting for admin approval
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-2 sm:p-6">
+                <CardContent className="p-6">
                   <ScrollArea className="h-[500px] pr-2 sm:pr-4">
                     {pendingListings.length === 0 ? (
                       <p className="text-center text-gray-500">
@@ -440,13 +486,13 @@ const LandlordDashboard: React.FC = () => {
 
             <TabsContent value="drafts">
               <Card className="w-full">
-                <CardHeader className="p-4 sm:p-6">
+                <CardHeader className="p-6">
                   <CardTitle>Drafts</CardTitle>
                   <CardDescription>
                     Saved drafts and rejected listings
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-2 sm:p-6">
+                <CardContent className="p-6">
                   <ScrollArea className="h-[500px] pr-2 sm:pr-4">
                     {draftListings.length === 0 ? (
                       <p className="text-center text-gray-500">
@@ -462,15 +508,32 @@ const LandlordDashboard: React.FC = () => {
               </Card>
             </TabsContent>
 
+            <TabsContent value="analytics">
+              {isLoading ? (
+                <Card className="w-full">
+                  <CardContent className="p-6">
+                    <p className="text-center text-gray-500">
+                      Loading analytics...
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <AnalyticsTab
+                  listings={listings}
+                  analyticsQuery={analyticsQuery}
+                />
+              )}
+            </TabsContent>
+
             <TabsContent value="archived">
               <Card className="w-full">
-                <CardHeader className="p-4 sm:p-6">
+                <CardHeader className="p-6">
                   <CardTitle>Archived Listings</CardTitle>
                   <CardDescription>
                     Previously published listings that are no longer active
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-2 sm:p-6">
+                <CardContent className="p-6">
                   <ScrollArea className="h-[500px] pr-2 sm:pr-4">
                     {archivedListings.length === 0 ? (
                       <p className="text-center text-gray-500">
@@ -485,7 +548,7 @@ const LandlordDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             </TabsContent>
-          </>
+          </div>
         )}
       </Tabs>
 

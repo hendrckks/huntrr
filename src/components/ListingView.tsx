@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
 import type { ListingDocument } from "../lib/types/Listing";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { incrementAnalyticMetric } from "../lib/firebase/analytics";
 import ImageModal from "./ImageModal";
 import { Badge } from "./ui/badge";
 
@@ -15,23 +16,28 @@ const ListingView = () => {
   const { data: listing, isLoading } = useQuery<ListingDocument>({
     queryKey: ["listing", slug],
     queryFn: async () => {
-      // Since we're using the slug as the document ID, we can query directly
       const docRef = doc(db, "listings", slug!);
       const docSnap = await getDoc(docRef);
-      
+
       if (!docSnap.exists()) {
         throw new Error("Listing not found");
       }
-      
-      return { 
-        ...docSnap.data(), 
+
+      return {
+        ...docSnap.data(),
         id: docSnap.id,
-        slug: docSnap.id // Ensure slug is included
+        slug: docSnap.id,
       } as ListingDocument;
     },
-    enabled: !!slug,
+    enabled: Boolean(slug),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
+  // Track view count when listing is viewed
+  useEffect(() => {
+    if (listing?.id) {
+      incrementAnalyticMetric(listing.id, "view").catch(console.error);
+    }
+  }, [listing?.id]);
 
   if (isLoading) {
     return (
@@ -44,7 +50,10 @@ const ListingView = () => {
             </div>
             <div className="grid grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="relative w-full pb-[100%] bg-gray-200 rounded-lg animate-pulse">
+                <div
+                  key={i}
+                  className="relative w-full pb-[100%] bg-gray-200 rounded-lg animate-pulse"
+                >
                   <div className="absolute inset-0"></div>
                 </div>
               ))}
@@ -60,7 +69,10 @@ const ListingView = () => {
 
             <div className="flex items-center gap-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-4 bg-gray-200 rounded-md w-16 animate-pulse"></div>
+                <div
+                  key={i}
+                  className="h-4 bg-gray-200 rounded-md w-16 animate-pulse"
+                ></div>
               ))}
             </div>
 
@@ -92,22 +104,28 @@ const ListingView = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Image Gallery */}
         <div className="space-y-4">
-          <div 
+          <div
             className="relative w-full pb-[56.25%] rounded-lg overflow-hidden cursor-pointer"
             onClick={() => setIsModalOpen(true)}
           >
             <img
-              src={listing.photos?.[selectedImageIndex]?.url || "https://via.placeholder.com/800x600?text=No+Image"}
+              src={
+                listing.photos?.[selectedImageIndex]?.url ||
+                "https://via.placeholder.com/800x600?text=No+Image"
+              }
               alt={listing.title}
               className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-in-out transform hover:scale-[1.02]"
             />
           </div>
           <div className="relative">
-            <div className="overflow-x-auto scroll-smooth listing-gallery-scroll" style={{ scrollBehavior: 'smooth' }}>
+            <div
+              className="overflow-x-auto scroll-smooth listing-gallery-scroll"
+              style={{ scrollBehavior: "smooth" }}
+            >
               <div className="flex gap-3 pb-4">
                 {listing.photos?.map((photo, index) => (
-                  <div 
-                    key={photo.id} 
+                  <div
+                    key={photo.id}
                     className="flex-none w-[calc(25%-9px)] relative pb-[calc(25%-9px)] rounded-lg overflow-hidden cursor-pointer"
                     onClick={() => {
                       setSelectedImageIndex(index);
@@ -153,11 +171,12 @@ const ListingView = () => {
               <p className="text-gray-600 dark:text-gray-300">
                 Phone: {listing.landlordContact.phone}
               </p>
-              {listing.landlordContact.showEmail && listing.landlordContact.email && (
-                <p className="text-gray-600 dark:text-gray-300">
-                  Email: {listing.landlordContact.email}
-                </p>
-              )}
+              {listing.landlordContact.showEmail &&
+                listing.landlordContact.email && (
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Email: {listing.landlordContact.email}
+                  </p>
+                )}
             </div>
           </div>
         </div>
@@ -209,8 +228,12 @@ const ListingView = () => {
             <h2 className=" font-semibold mb-4">Property Details</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-gray-500 dark:text-gray-400">Property Type</dt>
-                <dd className="text-gray-900 dark:text-white capitalize">{listing.type}</dd>
+                <dt className="text-gray-500 dark:text-gray-400">
+                  Property Type
+                </dt>
+                <dd className="text-gray-900 dark:text-white capitalize">
+                  {listing.type}
+                </dd>
               </div>
               <div>
                 <dt className="text-gray-500 dark:text-gray-400">Condition</dt>
@@ -219,7 +242,9 @@ const ListingView = () => {
                 </dd>
               </div>
               <div>
-                <dt className="text-gray-500 dark:text-gray-400">Noise Level</dt>
+                <dt className="text-gray-500 dark:text-gray-400">
+                  Noise Level
+                </dt>
                 <dd className="text-gray-900 dark:text-white capitalize">
                   {listing.noiseLevel.replace(/_/g, " ")}
                 </dd>
@@ -231,13 +256,17 @@ const ListingView = () => {
             <h2 className="font-semibold mb-4">Utilities & Amenities</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="text-sm">
-                <dt className="text-gray-500 dark:text-gray-400">Water Availability</dt>
+                <dt className="text-gray-500 dark:text-gray-400">
+                  Water Availability
+                </dt>
                 <dd className="text-gray-900 dark:text-white capitalize">
                   {listing.utilities.waterAvailability.replace(/_/g, " ")}
                 </dd>
               </div>
               <div className="text-sm">
-                <dt className="text-gray-500 dark:text-gray-400">Carrier Coverage</dt>
+                <dt className="text-gray-500 dark:text-gray-400">
+                  Carrier Coverage
+                </dt>
                 <dd className="text-gray-900 dark:text-white capitalize">
                   {listing.utilities.carrierCoverage}
                 </dd>
@@ -245,7 +274,9 @@ const ListingView = () => {
             </dl>
             {listing.utilities.includedUtilities.length > 0 && (
               <div className="mt-4">
-                <dt className="text-gray-600 dark:text-white font-semibold mb-2">Included Utilities</dt>
+                <dt className="text-gray-600 dark:text-white font-semibold mb-2">
+                  Included Utilities
+                </dt>
                 <dd className="flex flex-wrap gap-2 text-sm">
                   {listing.utilities.includedUtilities.map((utility) => (
                     <span
@@ -291,19 +322,25 @@ const ListingView = () => {
                 </dd>
               </div>
               <div>
-                <dt className="text-gray-500 dark:text-gray-400">Lease Length</dt>
+                <dt className="text-gray-500 dark:text-gray-400">
+                  Lease Length
+                </dt>
                 <dd className="text-gray-900 dark:text-white">
                   {listing.terms.leaseLength} months
                 </dd>
               </div>
               <div>
-                <dt className="text-gray-500 dark:text-gray-400">Pets Allowed</dt>
+                <dt className="text-gray-500 dark:text-gray-400">
+                  Pets Allowed
+                </dt>
                 <dd className="text-gray-900 dark:text-white">
                   {listing.terms.petsAllowed ? "Yes" : "No"}
                 </dd>
               </div>
               <div>
-                <dt className="text-gray-500 dark:text-gray-400">Smoking Allowed</dt>
+                <dt className="text-gray-500 dark:text-gray-400">
+                  Smoking Allowed
+                </dt>
                 <dd className="text-gray-900 dark:text-white">
                   {listing.terms.smokingAllowed ? "Yes" : "No"}
                 </dd>
@@ -316,7 +353,7 @@ const ListingView = () => {
       <ImageModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        imageUrl={listing?.photos?.[selectedImageIndex]?.url || ''}
+        imageUrl={listing?.photos?.[selectedImageIndex]?.url || ""}
         alt={listing?.title}
       />
     </div>
