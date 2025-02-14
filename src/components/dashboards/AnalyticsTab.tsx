@@ -32,15 +32,22 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   }, [analyticsQuery]);
 
   const getAnalytics = (listingId: string) => {
-    return (
-      analytics.find((a) => a.listingId === listingId) || {
-        listingId,
-        viewCount: 0,
-        bookmarkCount: 0,
-        flagCount: 0,
-        lastUpdated: new Date(),
-      }
-    );
+    const analyticsData = analytics.find((a) => a.listingId === listingId);
+    if (analyticsData) {
+      return {
+        ...analyticsData,
+        lastUpdated: analyticsData.lastUpdated instanceof Date 
+          ? analyticsData.lastUpdated 
+          : new Date(),
+      };
+    }
+    return {
+      listingId,
+      viewCount: 0,
+      bookmarkCount: 0,
+      flagCount: 0,
+      lastUpdated: new Date(),
+    };
   };
 
   const chartData = publishedListings.map((listing) => {
@@ -261,7 +268,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             Last Updated
                           </dt>
                           <dd className="text-sm">
-                            {stats.lastUpdated.toLocaleDateString()}
+                            {new Date(stats.lastUpdated).toLocaleString()}
                           </dd>
                         </div>
                       </div>
