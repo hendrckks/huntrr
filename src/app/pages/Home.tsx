@@ -1,12 +1,14 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import ListingCard from "../../components/ListingCard";
 import { useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getFilteredListings } from "../../lib/firebase/firestore";
+import { getPopularListings } from "../../lib/firebase/popularListings";
 import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
 import { RefreshCcw, AlertCircle } from "lucide-react";
+import { ScrollArea } from "../../components/ui/scroll-area";
 
 const LISTINGS_PER_PAGE = 9;
 
@@ -108,6 +110,13 @@ const Home = () => {
     };
   }, [handleObserver]);
 
+  // Fetch popular listings - moved outside of conditional blocks
+  const { data: popularListings, isLoading: isLoadingPopular } = useQuery({
+    queryKey: ["popular-listings"],
+    queryFn: () => getPopularListings(10),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   if (isError) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -138,6 +147,26 @@ const Home = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-0 md:px-4">
+      {/* Popular Listings Section */}
+      <div className="mb-8">
+        <h2 className="text-xl font-medium mb-4">Popular Properties</h2>
+        <ScrollArea className="w-full whitespace-nowrap pb-4">
+          <div className="pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+            {isLoadingPopular
+              ? Array.from({ length: 5 }).map((_, index) => (
+                  <div key={`popular-skeleton-${index}`}>
+                    <ListingCard isLoading={true} />
+                  </div>
+                ))
+              : popularListings?.map((listing) => (
+                  <div key={listing.id}>
+                    <ListingCard listing={listing} />
+                  </div>
+                ))}
+          </div>
+        </ScrollArea>
+      </div>
+
       <h1 className="text-xl font-medium mb-4">Available Properties</h1>
 
       {searchParams.toString() && (

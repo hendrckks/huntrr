@@ -233,8 +233,8 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     className="hover:shadow-md transition-shadow"
                   >
                     <CardHeader className="border-b p-4">
-                      <CardTitle className="text-sm font-medium line-clamp-1">
-                        {listing.title}
+                      <CardTitle className="text-sm font-medium">
+                        {listing.slug}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-4">

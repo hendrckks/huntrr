@@ -65,6 +65,7 @@ const LISTINGS_PER_PAGE = 20;
 //   }
 // };
 interface FilterParams {
+  id?: string;
   type?: string;
   bedrooms?: string;
   bathrooms?: string;
