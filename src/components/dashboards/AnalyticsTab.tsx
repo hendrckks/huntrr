@@ -243,7 +243,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <CardContent className="p-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <dt className="text-sm text-muted-foreground font-medium dark:text-white">
+                          <dt className="text-sm text-muted-foreground font-medium text-gray-600 dark:text-white">
                             Views
                           </dt>
                           <dd className="text-2xl font-semibold text-gray-900 dark:text-white/80">
@@ -251,7 +251,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           </dd>
                         </div>
                         <div className="space-y-1">
-                          <dt className="text-sm text-muted-foreground font-medium dark:text-white">
+                          <dt className="text-sm text-muted-foreground font-medium text-gray-600 dark:text-white">
                             Bookmarks
                           </dt>
                           <dd className="text-2xl font-semibold text-gray-900 dark:text-white/80">
@@ -259,7 +259,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           </dd>
                         </div>
                         <div className="space-y-1">
-                          <dt className="text-sm text-muted-foreground font-medium dark:text-white">
+                          <dt className="text-sm text-muted-foreground font-medium text-gray-600 dark:text-white">
                             Flags
                           </dt>
                           <dd className="text-2xl font-semibold text-gray-900 dark:text-white/80">
@@ -267,7 +267,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           </dd>
                         </div>
                         <div className="space-y-1">
-                          <dt className="text-sm text-muted-foreground dark:text-white">
+                          <dt className="text-sm text-muted-foreground text-gray-600 dark:text-white">
                             Last Updated
                           </dt>
                           <dd className="text-xs">
