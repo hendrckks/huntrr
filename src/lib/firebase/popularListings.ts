@@ -20,8 +20,9 @@ export const getPopularListings = async (limit_count: number = 10): Promise<List
     // Fetch the actual listings using the IDs
     const listings = await Promise.all(
       listingIds.map(async (id) => {
-        const result = await getFilteredListings({ id }, null, 1);
-        return result.listings[0];
+        // Changed to fetch the exact listing by ID
+        const result = await getFilteredListings({ id }, null, limit_count);
+        return result.listings.find(listing => listing.id === id);
       })
     );
 
