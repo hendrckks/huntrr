@@ -1,6 +1,5 @@
-import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, limit, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "./clientApp";
-import { getFilteredListings } from "./firestore";
 import type { ListingDocument } from "../types/Listing";
 
 const ANALYTICS_COLLECTION = "analytics";
@@ -20,9 +19,12 @@ export const getPopularListings = async (limit_count: number = 10): Promise<List
     // Fetch the actual listings using the IDs
     const listings = await Promise.all(
       listingIds.map(async (id) => {
-        // Changed to fetch the exact listing by ID
-        const result = await getFilteredListings({ id }, null, limit_count);
-        return result.listings.find(listing => listing.id === id);
+        const listingRef = doc(db, "listings", id);
+        const listingDoc = await getDoc(listingRef);
+        if (listingDoc.exists() && listingDoc.data().status === "published") {
+          return { ...listingDoc.data(), id: listingDoc.id } as ListingDocument;
+        }
+        return undefined;
       })
     );
 
