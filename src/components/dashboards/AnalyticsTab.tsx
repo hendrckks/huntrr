@@ -268,7 +268,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             Last Updated
                           </dt>
                           <dd className="text-sm">
-                            {new Date(stats.lastUpdated).toLocaleString()}
+                            {stats.lastUpdated instanceof Date ? stats.lastUpdated.toLocaleString() : new Date().toLocaleString()}
                           </dd>
                         </div>
                       </div>

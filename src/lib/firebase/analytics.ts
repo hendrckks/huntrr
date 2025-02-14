@@ -8,6 +8,7 @@ import {
   where,
   getDocs,
   increment,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "./clientApp";
 import type { ListingAnalytics, AnalyticsUpdate } from "../types/Analytics";
@@ -162,12 +163,10 @@ export const getMultipleListingsAnalytics = async (
 
   querySnapshot.forEach((doc) => {
     const data = doc.data() as ListingAnalytics;
+    const lastUpdated = data.lastUpdated;
     analytics.push({
       ...data,
-      lastUpdated:
-        data.lastUpdated instanceof Date
-          ? data.lastUpdated
-          : new Date(data.lastUpdated),
+      lastUpdated: lastUpdated instanceof Timestamp ? lastUpdated.toDate() : lastUpdated,
     });
   });
 
