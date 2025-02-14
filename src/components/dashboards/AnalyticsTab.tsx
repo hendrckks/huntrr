@@ -6,6 +6,7 @@ import type { ListingAnalytics } from "../../lib/types/Analytics";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "../ui/chart";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
 import { UseQueryResult } from "@tanstack/react-query";
+import NumberFlow from "@number-flow/react";
 // import AnalyticsDebug from "./AnalyticsDebug";
 
 interface AnalyticsTabProps {
@@ -36,9 +37,10 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     if (analyticsData) {
       return {
         ...analyticsData,
-        lastUpdated: analyticsData.lastUpdated instanceof Date 
-          ? analyticsData.lastUpdated 
-          : new Date(),
+        lastUpdated:
+          analyticsData.lastUpdated instanceof Date
+            ? analyticsData.lastUpdated
+            : new Date(),
       };
     }
     return {
@@ -54,8 +56,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const stats = getAnalytics(listing.id);
     return {
       name:
-        listing.slug.substring(0, 20) +
-        (listing.slug.length > 20 ? "..." : ""),
+        listing.slug.substring(0, 20) + (listing.slug.length > 20 ? "..." : ""),
       views: stats.viewCount,
       bookmarks: stats.bookmarkCount,
       flags: stats.flagCount,
@@ -97,33 +98,33 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         {/* <AnalyticsDebug listings={listings} analyticsQuery={analyticsQuery} /> */}
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-blue-50">
+          <Card className="border">
             <CardContent className="p-4">
-              <div className="text-sm font-medium text-blue-600">
+              <div className="text-sm font-medium text-gray-600 dark:text-white">
                 Total Views
               </div>
-              <div className="text-2xl font-bold text-blue-700">
-                {totalStats.views}
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                <NumberFlow value={totalStats.views} />
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-green-50">
+          <Card className="border">
             <CardContent className="p-4">
-              <div className="text-sm font-medium text-green-600">
+              <div className="text-sm font-medium text-gray-600 dark:text-white">
                 Total Bookmarks
               </div>
-              <div className="text-2xl font-bold text-green-700">
-                {totalStats.bookmarks}
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                <NumberFlow value={totalStats.bookmarks} />
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-yellow-50">
+          <Card className="border">
             <CardContent className="p-4">
-              <div className="text-sm font-medium text-yellow-600">
+              <div className="text-sm font-medium text-gray-600 dark:text-white">
                 Total Flags
               </div>
-              <div className="text-2xl font-bold text-yellow-700">
-                {totalStats.flags}
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                <NumberFlow value={totalStats.flags} />
               </div>
             </CardContent>
           </Card>
@@ -141,22 +142,22 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   views: {
                     label: "Views",
                     theme: {
-                      light: "#3b82f6",
-                      dark: "#60a5fa",
+                      light: "#4B5563",
+                      dark: "#9CA3AF",
                     },
                   },
                   bookmarks: {
                     label: "Bookmarks",
                     theme: {
-                      light: "#22c55e",
-                      dark: "#4ade80",
+                      light: "#1F2937",
+                      dark: "#6B7280",
                     },
                   },
                   flags: {
                     label: "Flags",
                     theme: {
-                      light: "#eab308",
-                      dark: "#facc15",
+                      light: "#111827",
+                      dark: "#4B5563",
                     },
                   },
                 }}
@@ -189,19 +190,19 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     dataKey="views"
                     radius={[4, 4, 0, 0]}
                     maxBarSize={40}
-                    fill="#3b82f6"
+                    fill="#4B5563"
                   />
                   <Bar
                     dataKey="bookmarks"
                     radius={[4, 4, 0, 0]}
                     maxBarSize={40}
-                    fill="#22c55e"
+                    fill="#1F2937"
                   />
                   <Bar
                     dataKey="flags"
                     radius={[4, 4, 0, 0]}
                     maxBarSize={40}
-                    fill="#eab308"
+                    fill="#111827"
                   />
                   <ChartTooltip
                     content={({ active, payload }) => (
@@ -210,7 +211,9 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         payload={payload}
                         labelKey="name"
                       />
+                      
                     )}
+                    
                   />
                 </BarChart>
               </ChartContainer>
@@ -240,35 +243,37 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     <CardContent className="p-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <dt className="text-sm text-muted-foreground">
+                          <dt className="text-sm text-muted-foreground font-medium dark:text-white">
                             Views
                           </dt>
-                          <dd className="text-2xl font-semibold text-blue-600">
-                            {stats.viewCount}
+                          <dd className="text-2xl font-semibold text-gray-900 dark:text-white/80">
+                            <NumberFlow value={stats.viewCount} />
                           </dd>
                         </div>
                         <div className="space-y-1">
-                          <dt className="text-sm text-muted-foreground">
+                          <dt className="text-sm text-muted-foreground font-medium dark:text-white">
                             Bookmarks
                           </dt>
-                          <dd className="text-2xl font-semibold text-green-600">
-                            {stats.bookmarkCount}
+                          <dd className="text-2xl font-semibold text-gray-900 dark:text-white/80">
+                            <NumberFlow value={stats.bookmarkCount} />
                           </dd>
                         </div>
                         <div className="space-y-1">
-                          <dt className="text-sm text-muted-foreground">
+                          <dt className="text-sm text-muted-foreground font-medium dark:text-white">
                             Flags
                           </dt>
-                          <dd className="text-2xl font-semibold text-yellow-600">
-                            {stats.flagCount}
+                          <dd className="text-2xl font-semibold text-gray-900 dark:text-white/80">
+                            <NumberFlow value={stats.flagCount} />
                           </dd>
                         </div>
                         <div className="space-y-1">
-                          <dt className="text-sm text-muted-foreground">
+                          <dt className="text-sm text-muted-foreground dark:text-white">
                             Last Updated
                           </dt>
-                          <dd className="text-sm">
-                            {stats.lastUpdated instanceof Date ? stats.lastUpdated.toLocaleString() : new Date().toLocaleString()}
+                          <dd className="text-xs">
+                            {stats.lastUpdated instanceof Date
+                              ? stats.lastUpdated.toLocaleString()
+                              : new Date().toLocaleString()}
                           </dd>
                         </div>
                       </div>

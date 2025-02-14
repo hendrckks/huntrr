@@ -363,7 +363,7 @@ const LandlordDashboard: React.FC = () => {
               <Upload className="h-4 w-4" />
               Published
               {publishedListings.length > 0 && (
-                <Badge variant="secondary" className="ml-2">
+                <Badge variant="secondary" className="ml-2 dark:bg-white/10">
                   {publishedListings.length}
                 </Badge>
               )}
