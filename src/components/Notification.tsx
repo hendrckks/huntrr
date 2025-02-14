@@ -34,6 +34,7 @@ import {
 import SpinningLoader from "./SpinningLoader";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "./ui/alert";
+import { Button } from "./ui/button";
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState<BaseNotification[]>([]);
@@ -84,10 +85,11 @@ const NotificationsPage = () => {
   ): Promise<boolean> => {
     try {
       // Determine which collection to check based on user role
-      const collectionName = user?.role === "admin" ? "adminNotifications" : "notifications";
+      const collectionName =
+        user?.role === "admin" ? "adminNotifications" : "notifications";
       const notificationRef = doc(db, collectionName, notificationId);
       const docSnap = await getDoc(notificationRef);
-      
+
       if (!docSnap.exists()) {
         await removeNonExistentNotification(notificationId);
         return false;
@@ -202,7 +204,8 @@ const NotificationsPage = () => {
       }
 
       // Use the correct collection based on user role
-      const collectionName = user?.role === "admin" ? "adminNotifications" : "notifications";
+      const collectionName =
+        user?.role === "admin" ? "adminNotifications" : "notifications";
       const notificationRef = doc(db, collectionName, selectedNotification);
       await deleteDoc(notificationRef);
 
@@ -226,7 +229,8 @@ const NotificationsPage = () => {
       }
 
       // Use the correct collection based on user role
-      const collectionName = user?.role === "admin" ? "adminNotifications" : "notifications";
+      const collectionName =
+        user?.role === "admin" ? "adminNotifications" : "notifications";
       const notificationRef = doc(db, collectionName, notificationId);
       await updateDoc(notificationRef, {
         read: true,
@@ -315,11 +319,17 @@ const NotificationsPage = () => {
 
       <Tabs defaultValue="unread" className="w-full">
         <TabsList className="mb-4 w-max md:min-w-fit">
-          <TabsTrigger value="unread" className="flex items-center gap-2 text-sm">
+          <TabsTrigger
+            value="unread"
+            className="flex items-center gap-2 text-sm"
+          >
             <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
             Unread ({unreadNotifications.length})
           </TabsTrigger>
-          <TabsTrigger value="read" className="flex items-center gap-2 text-sm sm:text-base">
+          <TabsTrigger
+            value="read"
+            className="flex items-center gap-2 text-sm sm:text-base"
+          >
             <CheckCheck className="h-3 w-3 sm:h-4 sm:w-4" />
             Read ({readNotifications.length})
           </TabsTrigger>
@@ -345,7 +355,9 @@ const NotificationsPage = () => {
                       {getNotificationIcon(notification.type)}
                     </div>
                     <div className="flex-1 space-y-2">
-                      <h3 className="font-medium text-base">{notification.title}</h3>
+                      <h3 className="font-medium text-base">
+                        {notification.title}
+                      </h3>
                       <p className="md:text-base text-[12px] dark:text-muted-foreground text-black">
                         {notification.message}
                       </p>
@@ -369,16 +381,18 @@ const NotificationsPage = () => {
                       >
                         Mark as read
                       </button>
-                      <button
+                      <Button
+                        variant="destructive"
+                        size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedNotification(notification.id);
                           setIsDeleteDialogOpen(true);
                         }}
-                        className="flex-none p-1 sm:p-2 text-gray-500 hover:text-red-500 dark:hover:bg-white/10 hover:bg-black/10 rounded-md transition-colors flex items-center justify-center"
+                        className="hover:bg-red-600"
                       >
                         <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                      </button>
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -404,7 +418,9 @@ const NotificationsPage = () => {
                       {getNotificationIcon(notification.type)}
                     </div>
                     <div className="flex-1 space-y-2">
-                      <h3 className="font-medium text-base">{notification.title}</h3>
+                      <h3 className="font-medium text-base">
+                        {notification.title}
+                      </h3>
                       <p className="md:text-base text-[12px] dark:text-muted-foreground text-black">
                         {notification.message}
                       </p>
@@ -412,7 +428,9 @@ const NotificationsPage = () => {
                         {formatDate(notification.createdAt!)}
                       </p>
                     </div>
-                    <button
+                    <Button
+                      variant="destructive"
+                      size="icon"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedNotification(notification.id);
@@ -421,7 +439,7 @@ const NotificationsPage = () => {
                       className="w-full sm:w-auto p-1 sm:p-2 text-gray-500 hover:text-red-500 dark:hover:bg-white/10 hover:bg-black/10 rounded-md transition-colors flex items-center justify-center mt-2 sm:mt-0"
                     >
                       <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                    </button>
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
@@ -436,14 +454,18 @@ const NotificationsPage = () => {
       >
         <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg sm:text-xl">Delete Notification</AlertDialogTitle>
+            <AlertDialogTitle className="text-lg sm:text-xl">
+              Delete Notification
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-sm sm:text-base">
               Are you sure you want to delete this notification? This action
               cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:gap-0">
-            <AlertDialogCancel className="text-sm sm:text-base">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="text-sm sm:text-base">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-sm sm:text-base"
