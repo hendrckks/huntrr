@@ -377,7 +377,7 @@ const NotificationsPage = () => {
                         )}
                       <button
                         onClick={(e) => markAsRead(notification.id, e)}
-                        className="flex-1 sm:flex-initial px-2 sm:px-3 py-2 text-sm sm:text-base bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
+                        className="flex-1 sm:flex-initial px-2 sm:px-3 py-2 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
                       >
                         Mark as read
                       </button>
