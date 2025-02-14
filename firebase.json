@@ -43,6 +43,12 @@
           {
             "key": "Access-Control-Allow-Headers",
             "value": "Content-Type, Authorization"
+          },
+          {
+            "source": "**/*.woff2",
+            "headers": [
+              { "key": "Content-Type", "value": "font/woff2" }
+            ]
           }
         ]
       }
