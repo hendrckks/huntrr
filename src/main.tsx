@@ -17,7 +17,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <AuthProvider>
         <BookmarkProvider>
           <ThemeProvider>
-            <div className="antialiased bg-background font-sans">
+            <div className="antialiased bg-background font-clash">
               <RouterProvider router={router} />
               <Toaster />
             </div>
