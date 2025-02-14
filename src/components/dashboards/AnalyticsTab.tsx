@@ -54,8 +54,8 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     const stats = getAnalytics(listing.id);
     return {
       name:
-        listing.title.substring(0, 20) +
-        (listing.title.length > 20 ? "..." : ""),
+        listing.slug.substring(0, 20) +
+        (listing.slug.length > 20 ? "..." : ""),
       views: stats.viewCount,
       bookmarks: stats.bookmarkCount,
       flags: stats.flagCount,
