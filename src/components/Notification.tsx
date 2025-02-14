@@ -436,7 +436,7 @@ const NotificationsPage = () => {
                         setSelectedNotification(notification.id);
                         setIsDeleteDialogOpen(true);
                       }}
-                      className="w-full sm:w-auto p-1 sm:p-2 text-gray-500 hover:text-red-500 dark:hover:bg-white/10 hover:bg-black/10 rounded-md transition-colors flex items-center justify-center mt-2 sm:mt-0"
+                      className="hover:bg-red-600"
                     >
                       <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
