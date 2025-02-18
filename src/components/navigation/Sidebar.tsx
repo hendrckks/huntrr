@@ -184,7 +184,7 @@ const Sidebar = () => {
         </Link>
     
         {/* Search Bar */}
-        <div className="mb-4 rounded-lg flex gap-2">
+        <div className="mb-2 rounded-lg flex gap-2">
           <FilterModal />
         </div>
     
