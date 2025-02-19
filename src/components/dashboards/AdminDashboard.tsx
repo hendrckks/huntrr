@@ -49,6 +49,7 @@ import {
   rejectionReasons,
 } from "../dialogs/RejectionDialog";
 import { migrateListingsSearchKeywords } from "../../lib/firebase/migration/migrations";
+import NumberFlow from "@number-flow/react";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -67,7 +68,7 @@ const AdminDashboard = () => {
   const handleMigrateListings = async () => {
     try {
       setIsMigrating(true);
-      
+
       // Verify admin privileges
       if (!auth.currentUser) {
         throw new Error("No authenticated user found");
@@ -79,7 +80,7 @@ const AdminDashboard = () => {
       }
 
       await migrateListingsSearchKeywords();
-      
+
       toast({
         title: "Success",
         description: "Listings migration completed successfully",
@@ -570,7 +571,7 @@ const AdminDashboard = () => {
             KYC Verifications
             {kycSubmissions?.length ? (
               <Badge variant="default" className="ml-2">
-                {kycSubmissions.length}
+                <NumberFlow value={kycSubmissions.length} />
               </Badge>
             ) : null}
           </TabsTrigger>
@@ -581,7 +582,7 @@ const AdminDashboard = () => {
             Pendings and Recalls
             {pendingListings?.length ? (
               <Badge variant="default" className="ml-2">
-                {pendingListings.length}
+                <NumberFlow value={pendingListings.length} />
               </Badge>
             ) : null}
           </TabsTrigger>
@@ -610,7 +611,7 @@ const AdminDashboard = () => {
             Notifications
             {notifications?.length ? (
               <Badge variant="destructive" className="ml-2">
-                {notifications.length}
+                <NumberFlow value={notifications.length} />
               </Badge>
             ) : null}
           </TabsTrigger>
@@ -939,13 +940,16 @@ const AdminDashboard = () => {
                 <div className="p-4 border rounded-lg">
                   <h3 className="font-medium mb-2">Listings Migration</h3>
                   <p className="text-sm text-gray-500 mb-4">
-                    Update listings with search keywords for improved location searching.
+                    Update listings with search keywords for improved location
+                    searching.
                   </p>
-                  <Button 
+                  <Button
                     onClick={handleMigrateListings}
                     disabled={isMigrating}
                   >
-                    {isMigrating ? "Migration in Progress..." : "Migrate Listings"}
+                    {isMigrating
+                      ? "Migration in Progress..."
+                      : "Migrate Listings"}
                   </Button>
                 </div>
               </div>

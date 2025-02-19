@@ -272,7 +272,7 @@ const FilterModal = () => {
         <Button
           variant="outline"
           size="icon"
-          className="dark:bg-white/5 mb-4 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 md:p-5 p-4 rounded-lg md:shadow-lg shadow-md backdrop-blur-3xl font-medium w-full flex justify-start"
+          className="dark:bg-white/5 mb-4 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 md:p-6 p-4 rounded-lg md:shadow-lg shadow-md backdrop-blur-3xl font-medium w-full flex justify-start"
         >
           <Filter className="h-4 w-4 dark:text-muted-foreground text-muted-foreground md:text-black/50" />
           Filter Listings

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { ScrollArea } from "../ui/scroll-area";
 import type { ListingDocument } from "../../lib/types/Listing";
@@ -7,12 +7,14 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "../ui/chart";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
 import { UseQueryResult } from "@tanstack/react-query";
 import NumberFlow from "@number-flow/react";
-// import AnalyticsDebug from "./AnalyticsDebug";
+import MetricCard from "../MetricCard";
 
 interface AnalyticsTabProps {
   listings: ListingDocument[];
   analyticsQuery: UseQueryResult<ListingAnalytics[], Error>;
 }
+
+const STORAGE_KEY = 'previous_analytics_stats';
 
 const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   listings,
@@ -20,17 +22,10 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 }) => {
   const analytics = analyticsQuery.data || [];
   const publishedListings = listings.filter((l) => l.status === "published");
-
-  // Refetch analytics data when needed
-  useEffect(() => {
-    if (analyticsQuery.refetch) {
-      const refetchInterval = setInterval(() => {
-        analyticsQuery.refetch();
-      }, 3600000); // Refetch every 1 hour
-
-      return () => clearInterval(refetchInterval);
-    }
-  }, [analyticsQuery]);
+  const [previousStats, setPreviousStats] = useState(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : { views: 0, bookmarks: 0, flags: 0, timestamp: 0 };
+  });
 
   const getAnalytics = (listingId: string) => {
     const analyticsData = analytics.find((a) => a.listingId === listingId);
@@ -52,17 +47,6 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     };
   };
 
-  const chartData = publishedListings.map((listing) => {
-    const stats = getAnalytics(listing.id);
-    return {
-      name:
-        listing.slug.substring(0, 20) + (listing.slug.length > 20 ? "..." : ""),
-      views: stats.viewCount,
-      bookmarks: stats.bookmarkCount,
-      flags: stats.flagCount,
-    };
-  });
-
   const totalStats = publishedListings.reduce(
     (acc, listing) => {
       const stats = getAnalytics(listing.id);
@@ -74,6 +58,56 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     },
     { views: 0, bookmarks: 0, flags: 0 }
   );
+
+  // Calculate growth percentages
+  const calculateGrowth = (current: number, previous: number) => {
+    if (previous === 0) return 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  const growthStats = {
+    views: calculateGrowth(totalStats.views, previousStats.views),
+    bookmarks: calculateGrowth(totalStats.bookmarks, previousStats.bookmarks),
+    flags: calculateGrowth(totalStats.flags, previousStats.flags),
+  };
+
+  // Transform analytics data for the chart
+  const chartData = publishedListings.map((listing) => {
+    const stats = getAnalytics(listing.id);
+    return {
+      name: listing.slug || listing.title,
+      views: stats.viewCount,
+      bookmarks: stats.bookmarkCount,
+      flags: stats.flagCount,
+    };
+  });
+
+  // Update previous stats every hour
+  useEffect(() => {
+    const now = Date.now();
+    const ONE_HOUR = 3600000; // 1 hour in milliseconds
+
+    // Only update if it's been more than an hour since the last update
+    if (now - previousStats.timestamp > ONE_HOUR) {
+      const newPreviousStats = {
+        ...totalStats,
+        timestamp: now,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newPreviousStats));
+      setPreviousStats(newPreviousStats);
+    }
+  }, [totalStats]);
+
+  // Refetch analytics data when needed
+  useEffect(() => {
+    if (analyticsQuery.refetch) {
+      const refetchInterval = setInterval(() => {
+        analyticsQuery.refetch();
+      }, 3600000); // Refetch every 1 hour
+
+      return () => clearInterval(refetchInterval);
+    }
+  }, [analyticsQuery]);
 
   if (publishedListings.length === 0) {
     return (
@@ -98,36 +132,21 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         {/* <AnalyticsDebug listings={listings} analyticsQuery={analyticsQuery} /> */}
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border">
-            <CardContent className="p-4">
-              <div className="text-sm font-medium text-gray-600 dark:text-white">
-                Total Views
-              </div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                <NumberFlow value={totalStats.views} />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border">
-            <CardContent className="p-4">
-              <div className="text-sm font-medium text-gray-600 dark:text-white">
-                Total Bookmarks
-              </div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                <NumberFlow value={totalStats.bookmarks} />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border">
-            <CardContent className="p-4">
-              <div className="text-sm font-medium text-gray-600 dark:text-white">
-                Total Flags
-              </div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                <NumberFlow value={totalStats.flags} />
-              </div>
-            </CardContent>
-          </Card>
+          <MetricCard 
+            title="Total Views" 
+            value={totalStats.views} 
+            growth={growthStats.views}
+          />
+          <MetricCard 
+            title="Total Bookmarks" 
+            value={totalStats.bookmarks} 
+            growth={growthStats.bookmarks}
+          />
+          <MetricCard 
+            title="Total Flags" 
+            value={totalStats.flags} 
+            growth={growthStats.flags}
+          />
         </div>
 
         {/* Performance Chart */}
