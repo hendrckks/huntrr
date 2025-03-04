@@ -173,7 +173,7 @@ const Sidebar = () => {
       {/* Desktop Sidebar */}
       <div className="hidden md:flex w-64 bg-transparent dark:bg-[#121212] text-foreground h-[calc(100vh-1rem)] ml-2 fixed left-0 top-0 p-4 mt-4 mr-2 flex-col overflow-y-auto">
         {/* Logo Section */}
-        <Link to="/" className="flex items-center h-10 mb-6 gap-2 ">
+        <Link to="/" className="flex items-center h-10 w-10 mb-6 gap-2 ">
           <img
             src={theme === "dark" ? "/hlogo.png" : "/hlogo.png"}
             alt="Huntrr Logo"
