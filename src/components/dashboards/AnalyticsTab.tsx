@@ -134,7 +134,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   return (
     <ScrollArea className="h-[calc(100vh-6rem)]">
-      <div className="space-y-6 p-6">
+      <div className="space-y-6">
         {/* <AnalyticsDebug listings={listings} analyticsQuery={analyticsQuery} /> */}
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -142,16 +142,19 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             title="Total Views" 
             value={totalStats.views} 
             growth={growthStats.views}
+            storageKey="analytics_views"
           />
           <MetricCard 
             title="Total Bookmarks" 
             value={totalStats.bookmarks} 
             growth={growthStats.bookmarks}
+            storageKey="analytics_bookmarks"
           />
           <MetricCard 
             title="Total Flags" 
             value={totalStats.flags} 
             growth={growthStats.flags}
+            storageKey="analytics_flags"
           />
         </div>
 

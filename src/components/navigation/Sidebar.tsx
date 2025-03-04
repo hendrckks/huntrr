@@ -206,7 +206,7 @@ const Sidebar = () => {
               >
                 <div className="relative">
                   <Icon
-                    className={`w-5 h-5 ${isActive ? "text-[#8752f3]" : ""}`}
+                    className={`w-5 h-5 ${isActive ? "text-[#8752f3]" : "dark:text-white/50 text-black/50"}`}
                   />
                   {item.badge && (
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
