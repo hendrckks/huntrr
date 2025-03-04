@@ -95,7 +95,7 @@ export default function BreadcrumbNav() {
         {history.map((breadcrumb, index) => (
           <BreadcrumbItem key={breadcrumb.path} className="text-sm font-medium">
             {index === history.length - 1 ? (
-              <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
+              <BreadcrumbPage className="font-medium px-2">{breadcrumb.label}</BreadcrumbPage>
             ) : (
               <BreadcrumbLink
                 onClick={() => handleNavigation(breadcrumb.path)}

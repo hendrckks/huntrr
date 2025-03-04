@@ -173,33 +173,41 @@ const Sidebar = () => {
       {/* Desktop Sidebar */}
       <div className="hidden md:flex w-64 bg-transparent dark:bg-[#121212] text-foreground h-[calc(100vh-1rem)] ml-2 fixed left-0 top-0 p-4 mt-4 mr-2 flex-col overflow-y-auto">
         {/* Logo Section */}
-        <Link to="/" className="flex items-center mb-6 gap-2 mx-2">
+        <Link to="/" className="flex items-center h-10 mb-6 gap-2 ">
           <img
-            src={theme === "dark" ? "/dark.png" : "/light.png"}
+            src={theme === "dark" ? "/hlogo.png" : "/hlogo.png"}
             alt="Huntrr Logo"
-            className="h-4 w-auto"
+            className="w-fit h-full -p-8 rounded-lg border bg-black/2 border-black/30 dark:border-white/10 backdrop-blur-3xl shadow-md"
           />
-          <span className="text-xs font-medium mt-1">beta</span>
+          <span className="text-lg font-medium tracking-tight mt-1">
+            Huntrr
+            <span className="text-[10px] px-2 py-0.5 ml-2 rounded-sm bg-[#8752f3]/20 font-medium">
+              beta
+            </span>
+          </span>
         </Link>
-    
+
         {/* Navigation Items */}
-        <p className="py-4 text-sm font-medium">General</p>
+        <p className="py-4 text-sm font-medium dark:text-white/70">General</p>
         <nav className="flex-1 space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-    
+
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                  ? "dark:bg-white/10 bg-black/10 border border-black/10 shadow-lg backdrop-blur-3xl"
-                  : "hover:bg-white/5"
-                  }`}
+                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                  isActive
+                    ? "dark:bg-white/10 bg-black/10 border border-black/10 shadow-lg backdrop-blur-3xl"
+                    : "hover:bg-white/5"
+                }`}
               >
                 <div className="relative">
-                  <Icon className={`w-5 h-5 ${isActive ? "text-[#8752f3]" : ""}`} />
+                  <Icon
+                    className={`w-5 h-5 ${isActive ? "text-[#8752f3]" : ""}`}
+                  />
                   {item.badge && (
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
@@ -211,7 +219,7 @@ const Sidebar = () => {
             );
           })}
         </nav>
-    
+
         {/* User Profile Section with Theme Toggle */}
         <div className="border-t dark:border-white/10 border-black/10 pt-4 mt-4 text-sm">
           <div className="flex flex-col space-y-4">
@@ -276,27 +284,33 @@ const Sidebar = () => {
           </div>
         </div>
       </div>
-    
+
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#121212] backdrop-blur-lg border-t dark:border-white/10 border-black/10 p-2 z-50 overflow-x-auto">
         <nav className="flex items-center justify-between px-2 min-w-max">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-    
+
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center p-2 rounded-lg mx-1 min-w-[4.5rem] ${isActive ? "text-primary" : "text-muted-foreground"}`}
+                className={`flex flex-col items-center p-2 rounded-lg mx-1 min-w-[4.5rem] ${
+                  isActive ? "text-primary" : "text-muted-foreground"
+                }`}
               >
                 <div className="relative">
-                  <Icon className={`w-5 h-5 ${isActive ? "text-[#8752f3]" : ""}`} />
+                  <Icon
+                    className={`w-5 h-5 ${isActive ? "text-[#8752f3]" : ""}`}
+                  />
                   {item.badge && (
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </div>
-                <span className="text-xs mt-1 whitespace-nowrap">{item.label}</span>
+                <span className="text-xs mt-1 whitespace-nowrap">
+                  {item.label}
+                </span>
               </Link>
             );
           })}

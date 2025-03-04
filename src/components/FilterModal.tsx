@@ -290,7 +290,7 @@ const FilterModal = () => {
             Filter Listings
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
-            <span className="flex items-center justify-center w-5 h-5 border rounded">
+            <span className="flex items-center justify-center w-5 h-5 p-3 border dark:border-white/30 border-black/20 rounded">
               ⌘
             </span>
             +<span>I</span>
