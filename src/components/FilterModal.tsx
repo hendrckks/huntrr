@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowDown, Loader2 } from "lucide-react";
@@ -24,7 +24,6 @@ import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Checkbox } from "../components/ui/checkbox";
-import { Filter } from "lucide-react";
 import { Input } from "./ui/input";
 
 interface FilterState {
@@ -51,6 +50,18 @@ const FilterModal = () => {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [open, setOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "i") {
+        event.preventDefault();
+        setOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Add state for location suggestions
   const [areaSuggestions, setAreaSuggestions] = useState<string[]>([]);
@@ -272,10 +283,18 @@ const FilterModal = () => {
         <Button
           variant="outline"
           size="icon"
-          className="dark:bg-white/5 mb-4 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 md:p-6 p-4 rounded-lg md:shadow-lg shadow-md backdrop-blur-3xl font-medium w-full flex justify-start"
+          className="dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 p-5 rounded-lg md:shadow-lg shadow-md backdrop-blur-3xl font-medium w-full flex gap-4 justify-between items-center"
         >
-          <Filter className="h-4 w-4 dark:text-muted-foreground text-muted-foreground md:text-black/50" />
-          Filter Listings
+          <div className="flex items-center gap-2">
+            {/* <Filter className="h-3 w-3 dark:text-muted-foreground text-muted-foreground md:text-black/50" /> */}
+            Filter Listings
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <span className="flex items-center justify-center w-5 h-5 border rounded">
+              ⌘
+            </span>
+            +<span>I</span>
+          </div>
         </Button>
       </DialogTrigger>
       <DialogContent

@@ -126,6 +126,8 @@ const CommandShortcut = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLSpanElement>) => {
+  const isMacOS = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+
   return (
     <span
       className={cn(
@@ -133,7 +135,9 @@ const CommandShortcut = ({
         className
       )}
       {...props}
-    />
+    >
+      {props.children?.toString().replace('⌘', isMacOS ? '⌘' : 'Ctrl')}
+    </span>
   )
 }
 CommandShortcut.displayName = "CommandShortcut"

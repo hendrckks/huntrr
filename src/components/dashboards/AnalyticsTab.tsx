@@ -61,7 +61,10 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   // Calculate growth percentages
   const calculateGrowth = (current: number, previous: number) => {
-    if (previous === 0) return 0;
+    if (previous === 0) {
+      // If previous is 0 and current is greater than 0, return 100% growth
+      return current > 0 ? 100 : 0;
+    }
     return ((current - previous) / previous) * 100;
   };
 
@@ -82,21 +85,24 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     };
   });
 
-  // Update previous stats every hour
+  // Initialize previous stats on first load and update periodically
   useEffect(() => {
     const now = Date.now();
     const ONE_HOUR = 3600000; // 1 hour in milliseconds
 
-    // Only update if it's been more than an hour since the last update
-    if (now - previousStats.timestamp > ONE_HOUR) {
-      const newPreviousStats = {
-        ...totalStats,
-        timestamp: now,
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newPreviousStats));
-      setPreviousStats(newPreviousStats);
+    // If there's no previous data or it's been more than an hour, update the stored stats
+    if (!previousStats.timestamp || now - previousStats.timestamp > ONE_HOUR) {
+      // Only store new stats if we have actual data to store
+      if (Object.values(totalStats).some(val => val > 0)) {
+        const newPreviousStats = {
+          ...totalStats,
+          timestamp: now,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newPreviousStats));
+        setPreviousStats(newPreviousStats);
+      }
     }
-  }, [totalStats]);
+  }, [totalStats, previousStats.timestamp]);
 
   // Refetch analytics data when needed
   useEffect(() => {
@@ -161,22 +167,22 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   views: {
                     label: "Views",
                     theme: {
-                      light: "#4B5563",
-                      dark: "#9CA3AF",
+                      light: "#8752f3",
+                      dark: "#8752f3",
                     },
                   },
                   bookmarks: {
                     label: "Bookmarks",
                     theme: {
-                      light: "#1F2937",
-                      dark: "#6B7280",
+                      light: "#8752f3",
+                      dark: "#8752f3",
                     },
                   },
                   flags: {
                     label: "Flags",
                     theme: {
-                      light: "#111827",
-                      dark: "#4B5563",
+                      light: "#8752f3",
+                      dark: "#8752f3",
                     },
                   },
                 }}
@@ -209,19 +215,21 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     dataKey="views"
                     radius={[4, 4, 0, 0]}
                     maxBarSize={40}
-                    fill="#4B5563"
+                    fill="#8752f3"
                   />
                   <Bar
                     dataKey="bookmarks"
                     radius={[4, 4, 0, 0]}
                     maxBarSize={40}
-                    fill="#1F2937"
+                    fill="#8752f3"
+                    fillOpacity={0.8}
                   />
                   <Bar
                     dataKey="flags"
                     radius={[4, 4, 0, 0]}
                     maxBarSize={40}
-                    fill="#111827"
+                    fill="#8752f3"
+                    fillOpacity={0.6}
                   />
                   <ChartTooltip
                     content={({ active, payload }) => (

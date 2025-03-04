@@ -35,7 +35,6 @@ import { toast } from "../../hooks/useToast";
 import { signOut } from "../../lib/firebase/auth";
 import { useEffect, useState } from "react";
 import { BaseNotification } from "../../lib/utils/NotificationUtils";
-import FilterModal from "../FilterModal";
 // type NavItem = {
 //   icon: LucideIcon;
 //   label: string;
@@ -183,12 +182,8 @@ const Sidebar = () => {
           <span className="text-xs font-medium mt-1">beta</span>
         </Link>
     
-        {/* Search Bar */}
-        <div className="mb-2 rounded-lg flex gap-2">
-          <FilterModal />
-        </div>
-    
         {/* Navigation Items */}
+        <p className="py-4 text-sm font-medium">General</p>
         <nav className="flex-1 space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -204,7 +199,7 @@ const Sidebar = () => {
                   }`}
               >
                 <div className="relative">
-                  <Icon className="w-5 h-5" />
+                  <Icon className={`w-5 h-5 ${isActive ? "text-[#8752f3]" : ""}`} />
                   {item.badge && (
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
@@ -296,7 +291,7 @@ const Sidebar = () => {
                 className={`flex flex-col items-center p-2 rounded-lg mx-1 min-w-[4.5rem] ${isActive ? "text-primary" : "text-muted-foreground"}`}
               >
                 <div className="relative">
-                  <Icon className="w-5 h-5" />
+                  <Icon className={`w-5 h-5 ${isActive ? "text-[#8752f3]" : ""}`} />
                   {item.badge && (
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
