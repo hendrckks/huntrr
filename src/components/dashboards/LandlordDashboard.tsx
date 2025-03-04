@@ -357,7 +357,7 @@ const LandlordDashboard: React.FC = () => {
         <div className="w-full overflow-x-auto pb-4">
           <TabsList className="bg-black/5 dark:bg-white/5 w-max md:min-w-fit overflow-auto inline-flex p-1 gap-2">
             <TabsTrigger
-              className="flex items-center gap-2 whitespace-nowrap px-4 py-1"
+              className="flex items-center gap-2 whitespace-nowrap px-4 py-1 [&[data-state=active]_svg]:text-[#8752f3]"
               value="published"
             >
               <Upload className="h-4 w-4" />
@@ -370,7 +370,7 @@ const LandlordDashboard: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger
               value="pending"
-              className="flex items-center gap-2 whitespace-nowrap"
+              className="flex items-center gap-2 whitespace-nowrap [&[data-state=active]_svg]:text-[#8752f3]"
             >
               <span>
                 <FileText className="h-4 w-4" />
@@ -382,7 +382,7 @@ const LandlordDashboard: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger
               value="drafts"
-              className="flex items-center gap-2 whitespace-nowrap"
+              className="flex items-center gap-2 whitespace-nowrap [&[data-state=active]_svg]:text-[#8752f3]"
             >
               <span>
                 <File className="h-4 w-4" />
@@ -396,7 +396,7 @@ const LandlordDashboard: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger
               value="analytics"
-              className="flex items-center gap-2 whitespace-nowrap"
+              className="flex items-center gap-2 whitespace-nowrap [&[data-state=active]_svg]:text-[#8752f3]"
             >
               <span>
                 <BarChart className="h-4 w-4" />
@@ -405,7 +405,7 @@ const LandlordDashboard: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger
               value="archived"
-              className="flex items-center gap-2 whitespace-nowrap"
+              className="flex items-center gap-2 whitespace-nowrap [&[data-state=active]_svg]:text-[#8752f3]"
             >
               <span>
                 <ArchiveIcon className="h-4 w-4" />
