@@ -442,7 +442,7 @@ const LandlordDashboard: React.FC = () => {
                     Your active listings that are visible to tenants
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="px-4">
                   <ScrollArea className="h-[calc(100vh-24rem)]">
                     {publishedListings.length === 0 ? (
                       <p className="text-center text-gray-500">
