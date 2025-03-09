@@ -342,7 +342,7 @@ const NotificationsPage = () => {
 
   return (
     <div className="max-w-7xl mx-auto sm:px-6 lg:px-4">
-      <div className="flex items-center gap-2 mb-4 sm:mb-6">
+      <div className="flex items-center gap-2 mb-4">
         <div className="relative">
           <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
         </div>
@@ -366,7 +366,7 @@ const NotificationsPage = () => {
           </TabsTrigger>
           <TabsTrigger
             value="read"
-            className="flex items-center gap-2 text-sm sm:text-base"
+            className="flex items-center gap-2 text-sm"
           >
             <CheckCheck className="h-3 w-3 sm:h-4 sm:w-4" />
             Read ({readNotifications.length})
@@ -378,7 +378,7 @@ const NotificationsPage = () => {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-6 sm:py-8 text-center text-muted-foreground">
                 <Bell className="h-8 w-8 sm:h-12 sm:w-12" />
-                <p className="text-sm sm:text-base">No unread notifications</p>
+                <p className="text-sm">No unread notifications</p>
               </CardContent>
             </Card>
           ) : (
@@ -406,7 +406,7 @@ const NotificationsPage = () => {
                       <h3 className="font-medium text-base">
                         {notification.title}
                       </h3>
-                      <p className="md:text-base text-[12px] dark:text-muted-foreground text-black">
+                      <p className="text-sm dark:text-muted-foreground text-black">
                         {notification.message}
                       </p>
                       <p className="text-[12px] dark:text-white text-black">
@@ -470,7 +470,7 @@ const NotificationsPage = () => {
                       <h3 className="font-medium text-base">
                         {notification.title}
                       </h3>
-                      <p className="md:text-base text-[12px] dark:text-muted-foreground text-black">
+                      <p className="text-sm dark:text-muted-foreground text-black">
                         {notification.message}
                       </p>
                       <p className="text-[12px]  dark:text-white text-black">
