@@ -252,6 +252,44 @@ const NotificationsPage = () => {
     }
   };
 
+  const markAllAsRead = async () => {
+    if (unreadNotifications.length === 0) return;
+
+    try {
+      // Use the correct collection based on user role
+      const collectionName =
+        user?.role === "admin" ? "adminNotifications" : "notifications";
+      
+      // Update all unread notifications in Firestore
+      const updatePromises = unreadNotifications.map(async (notification) => {
+        if (await verifyNotificationExists(notification.id)) {
+          const notificationRef = doc(db, collectionName, notification.id);
+          return updateDoc(notificationRef, {
+            read: true,
+            readAt: Timestamp.now(),
+          });
+        }
+        return Promise.resolve();
+      });
+
+      await Promise.all(updatePromises);
+
+      // Update local state
+      setNotifications((prev) =>
+        prev.map((notification) => ({
+          ...notification,
+          read: true,
+          readAt: Timestamp.now(),
+        }))
+      );
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      setOperationError(
+        "Failed to mark all notifications as read. Please try again."
+      );
+    }
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "kyc_approved":
@@ -344,8 +382,18 @@ const NotificationsPage = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-3 sm:space-y-4">
-              {unreadNotifications.map((notification) => (
+            <>
+              <div className="flex justify-end mb-4">
+                <Button 
+                  onClick={markAllAsRead}
+                  className="flex items-center gap-2 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
+                >
+                  <CheckCheck className="h-4 w-4" />
+                  Mark All as Read
+                </Button>
+              </div>
+              <div className="space-y-3 sm:space-y-4">
+                {unreadNotifications.map((notification) => (
                 <Card
                   key={notification.id}
                   className="hover:bg-accent/50 transition-colors"
@@ -398,6 +446,7 @@ const NotificationsPage = () => {
                 </Card>
               ))}
             </div>
+            </>
           )}
         </TabsContent>
 
