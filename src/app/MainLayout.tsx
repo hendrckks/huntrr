@@ -27,7 +27,7 @@ const MainLayout: React.FC = () => {
   const isHomePage = location.pathname === "/";
 
   return (
-    <div className="flex fixed inset-0 tracking-wide word-spacing-sm bg-black/5 dark:bg-[#121212] font-sans overflow-hidden">
+    <div className="flex fixed inset-0 tracking-normal word-spacing-sm bg-black/5 dark:bg-[#121212] font-sans overflow-hidden">
       <ScrollToTop />
       {!shouldHideNavbar && <Sidebar />}
       <div className={`flex-1 flex flex-col font-clash ${!shouldHideNavbar ? 'md:ml-[calc(0.5rem+16rem)]' : ''} ${isHomePage ? 'mt-2' : 'mt-2'} overflow-hidden`}>
