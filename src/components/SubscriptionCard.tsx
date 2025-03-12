@@ -55,7 +55,7 @@ const SubscriptionCard = () => {
                   variant="outline"
                   className="border-slate-400 py-1 inline-flex items-center justify-center whitespace-nowrap text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm rounded-md px-2 bg-white/10 hover:bg-white/20 text-white border-white/20 gap-2 cursor-pointer"
                 >
-                  Pro Features
+                  Pro enabled
                 </Badge>
               </TooltipTrigger>
               <TooltipContent side="right" className="bg-black/90 text-white border border-white/10">

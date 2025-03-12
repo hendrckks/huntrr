@@ -151,7 +151,7 @@ const QuickFilter = () => {
                 variant={
                   activeFilters.includes(type.id) ? "default" : "outline"
                 }
-                className={`cursor-pointer text-sm py-1 px-3 hover:bg-accent transition-colors ${
+                className={`cursor-pointer text-sm py-1 px-3 font-medium hover:bg-accent transition-colors ${
                   activeFilters.includes(type.id)
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : ""
@@ -175,7 +175,7 @@ const QuickFilter = () => {
                 variant={
                   activeFilters.includes(option.id) ? "default" : "outline"
                 }
-                className={`cursor-pointer text-sm py-1 px-3 hover:bg-accent transition-colors ${
+                className={`cursor-pointer text-sm py-1 px-3 hover:bg-accent font-medium transition-colors ${
                   activeFilters.includes(option.id)
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : ""
@@ -201,7 +201,7 @@ const QuickFilter = () => {
                     ? "default"
                     : "outline"
                 }
-                className={`cursor-pointer text-sm py-1 px-3 hover:bg-accent transition-colors ${
+                className={`cursor-pointer text-sm py-1 px-3 hover:bg-accent font-medium transition-colors ${
                   activeFilters.includes(`bath_${option.id}`)
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : ""
@@ -227,7 +227,7 @@ const QuickFilter = () => {
                 variant={
                   activeFilters.includes(option.id) ? "default" : "outline"
                 }
-                className={`cursor-pointer text-sm py-1 px-3 hover:bg-accent transition-colors ${
+                className={`cursor-pointer text-sm py-1 px-3 hover:bg-accent text-medium transition-colors ${
                   activeFilters.includes(option.id)
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : ""
