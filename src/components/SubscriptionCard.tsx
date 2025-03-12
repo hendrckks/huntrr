@@ -64,7 +64,7 @@ const SubscriptionCard = () => {
             </Tooltip>
           </div>
 
-          <h1 className="mb-4 text-4xl font-medium tracking-tight">
+          <h1 className="mb-4 text-4xl font-bold tracking-tight">
             List Your Properties
           </h1>
 

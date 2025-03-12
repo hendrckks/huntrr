@@ -208,7 +208,7 @@ const Sidebar = () => {
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </div>
-                <span className="text-sm font-medium">{item.label}</span>
+                <span className="text-sm font-medium tracking-normal">{item.label}</span>
               </Link>
             );
           })}
@@ -290,9 +290,7 @@ const Sidebar = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center p-2 rounded-lg mx-1 min-w-[4.5rem] relative overflow-hidden ${
-                  isActive ? "text-white" : "text-muted-foreground"
-                }`}
+                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive ? 'bg-black dark:bg-white/10 text-white dark:text-white' : 'hover:bg-white/5 dark:text-white/80 text-black/80'}`}
               >
                 {isActive && (
                   <>
