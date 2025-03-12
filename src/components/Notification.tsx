@@ -346,7 +346,7 @@ const NotificationsPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto sm:px-6 lg:px-4">
+    <div className="max-w-7xl mx-auto sm:px-6 lg:px-4 font-noto">
       <div className="flex items-center gap-2 mb-4">
         <div className="relative">
           <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -507,23 +507,23 @@ const NotificationsPage = () => {
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
       >
-        <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogContent className="sm:max-w-md font-noto">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-lg sm:text-xl">
               Delete Notification
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm sm:text-base">
+            <AlertDialogDescription className="text-sm">
               Are you sure you want to delete this notification? This action
               cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:gap-0">
-            <AlertDialogCancel className="text-sm sm:text-base">
+            <AlertDialogCancel className="text-sm">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-sm sm:text-base"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-sm"
             >
               Delete
             </AlertDialogAction>
