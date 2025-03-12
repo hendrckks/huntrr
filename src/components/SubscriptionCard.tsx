@@ -1,10 +1,11 @@
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Building, Search, Home, Stars } from "lucide-react";
+import { Building, Search, Stars } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../hooks/useToast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { RiPulseAiLine } from "@remixicon/react";
 
 const SubscriptionCard = () => {
   const { user } = useAuth();
@@ -99,7 +100,7 @@ const SubscriptionCard = () => {
               <span className="font-bold text-emerald-400">2+</span>
             </div>
             <div className="flex items-center text-sm text-slate-300">
-              <Home className="mr-2 h-5 w-5 text-blue-400" />
+              <RiPulseAiLine className="mr-2 h-5 w-5 text-blue-400" />
               <span className="mr-2">Occupancy Rate</span>
               <span className="font-bold text-blue-400">95%</span>
             </div>
