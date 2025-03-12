@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { db } from "../../lib/firebase/clientApp";
 import { updateListing } from "../../lib/firebase/firestore";
 import { useAuth } from "../../contexts/AuthContext";
@@ -103,10 +103,16 @@ export default function EditListingForm() {
         email: "",
         showEmail: false,
       },
+      // Initialize these fields that might be causing validation issues
+      status: "draft" as const,
       flags: [],
       flagCount: 0,
       bookmarkCount: 0,
       viewCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      verifiedAt: null,
+      verifiedBy: null,
       FLAG_THRESHOLD: 5,
     },
   });
@@ -117,13 +123,79 @@ export default function EditListingForm() {
       if (!id) return null;
       const docRef = doc(db, "listings", id);
       const docSnap = await getDoc(docRef);
-      return docSnap.exists() ? (docSnap.data() as ListingFormData) : null;
+
+      if (!docSnap.exists()) return null;
+
+      // Convert Firestore data to correctly formatted form data
+      const docData = docSnap.data();
+
+      // Convert Timestamp fields to JavaScript Date objects
+      const processTimestamp = (timestamp: any) => {
+        if (!timestamp) return null;
+        return timestamp instanceof Timestamp
+          ? timestamp.toDate()
+          : timestamp instanceof Date
+          ? timestamp
+          : null;
+      };
+
+      // Process flags array to convert timestamps to dates
+      const processedFlags = docData.flags
+        ? docData.flags.map((flag: any) => ({
+            ...flag,
+            createdAt: processTimestamp(flag.createdAt) || new Date(),
+            resolvedAt: flag.resolvedAt
+              ? processTimestamp(flag.resolvedAt)
+              : null,
+          }))
+        : [];
+
+      return {
+        ...docData,
+        flags: processedFlags,
+        createdAt: processTimestamp(docData.createdAt) || new Date(),
+        updatedAt: processTimestamp(docData.updatedAt) || new Date(),
+        verifiedAt: processTimestamp(docData.verifiedAt),
+        // Ensure status is properly set
+        status: docData.status || "draft",
+        // Make sure all required fields have default values
+        flagCount: docData.flagCount || 0,
+        bookmarkCount: docData.bookmarkCount || 0,
+        viewCount: docData.viewCount || 0,
+        FLAG_THRESHOLD: docData.FLAG_THRESHOLD || 5,
+      } as ListingFormData;
     },
     enabled: !!id,
   });
 
   useEffect(() => {
-    if (data) form.reset(data);
+    if (data) {
+      // Ensure any array fields are properly initialized
+      const formattedData = {
+        ...data,
+        utilities: {
+          ...data.utilities,
+          includedUtilities: data.utilities?.includedUtilities || [],
+        },
+        terms: {
+          ...data.terms,
+          utilityResponsibilities: data.terms?.utilityResponsibilities || [],
+        },
+        security: {
+          ...data.security,
+          additionalSecurity: data.security?.additionalSecurity || [],
+        },
+        flags: data.flags || [],
+        // Ensure these fields exist with proper values
+        status: data.status || "draft",
+        flagCount: data.flagCount || 0,
+        bookmarkCount: data.bookmarkCount || 0,
+        viewCount: data.viewCount || 0,
+        FLAG_THRESHOLD: data.FLAG_THRESHOLD || 5,
+      };
+
+      form.reset(formattedData);
+    }
   }, [data, form]);
 
   const updateMutation = useMutation({
@@ -135,7 +207,26 @@ export default function EditListingForm() {
       images: File[];
     }) => {
       if (!id || !user?.uid) throw new Error("Missing required data");
-      await updateListing(id, formData, images, user.uid);
+
+      // Ensure all required fields are present to pass validation
+      const updatedData = {
+        ...formData,
+        updatedAt: new Date(),
+        // Ensure all these fields exist
+        status: formData.status || "pending_review",
+        flags: formData.flags || [],
+        flagCount: formData.flagCount || 0,
+        bookmarkCount: formData.bookmarkCount || 0,
+        viewCount: formData.viewCount || 0,
+        FLAG_THRESHOLD: formData.FLAG_THRESHOLD || 5,
+      };
+
+      // If user is not an admin, set status to pending_review
+      if (user?.role !== "admin") {
+        updatedData.status = "pending_review";
+      }
+
+      await updateListing(id, updatedData, images, user.uid);
     },
     onSuccess: () => {
       toast({ title: "Success", description: "Listing updated successfully" });
@@ -166,12 +257,20 @@ export default function EditListingForm() {
   };
 
   const onSubmit = (values: ListingFormData) => {
-    updateMutation.mutate({ formData: values, images });
-    if (user?.role !== "admin") {
-      values.status = "pending_review";
-    }
+    // Ensure all required fields are present
+    const formData = {
+      ...values,
+      createdAt: values.createdAt || new Date(),
+      updatedAt: new Date(),
+      status: user?.role !== "admin" ? "pending_review" : values.status || "pending_review",
+      flags: values.flags || [],
+      flagCount: values.flagCount || 0,
+      bookmarkCount: values.bookmarkCount || 0,
+      viewCount: values.viewCount || 0,
+      FLAG_THRESHOLD: values.FLAG_THRESHOLD || 5,
+    };
 
-    updateMutation.mutate({ formData: values, images });
+    updateMutation.mutate({ formData, images });
   };
 
   if (isLoading) return <div>Loading...</div>;
@@ -453,24 +552,38 @@ export default function EditListingForm() {
                     )}
                   />
                 </div>
+
+                {/* Fix for includedUtilities handling - properly convert string to array */}
                 <FormField
                   control={form.control}
                   name="utilities.includedUtilities"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Included Utilities</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter included utilities (comma-separated)"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(e.target.value.split(","))
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    // Format the array as a comma-separated string for display
+                    const displayValue = Array.isArray(field.value) 
+                      ? field.value.join(", ") 
+                      : "";
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>Included Utilities</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter included utilities (comma-separated)"
+                            value={displayValue}
+                            onChange={(e) => {
+                              // Split by comma and trim whitespace
+                              const values = e.target.value
+                                .split(",")
+                                .map(item => item.trim())
+                                .filter(item => item.length > 0);
+                              field.onChange(values);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
               </div>
 
@@ -588,24 +701,37 @@ export default function EditListingForm() {
                   />
                 </div>
 
+                {/* Fix for utilityResponsibilities handling - properly convert string to array */}
                 <FormField
                   control={form.control}
                   name="terms.utilityResponsibilities"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Utility Responsibilities</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter utility responsibilities (comma-separated)"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(e.target.value.split(","))
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    // Format the array as a comma-separated string for display
+                    const displayValue = Array.isArray(field.value) 
+                      ? field.value.join(", ") 
+                      : "";
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>Utility Responsibilities</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter utility responsibilities (comma-separated)"
+                            value={displayValue}
+                            onChange={(e) => {
+                              // Split by comma and trim whitespace
+                              const values = e.target.value
+                                .split(",")
+                                .map(item => item.trim())
+                                .filter(item => item.length > 0);
+                              field.onChange(values);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
               </div>
 
@@ -668,24 +794,37 @@ export default function EditListingForm() {
                   />
                 </div>
 
+                {/* Fix for additionalSecurity handling - properly convert string to array */}
                 <FormField
                   control={form.control}
                   name="security.additionalSecurity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Additional Security</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter additional security info (comma-separated)"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(e.target.value.split(","))
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    // Format the array as a comma-separated string for display
+                    const displayValue = Array.isArray(field.value) 
+                      ? field.value.join(", ") 
+                      : "";
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>Additional Security</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter additional security info (comma-separated)"
+                            value={displayValue}
+                            onChange={(e) => {
+                              // Split by comma and trim whitespace
+                              const values = e.target.value
+                                .split(",")
+                                .map(item => item.trim())
+                                .filter(item => item.length > 0);
+                              field.onChange(values);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
               </div>
 
