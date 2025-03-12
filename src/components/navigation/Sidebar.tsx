@@ -1,3 +1,5 @@
+"use client";
+
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Moon,
@@ -5,15 +7,13 @@ import {
   HomeIcon,
   Bell,
   Bookmark,
-  // Search,
   Settings,
   User,
   LogOut,
   MoreHorizontal,
-  HousePlus,
+  PlusIcon as HousePlus,
   HelpCircle,
   FileCheck,
-  // LucideIcon,
 } from "lucide-react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../lib/firebase/clientApp";
@@ -34,7 +34,7 @@ import {
 import { toast } from "../../hooks/useToast";
 import { signOut } from "../../lib/firebase/auth";
 import { useEffect, useState } from "react";
-import { BaseNotification } from "../../lib/utils/NotificationUtils";
+import type { BaseNotification } from "../../lib/utils/NotificationUtils";
 // type NavItem = {
 //   icon: LucideIcon;
 //   label: string;
@@ -200,21 +200,30 @@ const Sidebar = () => {
                 to={item.path}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive
-                    ? "dark:bg-white bg-[#111827] dark:text-black text-white/90 border border-black/10 shadow-lg backdrop-blur-3xl"
-                    : "hover:bg-white/5 dark:text-white/80 text-black/80 "
+                    ? "text-white border border-white/10 shadow-lg backdrop-blur-3xl relative overflow-hidden"
+                    : "hover:bg-white/5 dark:text-white/80 text-black/80"
                 }`}
               >
-                <div className="relative">
+                {isActive && (
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"></div>
+                    <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-gradient-to-br from-blue-500/20 via-indigo-500/20 to-purple-500/20 blur-[50px] rounded-full"></div>
+                    <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-gradient-to-tr from-emerald-500/20 via-blue-500/20 to-sky-500/20 blur-[50px] rounded-full"></div>
+                  </>
+                )}
+                <div className="relative z-10">
                   <Icon
-                    className={`w-5 h-5 ${isActive ? "text-[#8752f3]/80 dark:text-[#8752f3]" : "dark:text-white/50 text-black/50"}`}
+                    className={`w-5 h-5 ${
+                      isActive
+                        ? "text-[#8752f3]/80 dark:text-[#8752f3]"
+                        : "dark:text-white/50 text-black/50"
+                    }`}
                   />
                   {item.badge && (
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </div>
-                <span className="text-sm font-medium ">
-                  {item.label}
-                </span>
+                <span className="text-sm font-medium z-10">{item.label}</span>
               </Link>
             );
           })}
@@ -296,11 +305,18 @@ const Sidebar = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center p-2 rounded-lg mx-1 min-w-[4.5rem] ${
-                  isActive ? "text-primary" : "text-muted-foreground"
+                className={`flex flex-col items-center p-2 rounded-lg mx-1 min-w-[4.5rem] relative overflow-hidden ${
+                  isActive ? "text-white" : "text-muted-foreground"
                 }`}
               >
-                <div className="relative">
+                {isActive && (
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"></div>
+                    <div className="absolute top-0 right-0 w-[100px] h-[100px] bg-gradient-to-br from-blue-500/20 via-indigo-500/20 to-purple-500/20 blur-[30px] rounded-full"></div>
+                    <div className="absolute bottom-0 left-0 w-[100px] h-[100px] bg-gradient-to-tr from-emerald-500/20 via-blue-500/20 to-sky-500/20 blur-[30px] rounded-full"></div>
+                  </>
+                )}
+                <div className="relative z-10">
                   <Icon
                     className={`w-5 h-5 ${isActive ? "text-[#8752f3]" : ""}`}
                   />
@@ -308,7 +324,7 @@ const Sidebar = () => {
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </div>
-                <span className="text-xs mt-1 whitespace-nowrap">
+                <span className="text-xs mt-1 whitespace-nowrap z-10">
                   {item.label}
                 </span>
               </Link>
