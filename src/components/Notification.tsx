@@ -361,7 +361,7 @@ const NotificationsPage = () => {
       )}
 
       <Tabs defaultValue="unread" className="w-full">
-        <TabsList className="mb-4 w-max md:min-w-fit">
+        <TabsList className="mb-4 bg-black/5 dark:bg-white/5 w-max md:min-w-fit">
           <TabsTrigger
             value="unread"
             className="flex items-center gap-2 text-sm"
