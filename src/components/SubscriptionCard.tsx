@@ -79,7 +79,7 @@ const SubscriptionCard = () => {
               size="lg"
               className="bg-white text-slate-900 hover:bg-slate-200"
             >
-              <span className="mr-2 text-lg">+</span> Add Your Listing
+              <span className="mr-2 text-lg">+</span> Add Your Property
             </Button>
             <Button
               size="lg"
