@@ -252,9 +252,12 @@ const NotificationsPage = () => {
     }
   };
 
-  const markAllAsRead = async () => {
-    if (unreadNotifications.length === 0) return;
+  const [isMarkingAll, setIsMarkingAll] = useState(false);
 
+  const markAllAsRead = async () => {
+    if (unreadNotifications.length === 0 || isMarkingAll) return;
+
+    setIsMarkingAll(true);
     try {
       // Use the correct collection based on user role
       const collectionName =
@@ -287,6 +290,8 @@ const NotificationsPage = () => {
       setOperationError(
         "Failed to mark all notifications as read. Please try again."
       );
+    } finally {
+      setIsMarkingAll(false);
     }
   };
 
@@ -386,10 +391,11 @@ const NotificationsPage = () => {
               <div className="flex justify-end mb-4">
                 <Button 
                   onClick={markAllAsRead}
-                  className="flex items-center gap-2 text-sm bg-black/90 hover:bg-black/80 dark:bg-white/90 dark:hover:bg-white/80 text-white dark:text-black rounded-md transition-colors"
+                  disabled={isMarkingAll}
+                  className="flex items-center gap-2 text-sm bg-black/90 hover:bg-black/80 dark:bg-white/90 dark:hover:bg-white/80 text-white dark:text-black rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCheck className="h-4 w-4" />
-                  Mark All as Read
+                  {isMarkingAll ? "Marking..." : "Mark All as Read"}
                 </Button>
               </div>
               <div className="space-y-3 sm:space-y-4">

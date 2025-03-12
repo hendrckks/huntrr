@@ -54,6 +54,7 @@ export default {
   			athauss: 'At Hauss Std TRIAL',
   			sans: ['ClashDisplay', 'sans-serif'],
   			clash: 'ClashDisplay',
+  			inter: ['Inter', 'sans-serif'],
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

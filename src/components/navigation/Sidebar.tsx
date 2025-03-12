@@ -140,7 +140,7 @@ const Sidebar = () => {
       : null,
     {
       icon: User,
-      label: "Profile",
+      label: "Dashboard",
       path:
         user?.role === "admin"
           ? "/admin-dashboard"
@@ -171,7 +171,7 @@ const Sidebar = () => {
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex w-64 bg-transparent dark:bg-[#121212] text-foreground h-[calc(100vh-1rem)] ml-2 fixed left-0 top-0 p-4 mt-4 mr-2 flex-col overflow-y-auto">
+      <div className="hidden md:flex w-64 bg-transparent text-foreground h-[calc(100vh-1rem)] ml-2 fixed left-0 top-0 p-4 mt-4 mr-2 flex-col overflow-y-auto">
         {/* Logo Section */}
         <Link to="/" className="flex items-center h-10 w-10 mb-6 gap-2 ">
           <img
@@ -189,7 +189,7 @@ const Sidebar = () => {
 
         {/* Navigation Items */}
         <p className="py-4 text-sm font-medium dark:text-white/70">General</p>
-        <nav className="flex-1 space-y-2">
+        <nav className="flex-1 space-y-3">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -200,19 +200,19 @@ const Sidebar = () => {
                 to={item.path}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive
-                    ? "dark:bg-white/10 bg-black/10 border border-black/10 shadow-lg backdrop-blur-3xl"
-                    : "hover:bg-white/5"
+                    ? "dark:bg-white bg-[#111827] dark:text-black text-white/90 border border-black/10 shadow-lg backdrop-blur-3xl"
+                    : "hover:bg-white/5 dark:text-white/80 text-black/80 "
                 }`}
               >
                 <div className="relative">
                   <Icon
-                    className={`w-5 h-5 ${isActive ? "text-[#8752f3]" : "dark:text-white/50 text-black/50"}`}
+                    className={`w-5 h-5 ${isActive ? "text-[#8752f3]/80 dark:text-[#8752f3]" : "dark:text-white/50 text-black/50"}`}
                   />
                   {item.badge && (
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </div>
-                <span className="text-sm font-medium text-black/80 dark:text-white/80">
+                <span className="text-sm font-medium ">
                   {item.label}
                 </span>
               </Link>

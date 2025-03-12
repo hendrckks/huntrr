@@ -283,7 +283,7 @@ const FilterModal = () => {
         <Button
           variant="outline"
           size="icon"
-          className="dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 p-5 rounded-lg md:shadow-lg shadow-md backdrop-blur-3xl font-medium w-full flex gap-4 justify-between items-center"
+          className="dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 p-5 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl font-medium w-full flex gap-4 justify-between items-center"
         >
           <div className="flex items-center gap-2">
             {/* <Filter className="h-3 w-3 dark:text-muted-foreground text-muted-foreground md:text-black/50" /> */}
@@ -298,7 +298,7 @@ const FilterModal = () => {
         </Button>
       </DialogTrigger>
       <DialogContent
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:max-w-[800px] max-h-[90vh] overflow-y-auto dark:bg-[#121212] shadow-2xl w-[95vw] md:backdrop-blur-3xl backdrop-blur-none bg-white"
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:max-w-[800px] max-h-[90vh] overflow-y-auto dark:bg-[#121212] shadow-2xl w-[95vw] md:backdrop-blur-3xl backdrop-blur-5xl bg-white"
         ref={contentRef}
         onScroll={handleScroll}
       >

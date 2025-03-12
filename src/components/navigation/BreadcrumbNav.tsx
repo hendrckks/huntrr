@@ -90,7 +90,7 @@ export default function BreadcrumbNav() {
   };
 
   return (
-    <Breadcrumb className="mb-4 md:ml-4 ml-0 dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 p-4 shadow-md backdrop-blur-3xl w-fit px-4 py-2 rounded-md dark:shadow-lg border border-black/5 font-medium text-sm">
+    <Breadcrumb className="dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 p-4 shadow-md backdrop-blur-3xl w-fit px-4 py-2 rounded-md dark:shadow-lg border border-black/5 font-medium text-sm">
       <BreadcrumbList>
         {history.map((breadcrumb, index) => (
           <BreadcrumbItem key={breadcrumb.path} className="text-sm font-medium">

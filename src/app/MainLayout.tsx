@@ -27,13 +27,13 @@ const MainLayout: React.FC = () => {
   const isHomePage = location.pathname === "/";
 
   return (
-    <div className="flex fixed inset-0 tracking-normal word-spacing-sm bg-black/5 dark:bg-[#121212] font-sans overflow-hidden">
+    <div className="flex fixed inset-0 tracking-normal word-spacing-sm bg-black/5 dark:bg-[#171717] font-sans overflow-hidden">
       <ScrollToTop />
       {!shouldHideNavbar && <Sidebar />}
       <div className={`flex-1 flex flex-col font-clash ${!shouldHideNavbar ? 'md:ml-[calc(0.5rem+16rem)]' : ''} ${isHomePage ? 'mt-2' : 'mt-2'} overflow-hidden`}>
-        <main className={`flex-1 font-clash tracking-normal p-4 md:p-6 md:mb-2 mb-0 mx-2 ${isHomePage ? 'shadow-lg' : 'bg-white/60 dark:bg-[#171717] shadow-lg backdrop-blur-3xl'} bg-white/60 dark:bg-[#171717] rounded-xl overflow-y-auto h-[calc(100vh-1rem)] pb-20 md:pb-6`}>
+        <main className={`flex-1 font-clash tracking-normal p-4 md:p-6 md:mb-2 mb-0 mx-2 ${isHomePage ? 'shadow-lg' : 'bg-white/60 dark:bg-[#121212] shadow-lg backdrop-blur-3xl'} bg-white/60 dark:bg-[#121212] rounded-xl overflow-y-auto h-[calc(100vh-1rem)] pb-20 md:pb-6`}>
           {!shouldHideNavbar && (
-            <div className="flex justify-between items-center md:mb-0 gap-4">
+            <div className="flex mx-auto max-w-7xl justify-between items-center md:px-4 md:mb-6 gap-4">
               <div className="flex items-center">
                 <BreadcrumbNav />
               </div>
