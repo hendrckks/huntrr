@@ -386,7 +386,7 @@ const NotificationsPage = () => {
               <div className="flex justify-end mb-4">
                 <Button 
                   onClick={markAllAsRead}
-                  className="flex items-center gap-2 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
+                  className="flex items-center gap-2 text-sm bg-black/90 hover:bg-black/80 dark:bg-white/90 dark:hover:bg-white/80 text-white dark:text-black rounded-md transition-colors"
                 >
                   <CheckCheck className="h-4 w-4" />
                   Mark All as Read

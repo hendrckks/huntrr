@@ -149,7 +149,7 @@ const Home = () => {
     <div className="max-w-7xl mx-auto px-0 md:px-4">
       {/* Popular Listings Section */}
       <div className="mb-8">
-        <h2 className="text-xl font-medium mb-4">Popular Properties</h2>
+        <h2 className="text-lg font-medium mb-4">Popular Properties</h2>
         <ScrollArea className="w-full whitespace-nowrap pb-4">
           <div className="pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
             {isLoadingPopular
@@ -167,7 +167,7 @@ const Home = () => {
         </ScrollArea>
       </div>
 
-      <h1 className="text-xl font-medium mb-4">Available Properties</h1>
+      <h1 className="text-lg font-medium mb-4">Available Properties</h1>
 
       {searchParams.toString() && (
         <div className="mb-4 text-sm text-muted-foreground">

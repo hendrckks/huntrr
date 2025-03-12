@@ -301,7 +301,7 @@ const ListingCard = ({
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <div className="flex justify-between items-center">
-              <h3 className="font-medium text-gray-900 dark:text-white max-w-[300px] truncate">
+              <h3 className="font-medium text-[15px] text-gray-900 dark:text-white max-w-[300px] truncate">
                 {listing.title}
               </h3>
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

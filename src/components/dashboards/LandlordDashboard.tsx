@@ -338,7 +338,7 @@ const LandlordDashboard: React.FC = () => {
                 navigate("/add-listing");
               }
             }}
-            className="flex items-center gap-2 shadow-md w-full sm:w-auto justify-center"
+            className="flex bg-black/90 hover:bg-black/80 hover:text-white dark:bg-white/90 text-white dark:text-black items-center gap-2 shadow-md w-full sm:w-auto justify-center"
           >
             <Plus className="h-4 w-4" />
             Add Listing

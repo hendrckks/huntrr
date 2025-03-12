@@ -177,7 +177,7 @@ const Sidebar = () => {
           <img
             src={theme === "dark" ? "/hlogo.png" : "/hlogo.png"}
             alt="Huntrr Logo"
-            className="w-fit h-full -p-8 rounded-lg border bg-black/2 border-black/30 dark:border-white/10 backdrop-blur-3xl shadow-md"
+            className="w-fit h-full -p-8 rounded-lg border bg-black/2 border-black/30 dark:border-white/20 backdrop-blur-3xl shadow-md"
           />
           <span className="text-lg font-medium tracking-tight mt-1">
             Huntrr
@@ -212,7 +212,7 @@ const Sidebar = () => {
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </div>
-                <span className="text-sm dark:font-normal font-medium">
+                <span className="text-sm font-medium text-black/80 dark:text-white/80">
                   {item.label}
                 </span>
               </Link>
