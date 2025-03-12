@@ -36,7 +36,7 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, growth, storageKe
           {title}
         </div>
         <div className="flex items-baseline gap-3 mt-1">
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="text-2xl font-bold font-sans text-gray-900 dark:text-white">
             <NumberFlow value={value} />
           </div>
           {growth !== undefined && (
