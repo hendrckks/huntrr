@@ -324,9 +324,13 @@ const Home = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-4">
-      <div className="grid w-full grid-cols-3 py-6 -mt-10 gap-3">
-        <SubscriptionCard />
-        <QuickFilter />
+      <div className="grid w-full grid-cols-1 md:grid-cols-3 py-6 md:-mt-10 gap-3">
+        <div className="col-span-1 md:col-span-2">
+          <SubscriptionCard />
+        </div>
+        <div className="col-span-1">
+          <QuickFilter />
+        </div>
       </div>
 
       {/* Popular Listings Section */}

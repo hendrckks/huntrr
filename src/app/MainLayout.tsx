@@ -31,7 +31,7 @@ const MainLayout: React.FC = () => {
       <ScrollToTop />
       {!shouldHideNavbar && <Sidebar />}
       <div className={`flex-1 flex flex-col font-noto ${!shouldHideNavbar ? 'md:ml-[calc(0.5rem+16rem)]' : ''} ${isHomePage ? 'mt-2' : 'mt-2'} overflow-hidden`}>
-        <main className={`flex-1 font-noto tracking-tight p-4 md:p-6 md:mb-2 mb-0 mx-2 ${isHomePage ? 'shadow-lg' : 'bg-white/60 dark:bg-[#121212] shadow-lg backdrop-blur-3xl'} bg-white/60 dark:bg-[#121212] rounded-xl overflow-y-auto h-[calc(100vh-1rem)] pb-20 md:pb-6`}>
+        <main className={`flex-1 font-noto tracking-tight p-4 md:p-6 md:mb-2 mb-0 mx-0 ${isHomePage ? 'shadow-lg' : 'bg-white/60 dark:bg-[#121212] shadow-lg backdrop-blur-3xl'} bg-white/60 dark:bg-[#121212] rounded-xl overflow-y-auto h-[calc(100vh-1rem)] pb-20 md:pb-6`}>
           {!shouldHideNavbar && (
             <div className="flex mx-auto max-w-7xl justify-between items-center md:px-4 md:mb-6 gap-4">
               <div className="flex items-center">

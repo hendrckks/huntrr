@@ -125,7 +125,7 @@ const QuickFilter = () => {
   return (
     <Card className="h-full col-span-1 shadow-md">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xl flex items-center justify-between font-medium">
+        <CardTitle className="text-xl flex flex-col sm:flex-row sm:items-center justify-between font-medium gap-2">
           Quick Filters
           {activeFilters.length > 0 && (
             <Button
@@ -139,7 +139,7 @@ const QuickFilter = () => {
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-wrap gap-4">
+      <CardContent className="flex flex-col sm:flex-row flex-wrap gap-4">
         <div className="flex-1 min-w-[200px] space-y-2">
           <h3 className="text-sm font-medium text-muted-foreground">
             Property Type

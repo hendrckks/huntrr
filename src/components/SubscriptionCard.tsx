@@ -73,11 +73,11 @@ const SubscriptionCard = () => {
             rental properties all in one place with better results.
           </p>
 
-          <div className="mb-12 flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
+          <div className="mb-8 md:mb-12 flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-4">
             <Button
               onClick={addListingClick}
               size="lg"
-              className="bg-white text-slate-900 hover:bg-slate-200"
+              className="bg-white text-slate-900 hover:bg-slate-200 w-full sm:w-auto"
             >
               <span className="mr-2 text-lg">+</span> Add Your Property
             </Button>
@@ -87,7 +87,7 @@ const SubscriptionCard = () => {
               onClick={() => {
                 document.getElementById('available-properties')?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm hover:text-accent-foreground h-10 rounded-md px-8 bg-white/10 hover:bg-white/20 text-white border-white/20 gap-2"
+              className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm hover:text-accent-foreground rounded-md px-4 sm:px-8 bg-white/10 hover:bg-white/20 text-white border-white/20 gap-2 w-full sm:w-auto"
             >
               <Search className="mr-2 h-5 w-5" /> View Properties
             </Button>
