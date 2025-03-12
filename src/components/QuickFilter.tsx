@@ -227,7 +227,7 @@ const QuickFilter = () => {
                 variant={
                   activeFilters.includes(option.id) ? "default" : "outline"
                 }
-                className={`cursor-pointer text-sm py-1 px-3 hover:bg-accent text-medium transition-colors ${
+                className={`cursor-pointer text-sm py-1 px-3 hover:bg-accent font-medium transition-colors ${
                   activeFilters.includes(option.id)
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : ""
