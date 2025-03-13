@@ -37,7 +37,7 @@ const SubscriptionCard = () => {
 
   return (
     <TooltipProvider>
-      <div className="rounded-xl col-span-2 h-full min-h-[28rem] bg-card text-card-foreground relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-0 shadow-xl">
+      <div className="rounded-xl col-span-2 h-full min-h-80 bg-card text-card-foreground relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-0 shadow-xl">
         <div className="absolute inset-0 shadow-md">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-500/20 via-indigo-500/20 to-purple-500/20 blur-[100px] rounded-full"></div>
           <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-emerald-500/20 via-blue-500/20 to-sky-500/20 blur-[100px] rounded-full"></div>
