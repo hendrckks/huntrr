@@ -195,7 +195,6 @@ export default function CreateListingForm() {
         !user.uid ||
         !user.role ||
         !(
-          user.role === "landlord_unverified" ||
           user.role === "landlord_verified" ||
           user.role === "admin"
         )
