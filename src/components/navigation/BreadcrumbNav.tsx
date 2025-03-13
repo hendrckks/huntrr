@@ -92,13 +92,13 @@ export default function BreadcrumbNav() {
   return (
     <>
       {/* Mobile Logo */}
-      <div className="md:hidden flex items-center h-10 w-10 gap-2">
+      <div className="md:hidden flex items-center h-10 w-10 gap-1">
         <img
           src="/hlogo.png"
           alt="Huntrr Logo"
-          className="w-fit h-full -p-8 rounded-lg border bg-black/2 border-black/30 dark:border-white/20 backdrop-blur-3xl shadow-md"
+          className="w-fit h-full -p-8 rounded-lg  md:shadow-lg backdrop-blur-6xl border bg-black/2 border-black/30 dark:border-white/20 backdrop-blur-3xl shadow-md"
         />
-        <span className="text-lg font-medium tracking-tight mt-1">
+        <span className="font-medium tracking-tight">
           Huntrr
           <span className="text-[10px] hidden px-2 py-0.5 ml-2 rounded-sm bg-[#8752f3]/20 font-medium">
             beta
