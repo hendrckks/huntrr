@@ -290,15 +290,8 @@ const Sidebar = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive ? 'bg-black dark:bg-white/10 text-white dark:text-white' : 'hover:bg-white/5 dark:text-white/80 text-black/80'}`}
+                className={`flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${isActive ? 'bg-white dark:bg-white/10 text-black dark:text-white' : 'hover:bg-gray-100 dark:hover:bg-white/5 text-black/80 dark:text-white/80'}`}
               >
-                {isActive && (
-                  <>
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"></div>
-                    <div className="absolute top-0 right-0 w-[100px] h-[100px] bg-gradient-to-br from-blue-500/20 via-indigo-500/20 to-purple-500/20 blur-[30px] rounded-full"></div>
-                    <div className="absolute bottom-0 left-0 w-[100px] h-[100px] bg-gradient-to-tr from-emerald-500/20 via-blue-500/20 to-sky-500/20 blur-[30px] rounded-full"></div>
-                  </>
-                )}
                 <div className="relative z-10">
                   <Icon
                     className={`w-5 h-5 ${isActive ? "text-[#8752f3]" : ""}`}
@@ -307,7 +300,7 @@ const Sidebar = () => {
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </div>
-                <span className="text-xs mt-1 whitespace-nowrap z-10">
+                <span className="text-base whitespace-nowrap z-10">
                   {item.label}
                 </span>
               </Link>

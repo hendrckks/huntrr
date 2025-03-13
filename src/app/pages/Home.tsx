@@ -359,11 +359,11 @@ const Home = () => {
         </ScrollArea>
       </div>
 
-      <h1 id="available-properties" className="text-lg font-medium mb-4">Available Properties</h1>
+      <h1 id="available-properties" className="text-lg font-medium">Available Properties</h1>
 
       {hasFilters && (
         <div className="mb-4 text-sm text-muted-foreground">
-          Showing filtered results
+          (Showing filtered results)
         </div>
       )}
 
