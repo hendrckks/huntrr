@@ -37,7 +37,7 @@ const SubscriptionCard = () => {
 
   return (
     <TooltipProvider>
-      <div className="rounded-xl col-span-2 h-full min-h-80 bg-card text-card-foreground relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-0 shadow-xl">
+      <div className="rounded-xl col-span-2 h-full min-h-[28rem] bg-card text-card-foreground relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-0 shadow-xl">
         <div className="absolute inset-0 shadow-md">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-500/20 via-indigo-500/20 to-purple-500/20 blur-[100px] rounded-full"></div>
           <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-emerald-500/20 via-blue-500/20 to-sky-500/20 blur-[100px] rounded-full"></div>
@@ -68,12 +68,12 @@ const SubscriptionCard = () => {
             List Your Properties
           </h1>
 
-          <p className="mb-8 tracking-tight font-medium max-w-xl text-slate-300">
+          <p className="mb-12 tracking-tight max-w-xl text-slate-300 text-lg">
             Connect with quality tenants faster. Create, manage, and promote your
             rental properties all in one place with better results.
           </p>
 
-          <div className="mb-8 md:mb-12 flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-4">
+          <div className="mb-12 md:mb-16 flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
             <Button
               onClick={addListingClick}
               size="lg"

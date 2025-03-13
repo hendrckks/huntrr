@@ -60,7 +60,7 @@ export const router = createBrowserRouter([
     element: (
       // <AuthProvider>
       //   <BookmarkProvider>
-      <div className="antialiased bg-background font-athauss">
+      <div className="antialiased bg-background">
         <Suspense fallback={<SpinningLoader />}>
           <Components.MainLayout />
         </Suspense>
