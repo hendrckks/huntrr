@@ -283,7 +283,7 @@ const FilterModal = () => {
         <Button
           variant="outline"
           size="icon"
-          className="dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 p-5 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl font-medium w-full flex gap-4 justify-between items-center"
+          className="dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 p-4 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl font-medium w-full flex gap-4 justify-between items-center"
         >
           <div className="flex items-center gap-2">
             {/* <Filter className="h-3 w-3 dark:text-muted-foreground text-muted-foreground md:text-black/50" /> */}

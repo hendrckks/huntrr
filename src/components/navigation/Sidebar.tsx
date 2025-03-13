@@ -281,7 +281,7 @@ const Sidebar = () => {
 
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#121212] backdrop-blur-lg border-t dark:border-white/10 border-black/10 p-2 z-50 overflow-x-auto">
-        <nav className="flex items-center justify-between px-2 min-w-max">
+        <nav className="flex items-center justify-between space-x-2 px-2 min-w-max">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -290,7 +290,7 @@ const Sidebar = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${isActive ? 'bg-white dark:bg-white/10 text-black dark:text-white' : 'hover:bg-gray-100 dark:hover:bg-white/5 text-black/80 dark:text-white/80'}`}
+                className={`flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${isActive ? 'bg-white dark:bg-white/10 text-black dark:text-white rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl' : 'hover:bg-gray-100 dark:hover:bg-white/5 text-black/80 dark:text-white/80'}`}
               >
                 <div className="relative z-10">
                   <Icon
