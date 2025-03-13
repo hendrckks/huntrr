@@ -346,7 +346,7 @@ const NotificationsPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto sm:px-6 lg:px-4 font-noto">
+    <div className="max-w-7xl mx-auto sm:px-6 lg:px-4 p-4 md:p-0 font-noto">
       <div className="flex items-center gap-2 mb-4">
         <div className="relative">
           <Bell className="h-5 w-5 sm:h-6 sm:w-6" />

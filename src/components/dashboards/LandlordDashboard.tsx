@@ -315,7 +315,7 @@ const LandlordDashboard: React.FC = () => {
   );
 
   return (
-    <div className="container mx-auto max-w-7xl px-4 space-y-4">
+    <div className="container mx-auto max-w-7xl px-4 space-y-4 md:mt-0 mt-4">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-2">
           <User className="h-6 w-6" />

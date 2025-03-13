@@ -184,7 +184,7 @@ const EditAccount: React.FC = () => {
   const isGoogleUser = user?.providerData[0]?.providerId === "google.com";
 
   return (
-    <div className="container mx-auto px-4 mb-10">
+    <div className="container mx-auto px-4 mb-10 md:mt-0 mt-5">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
           <Settings className="h-6 w-6" />
