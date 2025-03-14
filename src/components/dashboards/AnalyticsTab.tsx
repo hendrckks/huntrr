@@ -137,7 +137,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       <div className="space-y-6">
         {/* <AnalyticsDebug listings={listings} analyticsQuery={analyticsQuery} /> */}
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 md:gap-6 gap-2">
           <MetricCard 
             title="Total Views" 
             value={totalStats.views} 
@@ -163,7 +163,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           <CardHeader className="border-b">
             <CardTitle>Performance Overview</CardTitle>
           </CardHeader>
-          <CardContent className="pt-6 px-6">
+          <CardContent className="pt-6 px-6 md:block hidden">
             <div className="w-full h-[400px] md:h-[500px] lg:h-[600px]">
               <ChartContainer
                 config={{
