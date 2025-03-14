@@ -290,7 +290,7 @@ const Sidebar = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${isActive ? 'bg-white dark:bg-white/10 text-black dark:text-white rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl' : 'hover:bg-gray-100 dark:hover:bg-white/5 text-black/80 dark:text-white/80'}`}
+                className={`flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${isActive ? 'bg-white  bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 p-4 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl font-medium w-full flex justify-between items-center dark:bg-white/10 text-black dark:text-white backdrop-blur-6xl' : 'hover:bg-gray-100 dark:hover:bg-white/5 text-black/80 dark:text-white/80'}`}
               >
                 <div className="relative z-10">
                   <Icon

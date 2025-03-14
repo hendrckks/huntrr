@@ -229,7 +229,11 @@ export default function EditListingForm() {
       await updateListing(id, updatedData, images, user.uid);
     },
     onSuccess: () => {
-      toast({ title: "Success", description: "Listing updated successfully" });
+      toast({
+        title: "Success",
+        description: "Listing updated successfully",
+        duration: 5000,
+      });
       navigate("/landlord-dashboard");
     },
     onError: (error: Error) => {
@@ -237,6 +241,7 @@ export default function EditListingForm() {
         title: "Error",
         description: "Failed to update listing: " + error.message,
         variant: "error",
+        duration: 5000,
       });
     },
   });
@@ -262,7 +267,10 @@ export default function EditListingForm() {
       ...values,
       createdAt: values.createdAt || new Date(),
       updatedAt: new Date(),
-      status: user?.role !== "admin" ? "pending_review" : values.status || "pending_review",
+      status:
+        user?.role !== "admin"
+          ? "pending_review"
+          : values.status || "pending_review",
       flags: values.flags || [],
       flagCount: values.flagCount || 0,
       bookmarkCount: values.bookmarkCount || 0,
@@ -559,10 +567,10 @@ export default function EditListingForm() {
                   name="utilities.includedUtilities"
                   render={({ field }) => {
                     // Format the array as a comma-separated string for display
-                    const displayValue = Array.isArray(field.value) 
-                      ? field.value.join(", ") 
+                    const displayValue = Array.isArray(field.value)
+                      ? field.value.join(", ")
                       : "";
-                    
+
                     return (
                       <FormItem>
                         <FormLabel>Included Utilities</FormLabel>
@@ -574,8 +582,8 @@ export default function EditListingForm() {
                               // Split by comma and trim whitespace
                               const values = e.target.value
                                 .split(",")
-                                .map(item => item.trim())
-                                .filter(item => item.length > 0);
+                                .map((item) => item.trim())
+                                .filter((item) => item.length > 0);
                               field.onChange(values);
                             }}
                           />
@@ -707,10 +715,10 @@ export default function EditListingForm() {
                   name="terms.utilityResponsibilities"
                   render={({ field }) => {
                     // Format the array as a comma-separated string for display
-                    const displayValue = Array.isArray(field.value) 
-                      ? field.value.join(", ") 
+                    const displayValue = Array.isArray(field.value)
+                      ? field.value.join(", ")
                       : "";
-                    
+
                     return (
                       <FormItem>
                         <FormLabel>Utility Responsibilities</FormLabel>
@@ -722,8 +730,8 @@ export default function EditListingForm() {
                               // Split by comma and trim whitespace
                               const values = e.target.value
                                 .split(",")
-                                .map(item => item.trim())
-                                .filter(item => item.length > 0);
+                                .map((item) => item.trim())
+                                .filter((item) => item.length > 0);
                               field.onChange(values);
                             }}
                           />
@@ -800,10 +808,10 @@ export default function EditListingForm() {
                   name="security.additionalSecurity"
                   render={({ field }) => {
                     // Format the array as a comma-separated string for display
-                    const displayValue = Array.isArray(field.value) 
-                      ? field.value.join(", ") 
+                    const displayValue = Array.isArray(field.value)
+                      ? field.value.join(", ")
                       : "";
-                    
+
                     return (
                       <FormItem>
                         <FormLabel>Additional Security</FormLabel>
@@ -815,8 +823,8 @@ export default function EditListingForm() {
                               // Split by comma and trim whitespace
                               const values = e.target.value
                                 .split(",")
-                                .map(item => item.trim())
-                                .filter(item => item.length > 0);
+                                .map((item) => item.trim())
+                                .filter((item) => item.length > 0);
                               field.onChange(values);
                             }}
                           />

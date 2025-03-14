@@ -1,51 +1,53 @@
-import { doc, runTransaction } from 'firebase/firestore';
-import { db } from '../lib/firebase/clientApp';
-import { useQuery } from '@tanstack/react-query';
-import { getListingsByStatus } from '../lib/firebase/firestore';
-import { useToast } from '../hooks/useToast';
-import type { ListingDocument } from '../lib/types/Listing';
+import { doc, runTransaction } from "firebase/firestore";
+import { db } from "../lib/firebase/clientApp";
+import { useQuery } from "@tanstack/react-query";
+import { getListingsByStatus } from "../lib/firebase/firestore";
+import { useToast } from "../hooks/useToast";
+import type { ListingDocument } from "../lib/types/Listing";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { ScrollArea } from '../components/ui/scroll-area';
-import { Badge } from '../components/ui/badge';
-import { Check, X, Eye } from 'lucide-react';
+} from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { ScrollArea } from "../components/ui/scroll-area";
+import { Badge } from "../components/ui/badge";
+import { Check, X, Eye } from "lucide-react";
 
 const ListingsTab = () => {
   const { toast } = useToast();
   const { data: pendingListings = [], refetch } = useQuery<ListingDocument[]>({
-    queryKey: ['pending-listings'],
-    queryFn: () => getListingsByStatus('pending_review'),
+    queryKey: ["pending-listings"],
+    queryFn: () => getListingsByStatus("pending_review"),
     refetchInterval: 30000,
   });
 
   const handleListingAction = async (listingId: string, approved: boolean) => {
     try {
       await runTransaction(db, async (transaction) => {
-        const listingRef = doc(db, 'listings', listingId);
-        
+        const listingRef = doc(db, "listings", listingId);
+
         transaction.update(listingRef, {
-          status: approved ? 'published' : 'denied',
+          status: approved ? "published" : "denied",
           reviewedAt: new Date(),
         });
       });
 
       await refetch();
       toast({
-        title: 'Success',
-        description: `Listing ${approved ? 'approved' : 'denied'} successfully`,
+        title: "Success",
+        description: `Listing ${approved ? "approved" : "denied"} successfully`,
+        duration: 5000,
       });
     } catch (error) {
-      console.error('Error processing listing:', error);
+      console.error("Error processing listing:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to process listing',
-        variant: 'error',
+        title: "Error",
+        description: "Failed to process listing",
+        variant: "error",
+        duration: 5000,
       });
     }
   };
@@ -54,12 +56,16 @@ const ListingsTab = () => {
     <Card>
       <CardHeader>
         <CardTitle>Pending Listings</CardTitle>
-        <CardDescription>Review and approve new or updated listings</CardDescription>
+        <CardDescription>
+          Review and approve new or updated listings
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[600px] pr-4">
           {pendingListings.length === 0 ? (
-            <p className="text-center text-gray-500">No listings pending review</p>
+            <p className="text-center text-gray-500">
+              No listings pending review
+            </p>
           ) : (
             <div className="space-y-4">
               {pendingListings.map((listing: ListingDocument) => (
@@ -75,7 +81,7 @@ const ListingsTab = () => {
                           {listing.location.area}, {listing.location.city}
                         </p>
                         <p className="text-sm">
-                          ${listing.price}/month • {listing.bedrooms} beds •{' '}
+                          ${listing.price}/month • {listing.bedrooms} beds •{" "}
                           {listing.bathrooms} baths
                         </p>
                       </div>
@@ -83,7 +89,9 @@ const ListingsTab = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => window.open(`/listing/${listing.id}`, '_blank')}
+                          onClick={() =>
+                            window.open(`/listing/${listing.id}`, "_blank")
+                          }
                         >
                           <Eye className="h-4 w-4" />
                         </Button>

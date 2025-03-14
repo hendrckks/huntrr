@@ -29,8 +29,12 @@ import { BirthdayPicker } from "../ui/birthday-picker";
 const kycSubmissionSchema = z.object({
   documentType: z.enum(["national_id", "passport", "drivers_license"]),
   documentNumber: z.string().min(1, "Document number is required"),
-  frontDocumentFile: z.instanceof(File, { message: "Front document image is required" }),
-  backDocumentFile: z.instanceof(File, { message: "Back document image is required" }),
+  frontDocumentFile: z.instanceof(File, {
+    message: "Front document image is required",
+  }),
+  backDocumentFile: z.instanceof(File, {
+    message: "Back document image is required",
+  }),
   selfieFile: z.instanceof(File, { message: "Selfie photo is required" }),
   personalInfo: z.object({
     dateOfBirth: z.string().min(1, "Date of birth is required"),
@@ -38,8 +42,8 @@ const kycSubmissionSchema = z.object({
     city: z.string().min(1, "City is required"),
     country: z.string().min(1, "Country is required"),
     postalCode: z.string().min(1, "Postal code is required"),
-    phoneNumber: z.string().min(1, "Phone number is required")
-  })
+    phoneNumber: z.string().min(1, "Phone number is required"),
+  }),
 });
 
 type KYCFormData = z.infer<typeof kycSubmissionSchema>;
@@ -60,11 +64,11 @@ const KYCVerification = () => {
         setIsLoading(false);
         return;
       }
-      
+
       try {
         const kycRef = doc(db, "kyc", user.uid);
         const kycDoc = await getDoc(kycRef);
-        
+
         if (kycDoc.exists()) {
           const kycData = kycDoc.data();
           setKycStatus(kycData.status);
@@ -76,13 +80,13 @@ const KYCVerification = () => {
         toast({
           title: "Error",
           description: "Failed to load verification status",
-          variant: "error"
+          variant: "error",
         });
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     checkKycStatus();
   }, [user, toast]);
 
@@ -103,13 +107,17 @@ const KYCVerification = () => {
   });
 
   const handleFileChange =
-    (field: keyof Pick<KYCFormData, "frontDocumentFile" | "backDocumentFile" | "selfieFile">) =>
+    (
+      field: keyof Pick<
+        KYCFormData,
+        "frontDocumentFile" | "backDocumentFile" | "selfieFile"
+      >
+    ) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
         form.setValue(field, e.target.files[0]);
       }
     };
-
 
   const onSubmit = async (data: KYCFormData) => {
     if (!user) return;
@@ -126,6 +134,7 @@ const KYCVerification = () => {
           title: "Error",
           description: "KYC verification has already been submitted.",
           variant: "error",
+          duration: 5000,
         });
         return;
       }
@@ -180,6 +189,7 @@ const KYCVerification = () => {
         title: "Success",
         description: "Your documents have been submitted for verification.",
         variant: "success",
+        duration: 5000,
       });
     } catch (error) {
       console.error("Error submitting KYC:", error);
@@ -187,6 +197,7 @@ const KYCVerification = () => {
         title: "Error",
         description: "Failed to submit documents. Please try again.",
         variant: "error",
+        duration: 5000,
       });
     } finally {
       setIsSubmitting(false);
@@ -199,7 +210,9 @@ const KYCVerification = () => {
         <CardContent className="flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-4">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-            <p className="text-sm text-muted-foreground">Loading verification status...</p>
+            <p className="text-sm text-muted-foreground">
+              Loading verification status...
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -248,7 +261,8 @@ const KYCVerification = () => {
                   </p>
                   {kycStatus === "rejected" && (
                     <p className="mt-2 text-sm text-red-600">
-                      Your verification was not approved. Please contact support for more information.
+                      Your verification was not approved. Please contact support
+                      for more information.
                     </p>
                   )}
                 </div>
@@ -258,174 +272,194 @@ const KYCVerification = () => {
               <h4 className="font-medium">What happens next?</h4>
               <ul className="space-y-2 text-sm dark:text-white/80 text-black/80 list-disc list-inside">
                 <li>Our team will review your submitted documents</li>
-                <li>You'll receive a notification once the review is complete</li>
+                <li>
+                  You'll receive a notification once the review is complete
+                </li>
                 <li>This process typically takes 1-2 business days</li>
                 <li>You can continue using the platform while you wait</li>
               </ul>
             </div>
           </div>
         ) : (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="documentType">Document Type</Label>
-            <Select
-              value={form.getValues("documentType")}
-              onValueChange={(value) => form.setValue("documentType", value as any)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select document type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="national_id">National ID</SelectItem>
-                <SelectItem value="passport">Passport</SelectItem>
-                <SelectItem value="drivers_license">
-                  Driver's License
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            {form.formState.errors.documentType && (
-              <p className="text-sm text-red-500">{form.formState.errors.documentType.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="documentNumber">Document Number</Label>
-            <Input
-              id="documentNumber"
-              {...form.register("documentNumber")}
-            />
-            {form.formState.errors.documentNumber && (
-              <p className="text-sm text-red-500">{form.formState.errors.documentNumber.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="frontDocument">Front of Document</Label>
-            <Input
-              id="frontDocument"
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange("frontDocumentFile")}
-              capture="environment"
-            />
-            {form.formState.errors.frontDocumentFile && (
-              <p className="text-sm text-red-500">{form.formState.errors.frontDocumentFile.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="backDocument">Back of Document</Label>
-            <Input
-              id="backDocument"
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange("backDocumentFile")}
-              capture="environment"
-            />
-            {form.formState.errors.backDocumentFile && (
-              <p className="text-sm text-red-500">{form.formState.errors.backDocumentFile.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="selfie">Selfie Photo</Label>
-            <Input
-              id="selfie"
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange("selfieFile")}
-              capture="user"
-            />
-            {form.formState.errors.selfieFile && (
-              <p className="text-sm text-red-500">{form.formState.errors.selfieFile.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Personal Information</h3>
-
-            <div className="space-y-2 flex items-center gap-2">
-              <Label htmlFor="dateOfBirth" className="font-medium">
-                Date of Birth
-              </Label>
-              <BirthdayPicker
-                onSelect={(date) =>
-                  form.setValue(
-                    "personalInfo.dateOfBirth",
-                    date ? date.toISOString().split("T")[0] : ""
-                  )
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="documentType">Document Type</Label>
+              <Select
+                value={form.getValues("documentType")}
+                onValueChange={(value) =>
+                  form.setValue("documentType", value as any)
                 }
-              />
-              {form.formState.errors.personalInfo?.dateOfBirth && (
-                <p className="text-sm text-red-500">{form.formState.errors.personalInfo.dateOfBirth.message}</p>
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select document type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="national_id">National ID</SelectItem>
+                  <SelectItem value="passport">Passport</SelectItem>
+                  <SelectItem value="drivers_license">
+                    Driver's License
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              {form.formState.errors.documentType && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.documentType.message}
+                </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                {...form.register("personalInfo.address")}
-              />
-              {form.formState.errors.personalInfo?.address && (
-                <p className="text-sm text-red-500">{form.formState.errors.personalInfo.address.message}</p>
+              <Label htmlFor="documentNumber">Document Number</Label>
+              <Input id="documentNumber" {...form.register("documentNumber")} />
+              {form.formState.errors.documentNumber && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.documentNumber.message}
+                </p>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  {...form.register("personalInfo.city")}
+            <div className="space-y-2">
+              <Label htmlFor="frontDocument">Front of Document</Label>
+              <Input
+                id="frontDocument"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange("frontDocumentFile")}
+                capture="environment"
+              />
+              {form.formState.errors.frontDocumentFile && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.frontDocumentFile.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="backDocument">Back of Document</Label>
+              <Input
+                id="backDocument"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange("backDocumentFile")}
+                capture="environment"
+              />
+              {form.formState.errors.backDocumentFile && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.backDocumentFile.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="selfie">Selfie Photo</Label>
+              <Input
+                id="selfie"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange("selfieFile")}
+                capture="user"
+              />
+              {form.formState.errors.selfieFile && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.selfieFile.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Personal Information</h3>
+
+              <div className="space-y-2 flex items-center gap-2">
+                <Label htmlFor="dateOfBirth" className="font-medium">
+                  Date of Birth
+                </Label>
+                <BirthdayPicker
+                  onSelect={(date) =>
+                    form.setValue(
+                      "personalInfo.dateOfBirth",
+                      date ? date.toISOString().split("T")[0] : ""
+                    )
+                  }
                 />
-                {form.formState.errors.personalInfo?.city && (
-                  <p className="text-sm text-red-500">{form.formState.errors.personalInfo.city.message}</p>
+                {form.formState.errors.personalInfo?.dateOfBirth && (
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.personalInfo.dateOfBirth.message}
+                  </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
+                <Label htmlFor="address">Address</Label>
                 <Input
-                  id="country"
-                  {...form.register("personalInfo.country")}
+                  id="address"
+                  {...form.register("personalInfo.address")}
                 />
-                {form.formState.errors.personalInfo?.country && (
-                  <p className="text-sm text-red-500">{form.formState.errors.personalInfo.country.message}</p>
+                {form.formState.errors.personalInfo?.address && (
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.personalInfo.address.message}
+                  </p>
                 )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input id="city" {...form.register("personalInfo.city")} />
+                  {form.formState.errors.personalInfo?.city && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.personalInfo.city.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country</Label>
+                  <Input
+                    id="country"
+                    {...form.register("personalInfo.country")}
+                  />
+                  {form.formState.errors.personalInfo?.country && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.personalInfo.country.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="postalCode">Postal Code</Label>
+                  <Input
+                    id="postalCode"
+                    {...form.register("personalInfo.postalCode")}
+                  />
+                  {form.formState.errors.personalInfo?.postalCode && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.personalInfo.postalCode.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Input
+                    id="phoneNumber"
+                    type="tel"
+                    {...form.register("personalInfo.phoneNumber")}
+                  />
+                  {form.formState.errors.personalInfo?.phoneNumber && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.personalInfo.phoneNumber.message}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="postalCode">Postal Code</Label>
-                <Input
-                  id="postalCode"
-                  {...form.register("personalInfo.postalCode")}
-                />
-                {form.formState.errors.personalInfo?.postalCode && (
-                  <p className="text-sm text-red-500">{form.formState.errors.personalInfo.postalCode.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phoneNumber">Phone Number</Label>
-                <Input
-                  id="phoneNumber"
-                  type="tel"
-                  {...form.register("personalInfo.phoneNumber")}
-                />
-                {form.formState.errors.personalInfo?.phoneNumber && (
-                  <p className="text-sm text-red-500">{form.formState.errors.personalInfo.phoneNumber.message}</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? "Submitting..." : "Submit for Verification"}
-          </Button>
-        </form>
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? "Submitting..." : "Submit for Verification"}
+            </Button>
+          </form>
         )}
       </CardContent>
     </Card>

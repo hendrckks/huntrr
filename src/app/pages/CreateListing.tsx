@@ -194,10 +194,7 @@ export default function CreateListingForm() {
       if (
         !user.uid ||
         !user.role ||
-        !(
-          user.role === "landlord_verified" ||
-          user.role === "admin"
-        )
+        !(user.role === "landlord_verified" || user.role === "admin")
       ) {
         throw new Error("You don't have permission to upload listing images");
       }
@@ -255,7 +252,11 @@ export default function CreateListingForm() {
       console.log("Form errors:", form.formState.errors);
 
       setSubmitSuccess(true);
-      toast({ title: "Success", description: "Listing created successfully" });
+      toast({
+        title: "Success",
+        description: "Listing created successfully",
+        duration: 5000,
+      });
       navigate("/");
     } catch (error) {
       const errorMessage =
@@ -266,6 +267,7 @@ export default function CreateListingForm() {
         title: "Error",
         description: errorMessage,
         variant: "error",
+        duration: 5000,
       });
     } finally {
       setIsSubmitting(false);

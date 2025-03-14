@@ -2,7 +2,6 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../lib/firebase/clientApp";
 import { useAuth } from "../../contexts/AuthContext";
-import { useToast } from "../../hooks/useToast";
 import ListingCard from "../../components/ListingCard";
 import type {
   ListingDocument,
@@ -20,7 +19,6 @@ const queryKeys = {
 // Custom hook to manage bookmarks state and operations
 const useBookmarks = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch bookmarks
@@ -118,11 +116,6 @@ const useBookmarks = () => {
           context.previousBookmarks
         );
       }
-      toast({
-        title: "Error",
-        description: "Failed to update bookmark",
-        variant: "error",
-      });
     },
     onSettled: () => {
       // Refresh queries after mutation
@@ -145,7 +138,7 @@ const BookmarksPage = () => {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4 md:p-0 p-4">
         <div className="flex items-center gap-2 mb-6">
           <Bookmark className="h-6 w-6" />
           <h1 className="text-xl font-medium">Your Bookmarks</h1>

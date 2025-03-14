@@ -88,23 +88,28 @@ const LandlordDashboard: React.FC = () => {
     refetchInterval: 30000,
   });
 
-  const analyticsQuery = useQuery<ListingAnalytics[]>({    
-      queryKey: ["listings-analytics", listings.map((l) => l.id)],
-      queryFn: async () => {
-        console.log("Fetching analytics for listings:", listings.map(l => l.id));
-        try {
-          const result = await getMultipleListingsAnalytics(listings.map(l => l.id));
-          console.log("Fetched analytics result:", result);
-          return result;
-        } catch (error) {
-          console.error("Error fetching analytics:", error);
-          throw error;
-        }
-      },
-      enabled: listings.length > 0,
-      retry: 3,
-      retryDelay: 1000
-    });
+  const analyticsQuery = useQuery<ListingAnalytics[]>({
+    queryKey: ["listings-analytics", listings.map((l) => l.id)],
+    queryFn: async () => {
+      console.log(
+        "Fetching analytics for listings:",
+        listings.map((l) => l.id)
+      );
+      try {
+        const result = await getMultipleListingsAnalytics(
+          listings.map((l) => l.id)
+        );
+        console.log("Fetched analytics result:", result);
+        return result;
+      } catch (error) {
+        console.error("Error fetching analytics:", error);
+        throw error;
+      }
+    },
+    enabled: listings.length > 0,
+    retry: 3,
+    retryDelay: 1000,
+  });
 
   const handleSignOut = async () => {
     try {
@@ -142,12 +147,14 @@ const LandlordDashboard: React.FC = () => {
         title: "Success",
         description: "Listing archived successfully",
         variant: "success",
+        duration: 5000,
       });
     } catch {
       toast({
         title: "Error",
         description: "Failed to archive listing",
         variant: "error",
+        duration: 5000,
       });
     }
   };
@@ -169,12 +176,14 @@ const LandlordDashboard: React.FC = () => {
         title: "Success",
         description: "Listing unarchived successfully",
         variant: "success",
+        duration: 5000,
       });
     } catch {
       toast({
         title: "Error",
         description: "Failed to unarchive listing",
         variant: "error",
+        duration: 5000,
       });
     }
   };
@@ -191,12 +200,14 @@ const LandlordDashboard: React.FC = () => {
         title: "Success",
         description: "Listing deleted successfully",
         variant: "success",
+        duration: 5000,
       });
     } catch {
       toast({
         title: "Error",
         description: "Failed to delete listing",
         variant: "error",
+        duration: 5000,
       });
     }
   };
@@ -332,7 +343,7 @@ const LandlordDashboard: React.FC = () => {
                   description:
                     "You need to verify your account before creating listings",
                   variant: "warning",
-                  duration: 10000,
+                  duration: 5000,
                 });
               } else {
                 navigate("/add-listing");

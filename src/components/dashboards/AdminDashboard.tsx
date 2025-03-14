@@ -85,6 +85,8 @@ const AdminDashboard = () => {
         title: "Success",
         description: "Listings migration completed successfully",
         variant: "success",
+        duration: 5000,
+
       });
     } catch (error: any) {
       console.error("Error migrating listings:", error);
@@ -92,6 +94,8 @@ const AdminDashboard = () => {
         title: "Error",
         description: error.message || "Failed to migrate listings",
         variant: "error",
+        duration: 5000,
+
       });
     } finally {
       setIsMigrating(false);

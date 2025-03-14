@@ -4,7 +4,12 @@ import { Building, Search, Stars } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../hooks/useToast";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 import { RiPulseAiLine } from "@remixicon/react";
 
 const SubscriptionCard = () => {
@@ -18,6 +23,7 @@ const SubscriptionCard = () => {
         title: "Authentication Required",
         description: "Please sign in to create listings",
         variant: "warning",
+        duration: 5000,
       });
       navigate("/login");
       return;
@@ -29,6 +35,7 @@ const SubscriptionCard = () => {
         title: "Verification Required",
         description: "You need to verify your account before creating listings",
         variant: "warning",
+        duration: 5000,
       });
     } else {
       navigate("/add-listing");
@@ -58,8 +65,12 @@ const SubscriptionCard = () => {
                   Pro enabled
                 </Badge>
               </TooltipTrigger>
-              <TooltipContent side="right" className="bg-black/90 text-white border border-white/10">
-                Features like individual properties analytics are only accessible to pro users
+              <TooltipContent
+                side="right"
+                className="bg-black/90 text-white border border-white/10"
+              >
+                Features like individual properties analytics are only
+                accessible to pro users
               </TooltipContent>
             </Tooltip>
           </div>
@@ -69,8 +80,8 @@ const SubscriptionCard = () => {
           </h1>
 
           <p className="mb-12 tracking-tight max-w-xl text-slate-300 text-lg">
-            Connect with quality tenants faster. Create, manage, and promote your
-            rental properties all in one place with better results.
+            Connect with quality tenants faster. Create, manage, and promote
+            your rental properties all in one place with better results.
           </p>
 
           <div className="mb-12 md:mb-16 flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
@@ -85,7 +96,9 @@ const SubscriptionCard = () => {
               size="lg"
               variant="outline"
               onClick={() => {
-                document.getElementById('available-properties')?.scrollIntoView({ behavior: 'smooth' });
+                document
+                  .getElementById("available-properties")
+                  ?.scrollIntoView({ behavior: "smooth" });
               }}
               className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm hover:text-accent-foreground rounded-md px-4 sm:px-8 bg-white/10 hover:bg-white/20 text-white border-white/20 gap-2 w-full sm:w-auto"
             >

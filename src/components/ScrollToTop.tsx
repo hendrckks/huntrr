@@ -5,10 +5,17 @@ const ScrollToTop = () => {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    const scrollToTop = () => {
+      const mainContent = document.querySelector('main');
+      if (mainContent) {
+        mainContent.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+      }
+    };
+
+    scrollToTop();
   }, [pathname]);
 
   return null;
