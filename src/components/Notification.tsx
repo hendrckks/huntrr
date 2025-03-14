@@ -262,7 +262,7 @@ const NotificationsPage = () => {
       // Use the correct collection based on user role
       const collectionName =
         user?.role === "admin" ? "adminNotifications" : "notifications";
-      
+
       // Update all unread notifications in Firestore
       const updatePromises = unreadNotifications.map(async (notification) => {
         if (await verifyNotificationExists(notification.id)) {
@@ -351,7 +351,7 @@ const NotificationsPage = () => {
         <div className="relative">
           <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
         </div>
-        <h1 className="text-lg sm:text-xl font-medium">Notifications</h1>
+        <h1 className="text-xl font-medium">Notifications</h1>
       </div>
 
       {operationError && (
@@ -369,10 +369,7 @@ const NotificationsPage = () => {
             <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
             Unread ({unreadNotifications.length})
           </TabsTrigger>
-          <TabsTrigger
-            value="read"
-            className="flex items-center gap-2 text-sm"
-          >
+          <TabsTrigger value="read" className="flex items-center gap-2 text-sm">
             <CheckCheck className="h-3 w-3 sm:h-4 sm:w-4" />
             Read ({readNotifications.length})
           </TabsTrigger>
@@ -389,7 +386,7 @@ const NotificationsPage = () => {
           ) : (
             <>
               <div className="flex justify-end mb-4">
-                <Button 
+                <Button
                   onClick={markAllAsRead}
                   disabled={isMarkingAll}
                   className="flex items-center gap-2 text-sm bg-black/90 hover:bg-black/80 dark:bg-white/90 dark:hover:bg-white/80 text-white dark:text-black rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -400,58 +397,58 @@ const NotificationsPage = () => {
               </div>
               <div className="space-y-3 sm:space-y-4">
                 {unreadNotifications.map((notification) => (
-                <Card
-                  key={notification.id}
-                  className="hover:bg-accent/50 transition-colors"
-                >
-                  <CardContent className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 p-3 sm:p-4">
-                    <div className="hidden sm:block">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <h3 className="font-medium text-base">
-                        {notification.title}
-                      </h3>
-                      <p className="text-sm dark:text-muted-foreground text-black">
-                        {notification.message}
-                      </p>
-                      <p className="text-[12px] dark:text-white text-black">
-                        {formatDate(notification.createdAt!)}
-                      </p>
-                    </div>
-                    <div className="flex flex-row sm:flex-nowrap gap-2 w-full sm:w-auto mt-2 sm:mt-0 justify-end">
-                      {user?.role === "admin" &&
-                        notification.type === "kyc_submission" && (
-                          <button
-                            onClick={handleViewKYCSubmission}
-                            className="flex-1 sm:flex-initial px-2 sm:px-3 py-1 text-xs sm:text-sm dark:bg-primary bg-black/80 hover:bg-black/50 dark:hover:bg-primary/90 dark:text-black text-white rounded-md transition-colors"
-                          >
-                            View KYC
-                          </button>
-                        )}
-                      <button
-                        onClick={(e) => markAsRead(notification.id, e)}
-                        className="flex-1 sm:flex-initial px-2 sm:px-3 py-2 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
-                      >
-                        Mark as read
-                      </button>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedNotification(notification.id);
-                          setIsDeleteDialogOpen(true);
-                        }}
-                        className="hover:bg-red-600"
-                      >
-                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  <Card
+                    key={notification.id}
+                    className="hover:bg-accent/50 transition-colors"
+                  >
+                    <CardContent className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 p-3 sm:p-4">
+                      <div className="hidden sm:block">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <h3 className="font-medium text-base">
+                          {notification.title}
+                        </h3>
+                        <p className="text-sm dark:text-muted-foreground text-black">
+                          {notification.message}
+                        </p>
+                        <p className="text-[12px] dark:text-white text-black">
+                          {formatDate(notification.createdAt!)}
+                        </p>
+                      </div>
+                      <div className="flex flex-row sm:flex-nowrap gap-2 w-full sm:w-auto mt-2 sm:mt-0 justify-end">
+                        {user?.role === "admin" &&
+                          notification.type === "kyc_submission" && (
+                            <button
+                              onClick={handleViewKYCSubmission}
+                              className="flex-1 sm:flex-initial px-2 sm:px-3 py-1 text-xs sm:text-sm dark:bg-primary bg-black/80 hover:bg-black/50 dark:hover:bg-primary/90 dark:text-black text-white rounded-md transition-colors"
+                            >
+                              View KYC
+                            </button>
+                          )}
+                        <button
+                          onClick={(e) => markAsRead(notification.id, e)}
+                          className="flex-1 sm:flex-initial px-2 sm:px-3 py-2 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
+                        >
+                          Mark as read
+                        </button>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedNotification(notification.id);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          className="hover:bg-red-600"
+                        >
+                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </>
           )}
         </TabsContent>
@@ -518,9 +515,7 @@ const NotificationsPage = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:gap-0">
-            <AlertDialogCancel className="text-sm">
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel className="text-sm">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-sm"
