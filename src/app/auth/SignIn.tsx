@@ -285,7 +285,7 @@ const SignIn = () => {
             <div className="text-center text-sm py-2">
               <span className="text-muted-foreground">No account yet?</span>
               <Link
-                to="/role-dialog"
+                to="/signup-dialog"
                 className="ml-1.5 text-foreground underline hover:text-foreground/80"
               >
                 Create account for free

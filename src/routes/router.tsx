@@ -79,7 +79,7 @@ export const router = createBrowserRouter([
       },
       // Public routes
       {
-        path: "role-dialog",
+        path: "signup-dialog",
         element: createProtectedRoute(<Components.RoleSelectionDialog />, {
           requireAuth: false,
           requireUnauth: true,

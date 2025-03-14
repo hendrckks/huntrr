@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { incrementAnalyticMetric } from "../lib/firebase/analytics";
 import ImageModal from "./ImageModal";
 import { Badge } from "./ui/badge";
+import { Home } from "lucide-react";
 
 const ListingView = () => {
   const { slug } = useParams<{ slug: string }>(); // Change from id to slug
@@ -109,10 +110,7 @@ const ListingView = () => {
             onClick={() => setIsModalOpen(true)}
           >
             <img
-              src={
-                listing.photos?.[selectedImageIndex]?.url ||
-                "https://via.placeholder.com/800x600?text=No+Image"
-              }
+              src={listing.photos?.[selectedImageIndex]?.url || "https://via.placeholder.com/800x600?text=No+Image"}
               alt={listing.title}
               className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-in-out transform hover:scale-[1.02]"
             />
@@ -162,78 +160,48 @@ const ListingView = () => {
           </div>
 
           {/* Contact Landlord Section */}
-          <div className="border-t pt-4 mt-4">
-            <h2 className="font-semibold mb-2">Contact Landlord</h2>
+          <section className="border-t pt-4 mt-4">
+            <h2 className="text-xl font-semibold mb-2">Contact Landlord</h2>
             <div className="space-y-2 text-sm">
-              <p className="text-gray-600 dark:text-gray-300">
-                {listing.landlordName}
-              </p>
-              <p className="text-gray-600 dark:text-gray-300">
-                Phone: {listing.landlordContact.phone}
-              </p>
-              {listing.landlordContact.showEmail &&
-                listing.landlordContact.email && (
-                  <p className="text-gray-600 dark:text-gray-300">
-                    Email: {listing.landlordContact.email}
-                  </p>
-                )}
+              <p className="text-gray-600 dark:text-gray-300">{listing.landlordName}</p>
+              <p className="text-gray-600 dark:text-gray-300">Phone: {listing.landlordContact.phone}</p>
+              {listing.landlordContact.showEmail && listing.landlordContact.email && (
+                <p className="text-gray-600 dark:text-gray-300">Email: {listing.landlordContact.email}</p>
+              )}
             </div>
-          </div>
+          </section>
         </div>
 
         {/* Listing Details */}
         <div className="space-y-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-semibold">{listing.title}</h1>
+            <h1 className="text-3xl font-semibold">{listing.title}</h1>
             {listing.status !== "published" && (
-              <Badge
-                variant={
-                  listing.status === "denied"
-                    ? "destructive"
-                    : listing.status === "pending_review"
-                    ? "default"
-                    : "secondary"
-                }
-                className="w-fit"
-              >
+              <Badge variant={listing.status === "denied" ? "destructive" : listing.status === "pending_review" ? "default" : "secondary"} className="w-fit">
                 {listing.status.replace("_", " ").toUpperCase()}
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
-            <span>{listing.bedrooms} beds</span>
-            <span>•</span>
-            <span>{listing.bathrooms} baths</span>
-            <span>•</span>
-            <span>{listing.squareFootage} sqft</span>
-          </div>
 
-          <div className="border-t pt-6">
-            <h2 className="font-semibold mb-4">Location</h2>
+          <section className="border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4">Location</h2>
             <p className="text-gray-600 text-sm dark:text-gray-300">
-              {listing.location.address}, {listing.location.neighborhood}
-              <br />
+              {listing.location.address}, {listing.location.neighborhood}<br />
               {listing.location.area}, {listing.location.city}
             </p>
-          </div>
+          </section>
 
-          <div className="border-t pt-6">
-            <h2 className="font-semibold mb-4">Description</h2>
-            <p className="text-gray-600 text-sm tracking-wide dark:text-gray-300 whitespace-pre-line">
-              {listing.description}
-            </p>
-          </div>
+          <section className="border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4">Description</h2>
+            <p className="text-gray-600 text-sm tracking-wide dark:text-gray-300 whitespace-pre-line">{listing.description}</p>
+          </section>
 
-          <div className="border-t pt-6">
-            <h2 className=" font-semibold mb-4">Property Details</h2>
+          <section className="border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2"><Home className="h-5 w-5" /> Property Details</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-gray-500 dark:text-gray-400">
-                  Property Type
-                </dt>
-                <dd className="text-gray-900 dark:text-white capitalize">
-                  {listing.type}
-                </dd>
+                <dt className="text-gray-500 dark:text-gray-400">Property Type</dt>
+                <dd className="text-gray-900 dark:text-white capitalize">{listing.type}</dd>
               </div>
               <div>
                 <dt className="text-gray-500 dark:text-gray-400">Condition</dt>
@@ -250,10 +218,10 @@ const ListingView = () => {
                 </dd>
               </div>
             </dl>
-          </div>
+          </section>
 
-          <div className="border-t pt-6">
-            <h2 className="font-semibold mb-4">Utilities & Amenities</h2>
+          <section className="border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4">Utilities & Amenities</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="text-sm">
                 <dt className="text-gray-500 dark:text-gray-400">
@@ -289,10 +257,10 @@ const ListingView = () => {
                 </dd>
               </div>
             )}
-          </div>
+          </section>
 
-          <div className="border-t pt-6">
-            <h2 className="font-semibold mb-4">Security Features</h2>
+          <section className="border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4">Security Features</h2>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex items-center">
                 <span className="text-gray-600 dark:text-gray-300">
@@ -310,10 +278,10 @@ const ListingView = () => {
                 </span>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="border-t pt-6">
-            <h2 className="font-semibold mb-4">Terms</h2>
+          <section className="border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4">Terms</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
                 <dt className="text-gray-500 dark:text-gray-400">Deposit</dt>
@@ -346,7 +314,7 @@ const ListingView = () => {
                 </dd>
               </div>
             </dl>
-          </div>
+          </section>
         </div>
       </div>
 

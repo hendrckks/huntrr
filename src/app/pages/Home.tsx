@@ -324,6 +324,7 @@ const Home = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-4">
+      <h1 className="sr-only">Huntrr Property Listings</h1>
       <div className="grid w-full grid-cols-1 md:grid-cols-3 py-6 md:-mt-10 gap-3">
         <div className="col-span-1 md:col-span-2">
           <SubscriptionCard />
@@ -359,7 +360,7 @@ const Home = () => {
         </ScrollArea>
       </div>
 
-      <h1 id="available-properties" className="md:text-lg text-xl mb-4 font-medium">Available Properties</h1>
+      <h2 id="available-properties" className="md:text-lg text-xl mb-4 font-medium">Available Properties</h2>
 
       {hasFilters && (
         <div className="mb-4 text-sm text-muted-foreground">

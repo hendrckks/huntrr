@@ -15,7 +15,7 @@ const MainLayout: React.FC = () => {
     "/reset-password",
     "/signup",
     "/admin",
-    "/role-dialog",
+    "/signup-dialog",
     "/Admin",
     "/auth",
     "/verify-email",

@@ -74,7 +74,7 @@ const Navbar = () => {
             Login
           </Link>
           <Link
-            to="/role-dialog"
+            to="/signup-dialog"
             className="bg-white text-black px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
           >
             Register
