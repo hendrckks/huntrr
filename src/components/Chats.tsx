@@ -213,7 +213,7 @@ const Chats = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 md:-mt-4 -mt-6 md:-mb-4 max-w-7xl h-screen overflow-scroll">
+    <div className="container mx-auto p-4 md:-mt-4 -mt-6 md:-mb-4 mb-0 max-w-7xl md:h-[calc(100vh-6rem)] h-fit overflow-scroll">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 h-[85vh] md:h-full">
         {(!showMessages || window.innerWidth >= 768) && (
           <Card className="md:col-span-1 h-full flex flex-col">
@@ -386,7 +386,7 @@ const Chats = () => {
                 <div className="flex-1 overflow-y-auto p-4 h-full md:h-[450px]">
                   <div
                     ref={messageContainerRef}
-                    className=" md:h-[450px] h-[calc(100dvh-18rem)]  overflow-y-auto space-y-4 p-4 scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent transition-all duration-200"
+                    className=" md:h-[450px] h-[calc(100dvh-16rem)]  overflow-y-auto space-y-4 p-4 scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent transition-all duration-200"
                   >
                     {loading ? (
                       <div className="flex items-center justify-center h-full">
