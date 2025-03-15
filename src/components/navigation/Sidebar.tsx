@@ -14,6 +14,7 @@ import {
   PlusIcon as HousePlus,
   HelpCircle,
   FileCheck,
+  MessageCircle,
 } from "lucide-react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../lib/firebase/clientApp";
@@ -126,20 +127,6 @@ const Sidebar = () => {
   const navItems = [
     { icon: HomeIcon, label: "Home", path: "/", color: "text-blue-400/90" },
     {
-      icon: Bell,
-      label: "Notifications",
-      path: "/notifications",
-      color: "text-yellow-400/90",
-      badge:
-        notifications.filter((n) => !n.read).length > 0 ||
-        (user?.role === "admin" &&
-          notifications.filter((n) => !n.read).length > 0),
-    },
-    { icon: Bookmark, label: "Bookmarks", path: "/bookmarks", color: "text-green-400/90" },
-    user?.role === "admin" || user?.role === "landlord_verified"
-      ? { icon: HousePlus, label: "List your property", path: "/add-listing", color: "text-purple-400/90" }
-      : null,
-    {
       icon: User,
       label: "Dashboard",
       path:
@@ -149,18 +136,59 @@ const Sidebar = () => {
             user?.role === "landlord_unverified"
           ? "/dashboard"
           : "/profile",
-      color: "text-pink-400/70"
+      color: "text-pink-400/70",
     },
     user?.role === "landlord_unverified"
       ? {
           icon: FileCheck,
           label: "Verify Documents",
           path: "/verify-documents",
-          color: "text-orange-400/70"
+          color: "text-orange-400/70",
         }
       : null,
-    { icon: Settings, label: "Settings & privacy", path: "/account-settings", color: "text-teal-400/90" },
-    { icon: HelpCircle, label: "Help & support", path: "/spend-groups", color: "text-indigo-400/90" },
+    {
+      icon: MessageCircle,
+      label: "Chats",
+      path: "/chats",
+      color: "text-violet-400/90",
+    },
+    {
+      icon: Bell,
+      label: "Notifications",
+      path: "/notifications",
+      color: "text-yellow-400/90",
+      badge:
+        notifications.filter((n) => !n.read).length > 0 ||
+        (user?.role === "admin" &&
+          notifications.filter((n) => !n.read).length > 0),
+    },
+    {
+      icon: Bookmark,
+      label: "Bookmarks",
+      path: "/bookmarks",
+      color: "text-green-400/90",
+    },
+    user?.role === "admin" || user?.role === "landlord_verified"
+      ? {
+          icon: HousePlus,
+          label: "List your property",
+          path: "/add-listing",
+          color: "text-purple-400/90",
+        }
+      : null,
+
+    {
+      icon: Settings,
+      label: "Settings & privacy",
+      path: "/account-settings",
+      color: "text-teal-400/90",
+    },
+    {
+      icon: HelpCircle,
+      label: "Help & support",
+      path: "/spend-groups",
+      color: "text-indigo-400/90",
+    },
   ].filter((item): item is Exclude<typeof item, null> => item !== null);
 
   const getInitials = (name: string) => {
@@ -201,17 +229,27 @@ const Sidebar = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white' : 'hover:bg-white/5 dark:text-white/80 text-black/80'}`}
+                className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-black/90 dark:bg-white/90 dark:text-black text-white"
+                    : "hover:bg-white/5 dark:text-white/80 text-[#4b5563]"
+                }`}
               >
                 <div className="relative">
                   <Icon
-                    className={`w-5 h-5 ${isActive ? 'text-[#8752f3]/80 dark:text-[#8752f3]' : `${item.color}`}`}
+                    className={`w-5 h-5 ${
+                      isActive
+                        ? "text-[#8752f3]/80 dark:text-[#8752f3]"
+                        : `${item.color}`
+                    }`}
                   />
                   {item.badge && (
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </div>
-                <span className="text-sm font-medium tracking-normal">{item.label}</span>
+                <span className="text-sm font-medium tracking-normal">
+                  {item.label}
+                </span>
               </Link>
             );
           })}
@@ -293,11 +331,19 @@ const Sidebar = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${isActive ? 'bg-white border bg-background/50 font-medium dark:hover:bg-white/10 dark:border-white/10 p-3 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl hover:bg-black/5 transition-colors backdrop-blur-6xl w-full flex justify-between items-center dark:bg-white/5 text-black dark:text-white backdrop-blur-6xl' : 'hover:bg-gray-100 dark:hover:bg-white/5 text-black/80 dark:text-white/80'}`}
+                className={`flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-white border bg-background/50 font-medium dark:hover:bg-white/10 dark:border-white/10 p-3 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl hover:bg-black/5 transition-colors backdrop-blur-6xl w-full flex justify-between items-center dark:bg-white/5 text-black dark:text-white backdrop-blur-6xl"
+                    : "hover:bg-gray-100 dark:hover:bg-white/5 text-black/80 dark:text-white/80"
+                }`}
               >
                 <div className="relative z-10">
                   <Icon
-                    className={`w-5 h-5 ${isActive ? "text-[#8752f3]" : `${item.color} dark:${item.color}`}`}
+                    className={`w-5 h-5 ${
+                      isActive
+                        ? "text-[#8752f3]"
+                        : `${item.color} dark:${item.color}`
+                    }`}
                   />
                   {item.badge && (
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />

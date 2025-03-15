@@ -13,6 +13,7 @@ const Components = {
   CreateListing: lazy(() => import("../app/pages/CreateListing")),
   SignUp: lazy(() => import("../app/auth/SignUp")),
   SignIn: lazy(() => import("../app/auth/SignIn")),
+  Chats: lazy(() => import("../components/Chats")),
   ResetPassword: lazy(() => import("../app/auth/ResetPassword")),
   RoleSelectionDialog: lazy(() => import("../components/RoleSelectionDialog")),
   TenantDashboard: lazy(
@@ -149,6 +150,12 @@ export const router = createBrowserRouter([
         element: createProtectedRoute(<Components.CreateListing />, {
           requireAuth: true,
           allowedRoles: ["landlord_verified"], // Remove landlord_unverified
+        }),
+      },
+      {
+        path: "chats",
+        element: createProtectedRoute(<Components.Chats />, {
+          requireAuth: true
         }),
       },
 

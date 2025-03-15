@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
@@ -7,12 +7,16 @@ import { useState, useEffect } from "react";
 import { incrementAnalyticMetric } from "../lib/firebase/analytics";
 import ImageModal from "./ImageModal";
 import { Badge } from "./ui/badge";
-import { Home } from "lucide-react";
+import { Button } from "./ui/button";
+import { MessageSquare } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 const ListingView = () => {
   const { slug } = useParams<{ slug: string }>(); // Change from id to slug
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const { data: listing, isLoading } = useQuery<ListingDocument>({
     queryKey: ["listing", slug],
@@ -162,12 +166,30 @@ const ListingView = () => {
           {/* Contact Landlord Section */}
           <section className="border-t pt-4 mt-4">
             <h2 className="text-xl font-semibold mb-2">Contact Landlord</h2>
-            <div className="space-y-2 text-sm">
-              <p className="text-gray-600 dark:text-gray-300">{listing.landlordName}</p>
-              <p className="text-gray-600 dark:text-gray-300">Phone: {listing.landlordContact.phone}</p>
-              {listing.landlordContact.showEmail && listing.landlordContact.email && (
-                <p className="text-gray-600 dark:text-gray-300">Email: {listing.landlordContact.email}</p>
-              )}
+            <div className="space-y-4">
+              <div className="space-y-2 text-sm">
+                <p className="text-gray-600 dark:text-gray-300">{listing.landlordName}</p>
+                <p className="text-gray-600 dark:text-gray-300">Phone: {listing.landlordContact.phone}</p>
+                {listing.landlordContact.showEmail && listing.landlordContact.email && (
+                  <p className="text-gray-600 dark:text-gray-300">Email: {listing.landlordContact.email}</p>
+                )}
+              </div>
+              <div className="flex items-center justify-start">
+                <Button
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      navigate('/login');
+                      return;
+                    }
+                    navigate(`/chats?landlordId=${listing.landlordId}`);
+                  }}
+                  className="w-full sm:w-auto"
+                  variant="default"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Chat with Owner
+                </Button>
+              </div>
             </div>
           </section>
         </div>
@@ -194,30 +216,6 @@ const ListingView = () => {
           <section className="border-t pt-6">
             <h2 className="text-xl font-semibold mb-4">Description</h2>
             <p className="text-gray-600 text-sm tracking-wide dark:text-gray-300 whitespace-pre-line">{listing.description}</p>
-          </section>
-
-          <section className="border-t pt-6">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2"><Home className="h-5 w-5" /> Property Details</h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <div>
-                <dt className="text-gray-500 dark:text-gray-400">Property Type</dt>
-                <dd className="text-gray-900 dark:text-white capitalize">{listing.type}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-500 dark:text-gray-400">Condition</dt>
-                <dd className="text-gray-900 dark:text-white capitalize">
-                  {listing.condition.replace(/_/g, " ")}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-gray-500 dark:text-gray-400">
-                  Noise Level
-                </dt>
-                <dd className="text-gray-900 dark:text-white capitalize">
-                  {listing.noiseLevel.replace(/_/g, " ")}
-                </dd>
-              </div>
-            </dl>
           </section>
 
           <section className="border-t pt-6">

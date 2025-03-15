@@ -6,6 +6,8 @@ import { useTheme } from "../contexts/ThemeContext";
 import BreadcrumbNav from "../components/navigation/BreadcrumbNav";
 import { Moon, Sun } from "lucide-react";
 import FilterModal from "../components/FilterModal";
+import PresenceHandler from "../components/PresenceHandler";
+import { useAuth } from "../contexts/AuthContext";
 
 const MainLayout: React.FC = () => {
   const location = useLocation();
@@ -25,9 +27,12 @@ const MainLayout: React.FC = () => {
   ];
   const shouldHideNavbar = hideNavbarPaths.includes(location.pathname);
   const isHomePage = location.pathname === "/";
+  const isChatsRoute = location.pathname === "/chats";
+  const { isAuthenticated } = useAuth();
 
   return (
     <div className="flex fixed inset-0 tracking-normal word-spacing-sm bg-black/5 dark:bg-[#171717] font-noto overflow-hidden">
+      {isAuthenticated && <PresenceHandler />}
       <ScrollToTop />
       {!shouldHideNavbar && <Sidebar />}
       <div className={`flex-1 flex flex-col font-noto ${!shouldHideNavbar ? 'md:ml-[calc(0.5rem+16rem)]' : ''} ${isHomePage ? 'mt-2' : 'mt-2'} overflow-hidden`}>
@@ -39,17 +44,19 @@ const MainLayout: React.FC = () => {
               </div>
               <div className="flex items-center gap-4">
                 {isHomePage && <FilterModal />}
-                <button
-                  onClick={toggleTheme}
-                  className="md:hidden p-2 dark:bg-white/5 bg-background/40 dark:hover:bg-white/10 hover:bg-black/5 dark:border-white/10 border border-black/5 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl transition-colors flex items-center justify-center"
-                  aria-label="Toggle theme"
-                >
-                  {theme === "dark" ? (
-                    <Sun className="h-5 w-5" />
-                  ) : (
-                    <Moon className="h-5 w-5" />
-                  )}
-                </button>
+                {!isChatsRoute && (
+                  <button
+                    onClick={toggleTheme}
+                    className="md:hidden p-2 dark:bg-white/5 bg-background/40 dark:hover:bg-white/10 hover:bg-black/5 dark:border-white/10 border border-black/5 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl transition-colors flex items-center justify-center"
+                    aria-label="Toggle theme"
+                  >
+                    {theme === "dark" ? (
+                      <Sun className="h-5 w-5" />
+                    ) : (
+                      <Moon className="h-5 w-5" />
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           )}
