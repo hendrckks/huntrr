@@ -27,7 +27,12 @@ service cloud.firestore {
       return incoming.size() <= 1048576 && // 1MB max
         incoming.title.size() <= 100 &&
         incoming.description.size() <= 2000 &&
-        incoming.photos.size() <= 10;
+        incoming.photos.size() <= 15 &&
+        incoming.landlordId == request.auth.uid &&
+        incoming.status == 'pending_review' &&
+        incoming.flagCount == 0 &&
+        incoming.bookmarkCount == 0 &&
+        incoming.viewCount == 0;
     }
     
     function isValidKYCDocument() {
@@ -46,7 +51,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow list: if true;  // Needed for email duplicate check
       allow create: if true;  // Needed for initial user creation
-      allow get: if isAuthenticated() && (isOwner(userId) || hasRole('admin'));
+      allow get: if isAuthenticated() || hasRole('admin');
       allow update: if isAuthenticated() && (isOwner(userId) || hasRole('admin'));
       allow delete: if hasRole('admin');
     }
@@ -57,10 +62,8 @@ service cloud.firestore {
           bookmarkId.split('_')[0] == request.auth.uid;
       }
 
-      allow read: if isAuthenticated() && (
-        (resource != null && resource.data.userId == request.auth.uid) ||
-        (resource == null && isValidBookmarkId())
-      );
+      allow read: if isAuthenticated() && 
+        request.auth.uid == resource.data.userId;
       
       allow create: if isAuthenticated() && 
         isValidBookmarkId() &&
@@ -69,25 +72,109 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && 
         resource.data.userId == request.auth.uid;
     }
+
+    // Chats collection
+    match /chats/{chatId} {
+      // Allow all authenticated users to create chats
+      allow create: if isAuthenticated();
+      
+      // For other operations, verify user is a participant
+      allow read, update, delete: if isAuthenticated() && 
+         (resource.data.userId == request.auth.uid || 
+          resource.data.landlordId == request.auth.uid);
+
+      // Participants subcollection - simplified
+      match /participants/{participantId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // Messages collection
+    match /messages/{messageId} {
+      function getChatParticipants(chatId) {
+        let chat = get(/databases/$(database)/documents/chats/$(chatId));
+        return chat != null ? [chat.data.userId, chat.data.landlordId] : [];
+      }
+      
+      function isMessageParticipant() {
+        let chatId = resource.data.chatId;
+        let participants = getChatParticipants(chatId);
+        return request.auth.uid in participants;
+      }
+      
+      function isMessageSender() {
+        return request.auth.uid == resource.data.senderId;
+      }
+      
+      function isMessageReceiver() {
+        return request.auth.uid == resource.data.receiverId;
+      }
+
+      allow read: if isAuthenticated() && resource.data.chatId != null && 
+        request.auth.uid in getChatParticipants(resource.data.chatId);
+      
+      allow create: if isAuthenticated() && 
+        request.resource.data.senderId == request.auth.uid &&
+        request.resource.data.chatId != null &&
+        request.auth.uid in getChatParticipants(request.resource.data.chatId);
+      
+      allow update: if isAuthenticated() && 
+        ((isMessageReceiver() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])) ||
+         (isMessageSender() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content'])));
+    }
     
     // Listings collection
     match /listings/{listingId} {
-      allow read: if true;
-      allow create: if isAuthenticated() && 
-        (hasRole('landlord_verified') || hasRole('admin')) &&
-        request.resource.data.landlordId == request.auth.uid &&
-        isValidListing();
-      allow update: if isAuthenticated() && (
-        (resource.data.landlordId == request.auth.uid && 
-          !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['status', 'verifiedAt', 'verifiedBy']) &&
-          isValidListing()) ||
-        hasRole('admin')
-      );
-      allow delete: if isAuthenticated() && 
-        (resource.data.landlordId == request.auth.uid || hasRole('admin'));
+        function isValidFlagUpdate() {
+            let incomingData = request.resource.data;
+            let existingData = resource.data;
+            
+            // Allow flag-related updates including the new flag object
+            let allowedFields = ['flags', 'flagCount', 'status', 'updatedAt', 'archivedAt'];
+            let changedFields = incomingData.diff(existingData).affectedKeys();
+            
+            return changedFields.hasOnly(allowedFields) &&
+                   // Allow status to remain same or change to recalled
+                   (incomingData.status == existingData.status || 
+                    incomingData.status == 'recalled') &&
+                   // Validate flag count increment
+                   incomingData.flagCount == existingData.flagCount + 1 &&
+                   // Ensure flags array only grows by one
+                   incomingData.flags.size() == existingData.flags.size() + 1;
+        }
+
+        function isValidNewListing() {
+            let data = request.resource.data;
+            return data.keys().hasAll(['title', 'description', 'price', 'landlordId', 'status']) &&
+                   data.landlordId == request.auth.uid &&
+                   data.status == 'pending_review';
+        }
+
+        allow read: if true;
+        allow create: if isAuthenticated() && 
+            (hasRole('landlord_verified') || hasRole('admin')) &&
+            isValidNewListing() &&
+            isValidListing();
+        allow update: if isAuthenticated() && (
+            // Allow landlord to update their own listing
+            (resource.data.landlordId == request.auth.uid) ||
+            // Allow admin to update any listing
+            hasRole('admin') ||
+            // Allow authenticated users to flag listings
+            isValidFlagUpdate()
+             );
+            allow delete: if isAuthenticated() && 
+            (resource.data.landlordId == request.auth.uid || hasRole('admin'));
+   
     }
 
+    match /adminNotifications/{notificationId} {
+        allow read: if isAuthenticated() && hasRole('admin');
+        // Allow the cloud function to create notifications
+        allow create: if request.auth.token.sub == 'service-account';
+        allow update: if isAuthenticated() && hasRole('admin');
+    }
+    
     // Sessions collection
     match /sessions/{sessionId} {
       allow read: if isAuthenticated() && 
@@ -112,15 +199,52 @@ service cloud.firestore {
 
     // Notifications collection
     match /notifications/{notificationId} {
-      allow read: if isAuthenticated() && 
-        (resource.data.landlordId == request.auth.uid || hasRole('admin'));
-      allow write: if false; // Only backend can write notifications
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.landlordId == request.auth.uid ||
+        hasRole('admin')
+      );
+      
+      allow create: if isAuthenticated() && hasRole('admin');
+      
+      allow update: if isAuthenticated() && (
+        // Allow admin to update any notification
+        hasRole('admin') ||
+        // Allow users to update their own notifications' read status
+        (
+          (resource.data.userId == request.auth.uid ||
+           resource.data.landlordId == request.auth.uid) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt'])
+        )
+      );
+      
+      allow delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.landlordId == request.auth.uid ||
+        hasRole('admin')
+      );
     }
 
-    // Admin notifications collection
-    match /adminNotifications/{notificationId} {
-      allow read: if isAuthenticated() && hasRole('admin');
-      allow write: if false; // Only backend can write admin notifications
+    match /analytics/{listingId} {
+      // Helper function to check if user can access listing analytics
+      function canAccessListingAnalytics(listingId) {
+        let listing = get(/databases/$(database)/documents/listings/$(listingId)).data;
+        return listing != null && (
+          listing.landlordId == request.auth.uid || 
+          hasRole('admin')
+        );
+      }
+
+      allow read: if true;
+      
+      allow create: if isAuthenticated() && 
+        request.resource.data.keys().hasAll(['viewCount', 'bookmarkCount', 'flagCount', 'listingId', 'lastUpdated']) &&
+        request.resource.data.listingId == listingId;
+      
+      allow update: if isAuthenticated() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['viewCount', 'bookmarkCount', 'flagCount', 'lastUpdated']);
+        
+      allow write: if true;
     }
 
     // Audit logs collection

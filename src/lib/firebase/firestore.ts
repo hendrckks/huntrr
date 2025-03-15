@@ -5,7 +5,6 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  // deleteDoc,
   query,
   where,
   orderBy,
@@ -15,17 +14,16 @@ import {
   increment,
   writeBatch,
   type QueryDocumentSnapshot,
-  // type DocumentReference,
   type WriteBatch,
   serverTimestamp,
   runTransaction,
   QueryConstraint,
 } from "firebase/firestore";
+import imageCompression from "browser-image-compression";
 import { db } from "./clientApp";
 import {
   type Listing,
   type ListingDocument,
-  // Bookmark,
   type BookmarkDocument,
   type AdminNotification,
   type AdminNotificationDocument,
@@ -36,47 +34,36 @@ import {
 } from "../types/Listing";
 import { globalCache } from "../cache/cacheManager";
 import { uploadImage } from "./storage";
-// Remove slugify from import since we don't use it directly
 import { generateUniqueSlug } from "../utils/slugify";
 
 const LISTINGS_PER_PAGE = 20;
-// Remove the following line
-// const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-// Cache management
-// interface CacheEntry<T> {
-//   data: T;
-//   timestamp: number;
-// }
+// Utility function for compressing images
+const compressImage = async (image: File, index: number): Promise<File> => {
+  // Compression options
+  const options = {
+    maxSizeMB: 2,
+    maxWidthOrHeight: 1920,
+    useWebWorker: true,
+    fileType: "image/avif"
+  };
 
-// const cache = new Map<string, CacheEntry<any>>();
-
-// const isCacheValid = (key: string): boolean => {
-//   const entry = cache.get(key);
-//   if (!entry) return false;
-//   return Date.now() - entry.timestamp < CACHE_DURATION;
-// };
-
-// const clearCacheByPrefix = (prefix: string) => {
-//   for (const key of cache.keys()) {
-//     if (key.startsWith(prefix)) {
-//       cache.delete(key);
-//     }
-//   }
-// };
-interface FilterParams {
-  id?: string;
-  type?: string;
-  bedrooms?: string;
-  bathrooms?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  amenities?: string[];
-  water?: string;
-  location_area?: string;
-  location_city?: string;
-  location_neighborhood?: string;
-}
+  try {
+    // Compress the image
+    const compressedFile = await imageCompression(image, options);
+    
+    // Return as new File with .avif extension
+    return new File(
+      [compressedFile], 
+      `listing-image-${index}.avif`, 
+      { type: "image/avif" }
+    );
+  } catch (error) {
+    console.error("Error compressing image:", error);
+    // Fallback to original file if compression fails
+    return image;
+  }
+};
 
 // Utility functions
 const convertTimestamps = <T extends { [key: string]: any }>(
@@ -105,6 +92,20 @@ const checkSlugExists = async (slug: string): Promise<boolean> => {
   const snapshot = await getDocs(q);
   return !snapshot.empty;
 };
+
+interface FilterParams {
+  id?: string;
+  type?: string;
+  bedrooms?: string;
+  bathrooms?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  amenities?: string[];
+  water?: string;
+  location_area?: string;
+  location_city?: string;
+  location_neighborhood?: string;
+}
 
 export const getFilteredListings = async (
   params: FilterParams,
@@ -247,7 +248,7 @@ export const getLocationSuggestions = async (
   return Array.from(suggestions);
 };
 
-// Listing functions
+// Updated to include image compression
 export const createListing = async (
   listing: Omit<Listing, "id" | "status" | "createdAt" | "updatedAt" | "slug">,
   images: File[],
@@ -258,20 +259,26 @@ export const createListing = async (
 
   // Create a new document reference with the slug as the ID
   const listingRef = doc(collection(db, "listings"), slug);
+  console.log("Creating listing with slug:", slug);
   const timestamp = Timestamp.now();
 
   try {
-    // Upload images first
-    const imageUrls: string[] = [];
+    // Compress and upload images
     const photos: Photo[] = [];
-
-    for (const image of images) {
-      const url = await uploadImage(image, slug, listing.landlordId);
+    const imageUrls: string[] = [];
+    
+    for (let i = 0; i < images.length; i++) {
+      // Compress the image first
+      const compressedImage = await compressImage(images[i], i);
+      
+      // Upload the compressed image
+      const url = await uploadImage(compressedImage, slug, listing.landlordId);
       imageUrls.push(url);
+      
       photos.push({
-        id: `photo_${photos.length}`,
+        id: `photo_${i}`,
         url,
-        isPrimary: photos.length === 0,
+        isPrimary: i === 0,
       });
     }
 
@@ -331,7 +338,7 @@ export const createListing = async (
   }
 };
 
-// firestore.ts
+// Updated to include image compression
 export const updateListing = async (
   listingId: string,
   updates: Partial<Omit<Listing, "id" | "status" | "createdAt" | "updatedAt">>,
@@ -345,18 +352,24 @@ export const updateListing = async (
   if (userDoc.exists() && userDoc.data().role !== "admin") {
     (updates as Partial<Listing>).status = "pending_review";
   }
-  // Upload new images
+  
+  // Compress and upload new images
   const imageUrls: string[] = [];
   const photos: Photo[] = [];
 
   if (images.length > 0) {
-    for (const image of images) {
-      const url = await uploadImage(image, listingId, userId);
+    for (let i = 0; i < images.length; i++) {
+      // Compress the image first
+      const compressedImage = await compressImage(images[i], i);
+      
+      // Upload the compressed image
+      const url = await uploadImage(compressedImage, listingId, userId);
       imageUrls.push(url);
+      
       photos.push({
-        id: `photo_${photos.length}`,
+        id: `photo_${i}`,
         url,
-        isPrimary: photos.length === 0,
+        isPrimary: i === 0,
       });
     }
   }

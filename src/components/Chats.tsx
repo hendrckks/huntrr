@@ -478,7 +478,7 @@ const Chats = () => {
                         >
                           <div className="flex flex-col space-y-1 max-w-[70%]">
                             <div
-                              className={`p-3 rounded-lg ${
+                              className={`p-3 md:px-6 px-4 rounded-lg ${
                                 message.senderId === user?.uid
                                   ? "bg-primary text-primary-foreground"
                                   : "bg-secondary"
