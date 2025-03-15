@@ -213,7 +213,7 @@ const Chats = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 md:-mt-4 -mt-2 md:-mb-4 max-w-7xl h-[calc(100vh-6rem)] overflow-scroll">
+    <div className="container mx-auto p-4 md:-mt-4 -mt-6 md:-mb-4 max-w-7xl h-screen overflow-scroll">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 h-[85vh] md:h-full">
         {(!showMessages || window.innerWidth >= 768) && (
           <Card className="md:col-span-1 h-full flex flex-col">
@@ -338,7 +338,7 @@ const Chats = () => {
         )}
 
         {(showMessages || window.innerWidth >= 768) && (
-          <Card className="md:col-span-2 h-[85vh] md:h-full flex flex-col">
+          <Card className="md:col-span-2 h-[86vh] md:h-full flex flex-col">
             <CardHeader className="border-b p-4">
               {selectedChatData ? (
                 <div className="flex items-center space-x-4">
@@ -383,7 +383,7 @@ const Chats = () => {
             </CardHeader>
             <CardContent className="p-0 flex-1 flex flex-col">
               {selectedChatData ? (
-                <div className="flex-1 overflow-y-auto p-4 h-[calc(100dvh-6rem)] md:h-[450px]">
+                <div className="flex-1 overflow-y-auto p-4 h-full md:h-[450px]">
                   <div
                     ref={messageContainerRef}
                     className=" md:h-[450px] h-[calc(100dvh-18rem)]  overflow-y-auto space-y-4 p-4 scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent transition-all duration-200"
