@@ -318,7 +318,7 @@ export const createChat = async (userId: string, landlordId: string) => {
 
 // Mark messages as read
 export const markMessagesAsRead = async (
-  chatId: string,
+  _chatId: string,
   messageIds: string[]
 ) => {
   try {
