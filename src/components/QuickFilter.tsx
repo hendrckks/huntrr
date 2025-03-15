@@ -151,7 +151,7 @@ const QuickFilter = () => {
                 variant={
                   activeFilters.includes(type.id) ? "default" : "outline"
                 }
-                className={`cursor-pointer text-sm py-1 px-3 font-medium hover:bg-accent transition-colors ${
+                className={`cursor-pointer text-sm py-1 px-3 font-medium dark:hover:bg-white/70 hover:bg-[#121212]/90 bg-black/90 dark:bg-white/80 dark:text-black text-white transition-colors ${
                   activeFilters.includes(type.id)
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : ""
@@ -175,7 +175,7 @@ const QuickFilter = () => {
                 variant={
                   activeFilters.includes(option.id) ? "default" : "outline"
                 }
-                className={`cursor-pointer text-sm py-1 px-3 hover:bg-accent font-medium transition-colors ${
+                className={`cursor-pointer text-sm py-1 px-3 hover:bg-[#121212]/90 dark:hover:bg-white/70 bg-black/90 dark:bg-white/80 dark:text-black text-white font-medium transition-colors ${
                   activeFilters.includes(option.id)
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : ""
@@ -201,7 +201,7 @@ const QuickFilter = () => {
                     ? "default"
                     : "outline"
                 }
-                className={`cursor-pointer text-sm py-1 px-3 hover:bg-accent font-medium transition-colors ${
+                className={`cursor-pointer text-sm py-1 px-3 hover:bg-[#121212]/90 dark:hover:bg-white/70 bg-black/90 dark:bg-white/80 dark:text-black text-white font-medium transition-colors ${
                   activeFilters.includes(`bath_${option.id}`)
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : ""
@@ -227,7 +227,7 @@ const QuickFilter = () => {
                 variant={
                   activeFilters.includes(option.id) ? "default" : "outline"
                 }
-                className={`cursor-pointer text-sm py-1 px-3 hover:bg-accent font-medium transition-colors ${
+                className={`cursor-pointer text-sm py-1 px-3 hover:bg-[#121212]/90 dark:hover:bg-white/70 bg-black/90 dark:bg-white/80 dark:text-black text-white font-medium transition-colors ${
                   activeFilters.includes(option.id)
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : ""
