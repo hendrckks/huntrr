@@ -10,6 +10,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { MessageSquare } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { toast } from "../hooks/useToast";
 
 const ListingView = () => {
   const { slug } = useParams<{ slug: string }>(); // Change from id to slug
@@ -114,7 +115,10 @@ const ListingView = () => {
             onClick={() => setIsModalOpen(true)}
           >
             <img
-              src={listing.photos?.[selectedImageIndex]?.url || "https://via.placeholder.com/800x600?text=No+Image"}
+              src={
+                listing.photos?.[selectedImageIndex]?.url ||
+                "https://via.placeholder.com/800x600?text=No+Image"
+              }
               alt={listing.title}
               className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-in-out transform hover:scale-[1.02]"
             />
@@ -168,17 +172,30 @@ const ListingView = () => {
             <h2 className="text-xl font-semibold mb-2">Contact Landlord</h2>
             <div className="space-y-4">
               <div className="space-y-2 text-sm">
-                <p className="text-gray-600 dark:text-gray-300">{listing.landlordName}</p>
-                <p className="text-gray-600 dark:text-gray-300">Phone: {listing.landlordContact.phone}</p>
-                {listing.landlordContact.showEmail && listing.landlordContact.email && (
-                  <p className="text-gray-600 dark:text-gray-300">Email: {listing.landlordContact.email}</p>
-                )}
+                <p className="text-gray-600 dark:text-gray-300">
+                  {listing.landlordName}
+                </p>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Phone: {listing.landlordContact.phone}
+                </p>
+                {listing.landlordContact.showEmail &&
+                  listing.landlordContact.email && (
+                    <p className="text-gray-600 dark:text-gray-300">
+                      Email: {listing.landlordContact.email}
+                    </p>
+                  )}
               </div>
               <div className="flex items-center justify-start">
                 <Button
                   onClick={() => {
                     if (!isAuthenticated) {
-                      navigate('/login');
+                      navigate("/login");
+                      toast({
+                        title: "Error",
+                        variant: "error",
+                        description: "Please login to chat with the owners",
+                        duration: 5000,
+                      });
                       return;
                     }
                     navigate(`/chats?landlordId=${listing.landlordId}`);
@@ -199,7 +216,16 @@ const ListingView = () => {
           <div className="flex flex-col gap-2">
             <h1 className="text-3xl font-semibold">{listing.title}</h1>
             {listing.status !== "published" && (
-              <Badge variant={listing.status === "denied" ? "destructive" : listing.status === "pending_review" ? "default" : "secondary"} className="w-fit">
+              <Badge
+                variant={
+                  listing.status === "denied"
+                    ? "destructive"
+                    : listing.status === "pending_review"
+                    ? "default"
+                    : "secondary"
+                }
+                className="w-fit"
+              >
                 {listing.status.replace("_", " ").toUpperCase()}
               </Badge>
             )}
@@ -208,18 +234,23 @@ const ListingView = () => {
           <section className="border-t pt-6">
             <h2 className="text-xl font-semibold mb-4">Location</h2>
             <p className="text-gray-600 text-sm dark:text-gray-300">
-              {listing.location.address}, {listing.location.neighborhood}<br />
+              {listing.location.address}, {listing.location.neighborhood}
+              <br />
               {listing.location.area}, {listing.location.city}
             </p>
           </section>
 
           <section className="border-t pt-6">
             <h2 className="text-xl font-semibold mb-4">Description</h2>
-            <p className="text-gray-600 text-sm tracking-wide dark:text-gray-300 whitespace-pre-line">{listing.description}</p>
+            <p className="text-gray-600 text-sm tracking-wide dark:text-gray-300 whitespace-pre-line">
+              {listing.description}
+            </p>
           </section>
 
           <section className="border-t pt-6">
-            <h2 className="text-xl font-semibold mb-4">Utilities & Amenities</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              Utilities & Amenities
+            </h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="text-sm">
                 <dt className="text-gray-500 dark:text-gray-400">

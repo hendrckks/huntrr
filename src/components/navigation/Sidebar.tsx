@@ -1,5 +1,3 @@
-"use client";
-
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Moon,
@@ -32,7 +30,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "../../components/ui/avatar";
-import { toast } from "../../hooks/useToast";
+import { useToast } from "../../hooks/useToast";
 import { signOut } from "../../lib/firebase/auth";
 import { useEffect, useState } from "react";
 import type { BaseNotification } from "../../lib/utils/NotificationUtils";
@@ -49,6 +47,8 @@ const Sidebar = () => {
   const { user, isLoading, setUser } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<BaseNotification[]>([]);
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user?.uid) {
@@ -151,6 +151,19 @@ const Sidebar = () => {
       label: "Chats",
       path: "/chats",
       color: "text-violet-400/90",
+      onClick: () => {
+        if (!isAuthenticated) {
+          navigate("/login");
+          toast({
+            title: "Error",
+            variant: "error",
+            description: "Please login to chat with the owners",
+            duration: 5000,
+          });
+          return;
+        }
+        return true;
+      },
     },
     {
       icon: Bell,
@@ -166,7 +179,7 @@ const Sidebar = () => {
       icon: Bookmark,
       label: "Bookmarks",
       path: "/bookmarks",
-      color: "text-green-400/90",
+      color: "text-pink-400/70",
     },
     user?.role === "admin" || user?.role === "landlord_verified"
       ? {
