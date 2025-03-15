@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { updateUserStatus } from "../lib/firebase/chat";
+import { auth } from "../lib/firebase/clientApp";
 
 const PresenceHandler = () => {
   const { user } = useAuth();
@@ -8,11 +9,13 @@ const PresenceHandler = () => {
   useEffect(() => {
     if (!user?.uid) return;
 
-    // Set user as online
+    // Set user as online when component mounts
     updateUserStatus(user.uid, "online");
 
     // Handle window events for presence
     const handleVisibilityChange = () => {
+      if (!user?.uid) return; // Skip if no user
+
       if (document.visibilityState === "visible") {
         updateUserStatus(user.uid, "online");
       } else {
@@ -21,11 +24,18 @@ const PresenceHandler = () => {
     };
 
     // Handle window focus/blur
-    const handleWindowFocus = () => updateUserStatus(user.uid, "online");
-    const handleWindowBlur = () => updateUserStatus(user.uid, "offline");
+    const handleWindowFocus = () => {
+      if (user?.uid) updateUserStatus(user.uid, "online");
+    };
+
+    const handleWindowBlur = () => {
+      if (user?.uid) updateUserStatus(user.uid, "offline");
+    };
 
     // Set up cleanup for page unload
-    const handleBeforeUnload = () => updateUserStatus(user.uid, "offline");
+    const handleBeforeUnload = () => {
+      if (user?.uid) updateUserStatus(user.uid, "offline");
+    };
 
     // Add event listeners
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -35,7 +45,12 @@ const PresenceHandler = () => {
 
     // Cleanup function
     return () => {
-      updateUserStatus(user.uid, "offline");
+      // Only update status to offline if this component is unmounting
+      // and not due to a sign-out (which is handled separately)
+      if (user?.uid && auth.currentUser) {
+        updateUserStatus(user.uid, "offline");
+      }
+
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleWindowFocus);
       window.removeEventListener("blur", handleWindowBlur);

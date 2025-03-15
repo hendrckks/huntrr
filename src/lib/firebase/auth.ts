@@ -43,6 +43,7 @@ import {
 } from "../types/auth";
 import { auth, db } from "./clientApp";
 import { getUserClaims } from "../../utils/authUtils";
+import { updateUserStatus } from "./chat";
 
 // Configuration
 const CONFIG = {
@@ -721,6 +722,14 @@ export const getAuthStateManager = () => {
 
 export const signOut = async () => {
   try {
+    // Get the current user ID before signing out
+    const currentUserId = auth.currentUser?.uid;
+
+    // If there's a user, update their status to offline
+    if (currentUserId) {
+      await updateUserStatus(currentUserId, "offline");
+    }
+
     // Clear all storage first
     localStorage.removeItem("user");
     localStorage.removeItem("sessionId");
