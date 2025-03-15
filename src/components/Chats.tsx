@@ -21,6 +21,9 @@ import {
   sendMessage,
   createChat,
   markMessagesAsRead,
+  setTypingStatus,
+  setupTypingStatusCleanup,
+  subscribeToTypingStatus,
   type Message,
   type Chat,
 } from "../lib/firebase/chat";
@@ -35,6 +38,9 @@ const Chats = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTypingRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [creatingNewChat, setCreatingNewChat] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
@@ -153,6 +159,65 @@ const Chats = () => {
       setShowMessages(true);
     }
   }, [selectedChat]);
+
+  useEffect(() => {
+    if (!selectedChat || !user?.uid || !selectedChatData) return;
+    
+    const otherUserId = selectedChatData.userId;
+    
+    const unsubscribe = subscribeToTypingStatus(
+      selectedChat, 
+      otherUserId, 
+      (isTyping) => {
+        setOtherUserTyping(isTyping);
+      }
+    );
+    
+    setupTypingStatusCleanup(selectedChat, user.uid);
+    
+    return () => {
+      unsubscribe();
+      if (isTypingRef.current) {
+        setTypingStatus(selectedChat, user.uid, false);
+        isTypingRef.current = false;
+      }
+    };
+  }, [selectedChat, user?.uid, selectedChatData]);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      if (selectedChat && user?.uid && isTypingRef.current) {
+        setTypingStatus(selectedChat, user.uid, false);
+      }
+    };
+  }, [selectedChat, user?.uid]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setNewMessage(newValue);
+    
+    if (!selectedChat || !user?.uid) return;
+    
+    if (!isTypingRef.current && newValue.trim().length > 0) {
+      isTypingRef.current = true;
+      setTypingStatus(selectedChat, user.uid, true);
+    }
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isTypingRef.current) {
+        setTypingStatus(selectedChat, user.uid, false);
+        isTypingRef.current = false;
+      }
+    }, 2000);
+  };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) {
@@ -361,7 +426,7 @@ const Chats = () => {
                       {selectedChatData?.displayName}
                     </CardTitle>
                     <p className="text-xs text-muted-foreground">
-                      {isTyping
+                      {otherUserTyping
                         ? "Typing..."
                         : selectedChatData?.status === "online"
                         ? "Online"
@@ -454,7 +519,7 @@ const Chats = () => {
                     <Input
                       placeholder="Type a message..."
                       value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
+                      onChange={handleInputChange}
                       className="flex-1"
                       disabled={isTyping || !selectedChatData}
                     />

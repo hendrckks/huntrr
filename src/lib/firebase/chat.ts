@@ -14,7 +14,8 @@ import {
   DocumentData,
   QueryDocumentSnapshot,
 } from "firebase/firestore";
-import { db } from "./clientApp";
+import { ref, onValue, set, onDisconnect } from "firebase/database";
+import { db, rtdb } from "./clientApp";
 
 export interface Message {
   id: string;
@@ -340,6 +341,37 @@ export const markMessagesAsRead = async (
 };
 
 // Update user status (online/offline)
+// Typing indicator methods
+export const setTypingStatus = (chatId: string, userId: string, isTyping: boolean) => {
+  const typingRef = ref(rtdb, `typing/${chatId}/${userId}`);
+  return set(typingRef, {
+    isTyping,
+    timestamp: Date.now()
+  });
+};
+
+export const setupTypingStatusCleanup = (chatId: string, userId: string) => {
+  const typingRef = ref(rtdb, `typing/${chatId}/${userId}`);
+  onDisconnect(typingRef).remove();
+};
+
+export const subscribeToTypingStatus = (chatId: string, otherUserId: string, callback: (isTyping: boolean) => void) => {
+  const typingRef = ref(rtdb, `typing/${chatId}/${otherUserId}`);
+  
+  return onValue(typingRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data && data.isTyping) {
+      // Check if typing event is recent (within last 3 seconds)
+      const now = Date.now();
+      if (now - data.timestamp < 3000) {
+        callback(true);
+        return;
+      }
+    }
+    callback(false);
+  });
+};
+
 export const updateUserStatus = async (
   userId: string,
   status: "online" | "offline"
