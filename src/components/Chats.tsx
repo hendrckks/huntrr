@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -26,6 +26,7 @@ import {
   subscribeToTypingStatus,
   type Message,
   type Chat,
+  createTypingHandler,
 } from "../lib/firebase/chat";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
@@ -123,6 +124,10 @@ const Chats = () => {
 
     const unsubscribe = subscribeToMessages(selectedChat, (messagesList) => {
       setMessages(messagesList);
+      // Ensure scroll to bottom after messages are set
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
 
       const unreadMessages = messagesList.filter(
         (msg) => msg.senderId !== user.uid && !msg.read
@@ -134,11 +139,9 @@ const Chats = () => {
           unreadMessages.map((msg) => msg.id)
         ).then(() => {
           // Update the unread count in the chats list
-          setChats(prevChats =>
-            prevChats.map(chat =>
-              chat.chatId === selectedChat
-                ? { ...chat, unreadCount: 0 }
-                : chat
+          setChats((prevChats) =>
+            prevChats.map((chat) =>
+              chat.chatId === selectedChat ? { ...chat, unreadCount: 0 } : chat
             )
           );
         });
@@ -152,7 +155,7 @@ const Chats = () => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages, selectedChat]);
 
   useEffect(() => {
     if (selectedChat && window.innerWidth < 768) {
@@ -162,19 +165,19 @@ const Chats = () => {
 
   useEffect(() => {
     if (!selectedChat || !user?.uid || !selectedChatData) return;
-    
+
     const otherUserId = selectedChatData.userId;
-    
+
     const unsubscribe = subscribeToTypingStatus(
-      selectedChat, 
-      otherUserId, 
+      selectedChat,
+      otherUserId,
       (isTyping) => {
         setOtherUserTyping(isTyping);
       }
     );
-    
+
     setupTypingStatusCleanup(selectedChat, user.uid);
-    
+
     return () => {
       unsubscribe();
       if (isTypingRef.current) {
@@ -189,64 +192,89 @@ const Chats = () => {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      
+
       if (selectedChat && user?.uid && isTypingRef.current) {
         setTypingStatus(selectedChat, user.uid, false);
       }
     };
   }, [selectedChat, user?.uid]);
 
+  // In Chats.tsx
+  const typingHandlerRef = useRef<{
+    handleTyping: () => void;
+    cleanup: () => void;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!selectedChat || !user?.uid) return;
+
+    const handler = createTypingHandler(selectedChat, user.uid);
+    typingHandlerRef.current = handler;
+
+    return () => {
+      handler.cleanup();
+      typingHandlerRef.current = null;
+    };
+  }, [selectedChat, user?.uid]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setNewMessage(newValue);
-    
-    if (!selectedChat || !user?.uid) return;
-    
-    if (!isTypingRef.current && newValue.trim().length > 0) {
-      isTypingRef.current = true;
-      setTypingStatus(selectedChat, user.uid, true);
-    }
-    
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    
-    typingTimeoutRef.current = setTimeout(() => {
-      if (isTypingRef.current) {
-        setTypingStatus(selectedChat, user.uid, false);
-        isTypingRef.current = false;
-      }
-    }, 2000);
-  };
 
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
-
-    if (!newMessage.trim() || !selectedChat || !user?.uid || !user?.displayName)
-      return;
-
-    setIsTyping(true);
-
-    try {
-      const success = await sendMessage({
-        chatId: selectedChat,
-        content: newMessage,
-        senderId: user.uid,
-        senderName: user.displayName,
-        receiverId: selectedChatData?.userId || "",
-      });
-
-      if (success) {
-        setNewMessage("");
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-    } finally {
-      setIsTyping(false);
+    if (typingHandlerRef.current && newValue.trim().length > 0) {
+      typingHandlerRef.current.handleTyping();
     }
   };
+
+  // Memoize chat selection function
+  const handleChatSelection = useCallback((chatId: string) => {
+    setSelectedChat(chatId);
+    if (window.innerWidth < 768) {
+      setShowMessages(true);
+    }
+  }, []);
+
+  // Memoize filtered and sorted chats
+  const sortedChats = useMemo(() => {
+    return [...chats].sort((a, b) => {
+      if (!a.lastMessageTime) return 1;
+      if (!b.lastMessageTime) return -1;
+      return b.lastMessageTime.seconds - a.lastMessageTime.seconds;
+    });
+  }, [chats]);
+
+  // Memoize the message sending function
+  const handleSendMessage = useCallback(
+    async (e?: React.FormEvent) => {
+      if (e) {
+        e.preventDefault();
+      }
+
+      if (!newMessage.trim() || !selectedChat || !user?.uid || !user?.displayName)
+        return;
+
+      setIsTyping(true);
+
+      try {
+        const success = await sendMessage({
+          chatId: selectedChat,
+          content: newMessage,
+          senderId: user.uid,
+          senderName: user.displayName,
+          receiverId: selectedChatData?.userId || "",
+        });
+
+        if (success) {
+          setNewMessage("");
+        }
+      } catch (error) {
+        console.error("Error sending message:", error);
+      } finally {
+        setIsTyping(false);
+      }
+    },
+    [newMessage, selectedChat, user, selectedChatData]
+  );
 
   const formatMessageTime = (timestamp: any) => {
     if (!timestamp) return "";
@@ -254,6 +282,38 @@ const Chats = () => {
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return format(date, "HH:mm");
   };
+
+  // Memoize the messages rendering
+  const messageElements = useMemo(() => {
+    return messages.map((message) => (
+      <div
+        key={message.id}
+        className={`flex ${message.senderId === user?.uid ? "justify-end" : "justify-start"}`}
+      >
+        <div className="flex flex-col space-y-1 max-w-[70%]">
+          <div
+            className={`p-3 md:px-6 px-4 rounded-lg ${message.senderId === user?.uid ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+          >
+            <p className="text-sm">{message.content}</p>
+          </div>
+          <div
+            className={`flex items-center space-x-2 text-xs text-muted-foreground ${message.senderId === user?.uid ? "justify-end" : "justify-start"}`}
+          >
+            <span>{formatMessageTime(message.timestamp)}</span>
+            {message.senderId === user?.uid && (
+              <span>
+                {message.read ? (
+                  <CheckCheck className="h-3 w-3" />
+                ) : (
+                  <Check className="h-3 w-3" />
+                )}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    ));
+  }, [messages, user?.uid]);
 
   const formatLastSeen = (timestamp: any) => {
     if (!timestamp) return "";
@@ -336,20 +396,11 @@ const Chats = () => {
                     </div>
                   )}
 
-                  {chats.map((chat) => (
+                  {sortedChats.map((chat) => (
                     <div
                       key={chat.chatId}
-                      className={`flex items-center space-x-4 p-3 rounded-lg cursor-pointer transition-colors ${
-                        selectedChat === chat.chatId
-                          ? "bg-secondary"
-                          : "hover:bg-secondary/50"
-                      }`}
-                      onClick={() => {
-                        setSelectedChat(chat.chatId);
-                        if (window.innerWidth < 768) {
-                          setShowMessages(true);
-                        }
-                      }}
+                      className={`flex items-center space-x-4 p-3 rounded-lg cursor-pointer transition-colors ${selectedChat === chat.chatId ? "bg-secondary" : "hover:bg-secondary/50"}`}
+                      onClick={() => handleChatSelection(chat.chatId)}
                     >
                       <div className="relative">
                         <Avatar className="h-12 w-12 border border-black/20 dark:border-white/20">
@@ -451,7 +502,7 @@ const Chats = () => {
                 <div className="flex-1 overflow-y-auto p-4 h-full md:h-[450px]">
                   <div
                     ref={messageContainerRef}
-                    className=" md:h-[450px] h-[calc(100dvh-16rem)]  overflow-y-auto space-y-4 p-4 scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent transition-all duration-200"
+                    className="md:h-[450px] h-[calc(100dvh-16rem)] overflow-y-auto space-y-4 p-4 scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent transition-all duration-200"
                   >
                     {loading ? (
                       <div className="flex items-center justify-center h-full">
@@ -467,48 +518,7 @@ const Chats = () => {
                         </div>
                       </div>
                     ) : (
-                      messages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={`flex ${
-                            message.senderId === user?.uid
-                              ? "justify-end"
-                              : "justify-start"
-                          }`}
-                        >
-                          <div className="flex flex-col space-y-1 max-w-[70%]">
-                            <div
-                              className={`p-3 md:px-6 px-4 rounded-lg ${
-                                message.senderId === user?.uid
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-secondary"
-                              }`}
-                            >
-                              <p className="text-sm">{message.content}</p>
-                            </div>
-                            <div
-                              className={`flex items-center space-x-2 text-xs text-muted-foreground ${
-                                message.senderId === user?.uid
-                                  ? "justify-end"
-                                  : "justify-start"
-                              }`}
-                            >
-                              <span>
-                                {formatMessageTime(message.timestamp)}
-                              </span>
-                              {message.senderId === user?.uid && (
-                                <span>
-                                  {message.read ? (
-                                    <CheckCheck className="h-3 w-3" />
-                                  ) : (
-                                    <Check className="h-3 w-3" />
-                                  )}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))
+                      messageElements
                     )}
                     <div ref={messagesEndRef} />
                   </div>

@@ -10,7 +10,6 @@ import {
   getDoc,
   writeBatch,
   limit,
-  setDoc,
   DocumentData,
   QueryDocumentSnapshot,
 } from "firebase/firestore";
@@ -74,50 +73,88 @@ export const subscribeToChats = (
 
   const handleSnapshot = async (snapshot: any) => {
     const chatsList: Chat[] = [];
-    const promises = snapshot.docs.map(
-      async (docSnapshot: QueryDocumentSnapshot<DocumentData>) => {
-        const chatData = docSnapshot.data();
-        const otherUserId =
-          userRole === "landlord_verified" && chatData.landlordId === userId
-            ? chatData.userId
-            : chatData.landlordId;
-
-        // Get user profile info
-        const participantRef = doc(
-          collection(docSnapshot.ref, "participants"),
-          otherUserId
-        );
-        const userDoc = await getDoc(participantRef);
-        const userData = userDoc.exists()
-          ? (userDoc.data() as ParticipantData)
-          : {};
-
-        // Get unread count
-        const unreadQuery = query(
-          collection(db, "messages"),
-          where("chatId", "==", docSnapshot.id),
-          where("senderId", "==", otherUserId),
-          where("read", "==", false)
-        );
-        const unreadSnapshot = await getDocs(unreadQuery);
-
-        chatsList.push({
-          chatId: docSnapshot.id,
-          userId: otherUserId,
-          displayName: userData.displayName || chatData.displayName || "User",
-          photoURL: userData.photoURL || chatData.photoURL,
-          lastMessage: chatData.lastMessage,
-          lastMessageTime: chatData.lastMessageTime,
-          timestamp: chatData.timestamp,
-          role: userData.role || chatData.role,
-          senderId: chatData.lastMessageSenderId,
-          unreadCount: unreadSnapshot.size,
-          status: userData.status || "offline",
-        });
-      }
-    );
-
-    await Promise.all(promises);
+    // const chatPromises: Promise<void>[] = [];
+    const chatData: { [chatId: string]: DocumentData } = {};
+    const otherUserIds: { [chatId: string]: string } = {};
+    
+    // First pass: extract basic chat data and collect IDs for batch operations
+    snapshot.docs.forEach((docSnapshot: QueryDocumentSnapshot<DocumentData>) => {
+      const data = docSnapshot.data();
+      chatData[docSnapshot.id] = data;
+      const otherUserId =
+        userRole === "landlord_verified" && data.landlordId === userId
+          ? data.userId
+          : data.landlordId;
+      otherUserIds[docSnapshot.id] = otherUserId;
+    });
+    
+    // Batch get participant data
+    const participantPromises = Object.entries(otherUserIds).map(async ([chatId, otherUserId]) => {
+      const participantRef = doc(
+        collection(db, "chats", chatId, "participants"),
+        otherUserId
+      );
+      const userDoc = await getDoc(participantRef);
+      return {
+        chatId,
+        userData: userDoc.exists() ? (userDoc.data() as ParticipantData) : {}
+      };
+    });
+    
+    // Batch get unread counts
+    const unreadPromises = Object.keys(chatData).map(async (chatId) => {
+      const unreadQuery = query(
+        collection(db, "messages"),
+        where("chatId", "==", chatId),
+        where("senderId", "==", otherUserIds[chatId]),
+        where("read", "==", false)
+      );
+      const unreadSnapshot = await getDocs(unreadQuery);
+      return {
+        chatId,
+        unreadCount: unreadSnapshot.size
+      };
+    });
+    
+    // Wait for all batch operations to complete
+    const [participantResults, unreadResults] = await Promise.all([
+      Promise.all(participantPromises),
+      Promise.all(unreadPromises)
+    ]);
+    
+    // Create a map for faster lookups
+    const participantMap: { [chatId: string]: ParticipantData } = {};
+    participantResults.forEach(result => {
+      participantMap[result.chatId] = result.userData;
+    });
+    
+    const unreadMap: { [chatId: string]: number } = {};
+    unreadResults.forEach(result => {
+      unreadMap[result.chatId] = result.unreadCount;
+    });
+    
+    // Build final chat list
+    snapshot.docs.forEach((docSnapshot: QueryDocumentSnapshot<DocumentData>) => {
+      const chatId = docSnapshot.id;
+      const data = chatData[chatId];
+      const otherUserId = otherUserIds[chatId];
+      const userData = participantMap[chatId] || {};
+      
+      chatsList.push({
+        chatId,
+        userId: otherUserId,
+        displayName: userData.displayName || data.displayName || "User",
+        photoURL: userData.photoURL || data.photoURL,
+        lastMessage: data.lastMessage,
+        lastMessageTime: data.lastMessageTime,
+        timestamp: data.timestamp,
+        role: userData.role || data.role,
+        senderId: data.lastMessageSenderId,
+        unreadCount: unreadMap[chatId] || 0,
+        status: userData.status || "offline",
+      });
+    });
+    
     return chatsList;
   };
 
@@ -182,13 +219,14 @@ export const subscribeToChats = (
 // Subscribe to messages for a specific chat with real-time updates
 export const subscribeToMessages = (
   chatId: string,
-  callback: (messages: Message[]) => void
+  callback: (messages: Message[]) => void,
+  messagesLimit = 100 // Default to 100 recent messages, can be adjusted
 ) => {
   const messagesQuery = query(
     collection(db, "messages"),
     where("chatId", "==", chatId),
     orderBy("timestamp", "asc"),
-    limit(100) // Limit to last 100 messages for performance
+    limit(messagesLimit)
   );
 
   return onSnapshot(messagesQuery, (snapshot) => {
@@ -279,9 +317,12 @@ export const createChat = async (userId: string, landlordId: string) => {
     const userData = userDoc.data() as DocumentData;
     const landlordData = landlordDoc.data() as DocumentData;
 
+    // Use batch operations for creating chat and participants
+    const batch = writeBatch(db);
+    
     // Create new chat
     const chatRef = doc(collection(db, "chats"));
-    await setDoc(chatRef, {
+    batch.set(chatRef, {
       userId,
       landlordId,
       displayName: landlordData.displayName || "Landlord",
@@ -292,10 +333,10 @@ export const createChat = async (userId: string, landlordId: string) => {
       createdAt: serverTimestamp(),
     });
 
-    // Add participants data to subcollection - FIXED
+    // Add participants data to subcollection
     const participantsCollection = collection(chatRef, "participants");
     const userParticipantRef = doc(participantsCollection, userId);
-    await setDoc(userParticipantRef, {
+    batch.set(userParticipantRef, {
       displayName: userData.displayName,
       photoURL: userData.photoURL || null,
       role: userData.role,
@@ -303,13 +344,16 @@ export const createChat = async (userId: string, landlordId: string) => {
     });
 
     const landlordParticipantRef = doc(participantsCollection, landlordId);
-    await setDoc(landlordParticipantRef, {
+    batch.set(landlordParticipantRef, {
       displayName: landlordData.displayName,
       photoURL: landlordData.photoURL || null,
       role: landlordData.role,
       status: "offline",
     });
 
+    // Execute all operations in a single batch
+    await batch.commit();
+    
     return chatRef.id;
   } catch (error) {
     console.error("Error creating chat:", error);
@@ -323,6 +367,8 @@ export const markMessagesAsRead = async (
   messageIds: string[]
 ) => {
   try {
+    if (messageIds.length === 0) return true;
+    
     const batch = writeBatch(db);
 
     messageIds.forEach((messageId) => {
@@ -340,7 +386,6 @@ export const markMessagesAsRead = async (
   }
 };
 
-// Update user status (online/offline)
 // Typing indicator methods
 export const setTypingStatus = (chatId: string, userId: string, isTyping: boolean) => {
   const typingRef = ref(rtdb, `typing/${chatId}/${userId}`);
@@ -349,6 +394,46 @@ export const setTypingStatus = (chatId: string, userId: string, isTyping: boolea
     timestamp: Date.now()
   });
 };
+
+// More efficient debounced typing handler
+export const createTypingHandler = (chatId: string, userId: string) => {
+  let typingTimeout: NodeJS.Timeout | null = null;
+  let isCurrentlyTyping = false;
+  let lastUpdateTime = 0;
+  
+  // Setup cleanup handler
+  const typingRef = ref(rtdb, `typing/${chatId}/${userId}`);
+  onDisconnect(typingRef).remove();
+  
+  return {
+    handleTyping: () => {
+      const now = Date.now();
+      // Only update if not currently typing or if last update was > 2 seconds ago
+      if (!isCurrentlyTyping || (now - lastUpdateTime > 2000)) {
+        isCurrentlyTyping = true;
+        lastUpdateTime = now;
+        set(typingRef, { isTyping: true, timestamp: now });
+      }
+      
+      // Clear existing timeout
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+      }
+      
+      // Set a new timeout to stop typing status
+      typingTimeout = setTimeout(() => {
+          isCurrentlyTyping = false;
+          set(typingRef, { isTyping: false, timestamp: Date.now() });
+        }, 2000);
+      },
+      cleanup: () => {
+        if (typingTimeout) {
+          clearTimeout(typingTimeout);
+        }
+        set(typingRef, { isTyping: false, timestamp: Date.now() });
+      }
+    };
+  };
 
 export const setupTypingStatusCleanup = (chatId: string, userId: string) => {
   const typingRef = ref(rtdb, `typing/${chatId}/${userId}`);
@@ -370,6 +455,25 @@ export const subscribeToTypingStatus = (chatId: string, otherUserId: string, cal
     }
     callback(false);
   });
+};
+
+// Optimized user status tracking
+export const setupOnlineStatusTracking = (userId: string) => {
+  const userStatusRef = ref(rtdb, `status/${userId}`);
+  
+  // Set when online
+  set(userStatusRef, { status: 'online', lastSeen: serverTimestamp() });
+  
+  // When user disconnects, update to offline
+  onDisconnect(userStatusRef).set({ 
+    status: 'offline', 
+    lastSeen: serverTimestamp() 
+  });
+  
+  return () => {
+    // Cleanup function
+    set(userStatusRef, { status: 'offline', lastSeen: serverTimestamp() });
+  };
 };
 
 export const updateUserStatus = async (
