@@ -339,11 +339,7 @@ const Chats = () => {
       >
         <div className="flex flex-col space-y-1 max-w-[70%]">
           <div
-            className={`p-3 md:px-6 px-4 rounded-lg ${
-              message.senderId === user?.uid
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary"
-            }`}
+            className={`p-3 md:px-6 px-4 ${message.senderId === user?.uid ? "bg-[#8752f3] text-primary-foreground rounded-t-full rounded-bl-full" : "bg-primary dark:bg-white dark:text-black text-white rounded-t-full rounded-br-full"}`}
           >
             <p className="text-sm">{message.content}</p>
           </div>
