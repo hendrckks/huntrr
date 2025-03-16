@@ -568,70 +568,99 @@ export const subscribeToTypingStatus = (chatId: string, otherUserId: string, cal
 
 // Optimized user status tracking
 export const setupOnlineStatusTracking = (userId: string) => {
-  const userStatusRef = ref(rtdb, `status/${userId}`);
-  
-  // Set when online
-  set(userStatusRef, { status: 'online', lastSeen: serverTimestamp() });
-  
-  // When user disconnects, update to offline
-  onDisconnect(userStatusRef).set({ 
-    status: 'offline', 
-    lastSeen: serverTimestamp() 
-  });
-  
-  return () => {
-    // Cleanup function
-    set(userStatusRef, { status: 'offline', lastSeen: serverTimestamp() });
+    const userStatusRef = ref(rtdb, `status/${userId}`);
+    
+    // Set when online
+    set(userStatusRef, { status: 'online', lastSeen: Date.now() });
+    
+    // When user disconnects, update to offline
+    onDisconnect(userStatusRef).set({ 
+      status: 'offline', 
+      lastSeen: Date.now() 
+    });
+    
+    // Create a connection reference to track connection state
+    const connectedRef = ref(rtdb, '.info/connected');
+    
+    // Subscribe to connection state
+    const unsubscribe = onValue(connectedRef, (snap) => {
+      if (snap.val() === true) {
+        // We're connected (or reconnected)
+        // Update status in RTDB
+        set(userStatusRef, { status: 'online', lastSeen: Date.now() });
+        
+        // Set up disconnect handler
+        onDisconnect(userStatusRef).set({
+          status: 'offline',
+          lastSeen: Date.now()
+        });
+      }
+    });
+    
+    return () => {
+      // Cleanup function
+      unsubscribe();
+      set(userStatusRef, { status: 'offline', lastSeen: Date.now() });
+      
+      // Update all chat participants with offline status
+      updateUserStatus(userId, "offline");
+    };
   };
-};
-
-export const updateUserStatus = async (
-  userId: string,
-  status: "online" | "offline"
-) => {
-  try {
-    const chatsQuery = query(
-      collection(db, "chats"),
-      where("userId", "==", userId)
-    );
-
-    const landlordChatsQuery = query(
-      collection(db, "chats"),
-      where("landlordId", "==", userId)
-    );
-
-    const batch = writeBatch(db);
-
-    // Update as tenant
-    const snapshot = await getDocs(chatsQuery);
-    snapshot.forEach((docSnapshot) => {
-      const participantRef = doc(
-        collection(docSnapshot.ref, "participants"),
-        userId
+  
+  export const updateUserStatus = async (
+    userId: string,
+    status: "online" | "offline"
+  ) => {
+    try {
+      const chatsQuery = query(
+        collection(db, "chats"),
+        where("userId", "==", userId)
       );
-      batch.update(participantRef, { 
-        status,
-        lastSeen: status === "offline" ? serverTimestamp() : null
-      });
-    });
-
-    // Update as landlord
-    const landlordSnapshot = await getDocs(landlordChatsQuery);
-    landlordSnapshot.forEach((docSnapshot) => {
-      const participantRef = doc(
-        collection(docSnapshot.ref, "participants"),
-        userId
+  
+      const landlordChatsQuery = query(
+        collection(db, "chats"),
+        where("landlordId", "==", userId)
       );
-      batch.update(participantRef, { 
-        status,
-        lastSeen: status === "offline" ? serverTimestamp() : null
+  
+      const batch = writeBatch(db);
+      
+      // Also update the user's status in RTDB
+      const userStatusRef = ref(rtdb, `status/${userId}`);
+      set(userStatusRef, { 
+        status, 
+        lastSeen: status === "offline" ? Date.now() : null 
       });
-    });
-
-    await batch.commit();
-    return true;
-  } catch (error) {
-    console.error("Error updating user status:", error);
-    return false;
-  }
-};
+  
+      // Update as tenant
+      const snapshot = await getDocs(chatsQuery);
+      snapshot.forEach((docSnapshot) => {
+        const participantRef = doc(
+          collection(docSnapshot.ref, "participants"),
+          userId
+        );
+        batch.update(participantRef, { 
+          status,
+          lastSeen: status === "offline" ? serverTimestamp() : null
+        });
+      });
+  
+      // Update as landlord
+      const landlordSnapshot = await getDocs(landlordChatsQuery);
+      landlordSnapshot.forEach((docSnapshot) => {
+        const participantRef = doc(
+          collection(docSnapshot.ref, "participants"),
+          userId
+        );
+        batch.update(participantRef, { 
+          status,
+          lastSeen: status === "offline" ? serverTimestamp() : null
+        });
+      });
+  
+      await batch.commit();
+      return true;
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      return false;
+    }
+  };
