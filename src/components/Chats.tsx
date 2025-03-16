@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
   Clock,
@@ -12,6 +13,7 @@ import {
   CheckCheck,
   ArrowLeft,
   Loader2,
+  ArrowDown,
 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { format } from "date-fns";
@@ -45,6 +47,7 @@ const Chats = () => {
   const [loading, setLoading] = useState(true);
   const [creatingNewChat, setCreatingNewChat] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -156,6 +159,33 @@ const Chats = () => {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, selectedChat]);
+  
+  // Handle scroll to determine when to show the scroll button
+  const handleScroll = () => {
+    if (messageContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 20; // 20px threshold
+      setShowScrollButton(!isAtBottom);
+    }
+  };
+
+  // Scroll to bottom function for the arrow button
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+  
+  // Add scroll event listener to message container
+  useEffect(() => {
+    const container = messageContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      // Initial check
+      handleScroll();
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [selectedChat, messages]);
 
   useEffect(() => {
     if (selectedChat && window.innerWidth < 768) {
@@ -250,7 +280,12 @@ const Chats = () => {
         e.preventDefault();
       }
 
-      if (!newMessage.trim() || !selectedChat || !user?.uid || !user?.displayName)
+      if (
+        !newMessage.trim() ||
+        !selectedChat ||
+        !user?.uid ||
+        !user?.displayName
+      )
         return;
 
       setIsTyping(true);
@@ -288,16 +323,24 @@ const Chats = () => {
     return messages.map((message) => (
       <div
         key={message.id}
-        className={`flex ${message.senderId === user?.uid ? "justify-end" : "justify-start"}`}
+        className={`flex ${
+          message.senderId === user?.uid ? "justify-end" : "justify-start"
+        }`}
       >
         <div className="flex flex-col space-y-1 max-w-[70%]">
           <div
-            className={`p-3 md:px-6 px-4 rounded-lg ${message.senderId === user?.uid ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+            className={`p-3 md:px-6 px-4 rounded-lg ${
+              message.senderId === user?.uid
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary"
+            }`}
           >
             <p className="text-sm">{message.content}</p>
           </div>
           <div
-            className={`flex items-center space-x-2 text-xs text-muted-foreground ${message.senderId === user?.uid ? "justify-end" : "justify-start"}`}
+            className={`flex items-center space-x-2 text-xs text-muted-foreground ${
+              message.senderId === user?.uid ? "justify-end" : "justify-start"
+            }`}
           >
             <span>{formatMessageTime(message.timestamp)}</span>
             {message.senderId === user?.uid && (
@@ -357,8 +400,8 @@ const Chats = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 overflow-y-auto p-2 h-[calc(100dvh-6rem)] md:h-auto">
-              {loading && !selectedChatData ? (
-                <div className="flex items-center justify-center h-full">
+              {loading ? (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
                   <Loader2 className="h-6 w-6 animate-spin mr-2" />
                   <span>Loading conversations...</span>
                 </div>
@@ -399,7 +442,11 @@ const Chats = () => {
                   {sortedChats.map((chat) => (
                     <div
                       key={chat.chatId}
-                      className={`flex items-center space-x-4 p-3 rounded-lg cursor-pointer transition-colors ${selectedChat === chat.chatId ? "bg-secondary" : "hover:bg-secondary/50"}`}
+                      className={`flex items-center space-x-4 p-3 rounded-lg cursor-pointer transition-colors ${
+                        selectedChat === chat.chatId
+                          ? "bg-secondary"
+                          : "hover:bg-secondary/50"
+                      }`}
                       onClick={() => handleChatSelection(chat.chatId)}
                     >
                       <div className="relative">
@@ -432,11 +479,13 @@ const Chats = () => {
                               ? "Landlord"
                               : "Tenant"}
                           </Badge>
-                          {chat.unreadCount && chat.unreadCount > 0 && (
-                            <Badge variant="default" className="text-xs">
-                              {chat.unreadCount}
-                            </Badge>
-                          )}
+                          {chat.unreadCount &&
+                            chat.unreadCount > 0 &&
+                            chat.chatId !== selectedChat && (
+                              <Badge variant="default" className="text-xs">
+                                {chat.unreadCount}
+                              </Badge>
+                            )}
                         </div>
                         {chat.lastMessage && (
                           <p className="text-xs text-muted-foreground truncate mt-1">
@@ -492,7 +541,7 @@ const Chats = () => {
               ) : (
                 <div className="flex items-center justify-center h-10">
                   <p className="text-muted-foreground">
-                    {loading ? "Loading..." : "Select a conversation"}
+                    {loading ? "" : "Select a conversation"}
                   </p>
                 </div>
               )}
@@ -503,6 +552,7 @@ const Chats = () => {
                   <div
                     ref={messageContainerRef}
                     className="md:h-[450px] h-[calc(100dvh-16rem)] overflow-y-auto space-y-4 p-4 scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent transition-all duration-200"
+                    onScroll={handleScroll}
                   >
                     {loading ? (
                       <div className="flex items-center justify-center h-full">
@@ -522,6 +572,27 @@ const Chats = () => {
                     )}
                     <div ref={messagesEndRef} />
                   </div>
+                  
+                  <AnimatePresence>
+                    {showScrollButton && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed bottom-40 md:bottom-24 md:left-2/3 left-1/2 -translate-x-1/2 z-50"
+                      >
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-10 w-10 rounded-full shadow-lg dark:bg-zinc-800 dark:hover:bg-zinc-700"
+                          onClick={scrollToBottom}
+                        >
+                          <ArrowDown className="h-5 w-5" />
+                        </Button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <form
                     onSubmit={handleSendMessage}
                     className="flex items-center space-x-2 p-4 border-t mt-auto"
@@ -546,7 +617,11 @@ const Chats = () => {
                 <div className="h-full md:h-[400px] flex items-center justify-center text-muted-foreground">
                   <div className="text-center">
                     <Clock className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                    <p>Select a conversation to start chatting</p>
+                    <p>
+                      {loading
+                        ? "Loading conversations..."
+                        : "Select a conversation to start chatting"}
+                    </p>
                   </div>
                 </div>
               )}

@@ -15,6 +15,8 @@ import {
 } from "firebase/firestore";
 import { ref, onValue, set, onDisconnect } from "firebase/database";
 import { db, rtdb } from "./clientApp";
+import { globalCache } from "../cache/cacheManager";
+import { messageCache } from "../cache/messageCache";
 
 export interface Message {
   id: string;
@@ -130,7 +132,18 @@ export const subscribeToChats = (
     
     const unreadMap: { [chatId: string]: number } = {};
     unreadResults.forEach(result => {
-      unreadMap[result.chatId] = result.unreadCount;
+      // Check if we have a cached unread count of 0 for this chat
+      // This ensures that if we've marked messages as read, we don't show unread count
+      // even if we switch to another chat and back
+      const cacheKey = `unread_${result.chatId}`;
+      const cachedUnreadCount = globalCache.get(cacheKey);
+      
+      // If we have a cached value of 0, use it instead of the query result
+      if (cachedUnreadCount === 0) {
+        unreadMap[result.chatId] = 0;
+      } else {
+        unreadMap[result.chatId] = result.unreadCount;
+      }
     });
     
     // Build final chat list
@@ -222,6 +235,15 @@ export const subscribeToMessages = (
   callback: (messages: Message[]) => void,
   messagesLimit = 100 // Default to 100 recent messages, can be adjusted
 ) => {
+  // Import messageCache here to avoid circular dependencies
+  
+  // Check if we have a cached first page
+  const cachedPage = messageCache.getCachedMessagePage(chatId, 0);
+  if (cachedPage) {
+    // Use cached messages immediately for better UX
+    callback(cachedPage.messages);
+  }
+
   const messagesQuery = query(
     collection(db, "messages"),
     where("chatId", "==", chatId),
@@ -233,14 +255,88 @@ export const subscribeToMessages = (
     const messagesList: Message[] = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
-      messagesList.push({
+      const message = {
         id: doc.id,
         ...data,
         timestamp: data.timestamp || new Date(),
-      } as Message);
+      } as Message;
+      
+      messagesList.push(message);
+      
+      // Cache individual message
+      messageCache.cacheMessage(message);
     });
+    
+    // Cache the entire page
+    messageCache.cacheMessagePage(chatId, 0, messagesList, messagesList.length >= messagesLimit);
+    
     callback(messagesList);
   });
+};
+
+// Load older messages with pagination support
+export const loadOlderMessages = async (
+  chatId: string,
+  beforeMessageId: string,
+  pageSize = 25
+): Promise<Message[]> => {
+  // Import messageCache here to avoid circular dependencies
+  
+  try {
+    // Get the message to use as cursor
+    const cursorMsgRef = doc(db, "messages", beforeMessageId);
+    const cursorMsgSnap = await getDoc(cursorMsgRef);
+    
+    if (!cursorMsgSnap.exists()) {
+      throw new Error("Cursor message not found");
+    }
+    
+    const cursorMsg = cursorMsgSnap.data();
+    
+    // Query for older messages
+    const olderMsgsQuery = query(
+      collection(db, "messages"),
+      where("chatId", "==", chatId),
+      orderBy("timestamp", "asc"),
+      // End before the cursor message
+      where("timestamp", "<", cursorMsg.timestamp),
+      limit(pageSize)
+    );
+    
+    const olderMsgsSnap = await getDocs(olderMsgsQuery);
+    const olderMessages: Message[] = [];
+    
+    olderMsgsSnap.forEach((doc) => {
+      const data = doc.data();
+      const message = {
+        id: doc.id,
+        ...data,
+        timestamp: data.timestamp || new Date(),
+      } as Message;
+      
+      olderMessages.push(message);
+      
+      // Cache individual message
+      messageCache.cacheMessage(message);
+    });
+    
+    // Determine page number based on message ID
+    // This is a simplified approach - in a real app you might want to track page numbers more explicitly
+    const pageIndex = messageCache.getMessagePageIndex(chatId, beforeMessageId);
+    if (pageIndex !== undefined && typeof pageIndex === 'number') {
+      messageCache.cacheMessagePage(
+        chatId,
+        pageIndex + 1,
+        olderMessages,
+        olderMessages.length >= pageSize
+      );
+    }
+    
+    return olderMessages;
+  } catch (error) {
+    console.error("Error loading older messages:", error);
+    return [];
+  }
 };
 
 // Send a new message
@@ -363,11 +459,13 @@ export const createChat = async (userId: string, landlordId: string) => {
 
 // Mark messages as read
 export const markMessagesAsRead = async (
-  _chatId: string,
+  chatId: string,
   messageIds: string[]
 ) => {
   try {
     if (messageIds.length === 0) return true;
+    
+    // Import messageCache here to avoid circular dependencies
     
     const batch = writeBatch(db);
 
@@ -377,6 +475,14 @@ export const markMessagesAsRead = async (
         read: true,
       });
     });
+
+    // Also update the unread count in the local cache to ensure consistency
+    // This helps prevent the unread counter from reappearing when switching chats
+    const cacheKey = `unread_${chatId}`;
+    globalCache.set(cacheKey, 0);
+    
+    // Update read status in message cache
+    messageCache.updateMessageReadStatus(chatId, messageIds);
 
     await batch.commit();
     return true;
