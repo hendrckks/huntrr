@@ -31,12 +31,10 @@ import {
   type Message,
   type Chat,
   createTypingHandler,
-  //   hideChat,
 } from "../lib/firebase/chat";
 import { MESSAGE_PAGE_SIZE } from "../lib/cache/messageCache";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
-// import DeleteChatDialog from "./dialogs/DeleteChatDialog";
 
 const Chats = () => {
   const { user } = useAuth();
@@ -55,11 +53,15 @@ const Chats = () => {
   const [creatingNewChat, setCreatingNewChat] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
-  //   const [isDeleting, setIsDeleting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Add this ref to track when we're loading older messages
+  const isLoadingOlderMessagesRef = useRef(false);
+  // Add this ref to preserve scroll position when loading older messages
+  const oldMessagesHeightRef = useRef(0);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -102,8 +104,6 @@ const Chats = () => {
     }
   }, [location, user?.uid, user?.role, navigate]);
 
-  // In Chats.tsx, modify the useEffect for subscribeToChats:
-
   useEffect(() => {
     if (!user?.uid || !user?.role) return;
 
@@ -120,8 +120,6 @@ const Chats = () => {
           ? `${chat.photoURL.split("?")[0]}?t=${Date.now()}&r=${Math.random()}`
           : "",
       }));
-
-      setChats(updatedChats);
 
       setChats(updatedChats);
 
@@ -148,13 +146,8 @@ const Chats = () => {
 
     const unsubscribe = subscribeToMessages(selectedChat, (messagesList) => {
       setMessages(messagesList);
-      // Ensure scroll to bottom after messages are set
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-      }
 
       // Check if there are potentially more messages to load
-      // Use MESSAGE_PAGE_SIZE instead of hardcoded 10
       setHasMoreMessages(messagesList.length >= MESSAGE_PAGE_SIZE);
 
       const unreadMessages = messagesList.filter(
@@ -179,8 +172,22 @@ const Chats = () => {
     return () => unsubscribe();
   }, [selectedChat, user]);
 
+  // Modified useEffect for scrolling to properly handle loading older messages
   useEffect(() => {
-    if (messagesEndRef.current) {
+    // Don't scroll if we're loading older messages
+    if (isLoadingOlderMessagesRef.current) {
+      setTimeout(() => {
+        if (messageContainerRef.current) {
+          // After older messages are loaded, maintain the scroll position relative to the content that was already there
+          const newScrollPosition =
+            messageContainerRef.current.scrollHeight -
+            oldMessagesHeightRef.current;
+          messageContainerRef.current.scrollTop = newScrollPosition;
+        }
+        isLoadingOlderMessagesRef.current = false;
+      }, 0);
+    } else if (messagesEndRef.current && !isLoadingOlderMessagesRef.current) {
+      // Only scroll to bottom if we're not loading older messages
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, selectedChat]);
@@ -255,7 +262,6 @@ const Chats = () => {
     };
   }, [selectedChat, user?.uid]);
 
-  // In Chats.tsx
   const typingHandlerRef = useRef<{
     handleTyping: () => void;
     cleanup: () => void;
@@ -281,36 +287,6 @@ const Chats = () => {
       typingHandlerRef.current.handleTyping();
     }
   };
-
-  //   const handleHideChat = async () => {
-  //     if (!selectedChat || !user?.uid) return;
-
-  //     setIsDeleting(true);
-  //     try {
-  //       const success = await hideChat(selectedChat, user.uid);
-
-  //       if (success) {
-  //         // Remove the chat from the local state
-  //         setChats((prevChats) =>
-  //           prevChats.filter((chat) => chat.chatId !== selectedChat)
-  //         );
-
-  //         // Reset selected chat
-  //         setSelectedChat(null);
-  //         setSelectedChatData(null);
-  //         setMessages([]);
-
-  //         // Go back to chat list on mobile
-  //         if (window.innerWidth < 768) {
-  //           setShowMessages(false);
-  //         }
-  //       }
-  //     } catch (error) {
-  //       console.error("Error hiding chat:", error);
-  //     } finally {
-  //       setIsDeleting(false);
-  //     }
-  //   };
 
   // Memoize chat selection function
   const handleChatSelection = useCallback((chatId: string) => {
@@ -437,11 +413,19 @@ const Chats = () => {
   };
 
   // Function to load older messages
+  // Modified function to load older messages
   const handleLoadOlderMessages = async () => {
     if (!selectedChat || !messages.length || loadingOlderMessages) return;
 
     setLoadingOlderMessages(true);
+    isLoadingOlderMessagesRef.current = true;
+
     try {
+      // Store the current scroll height before loading older messages
+      if (messageContainerRef.current) {
+        oldMessagesHeightRef.current = messageContainerRef.current.scrollHeight;
+      }
+
       // Get the oldest message ID as the cursor
       const oldestMessage = messages[0];
 
@@ -465,6 +449,8 @@ const Chats = () => {
       setHasMoreMessages(false);
     } finally {
       setLoadingOlderMessages(false);
+      // Note: We don't reset isLoadingOlderMessagesRef.current here
+      // It will be reset in the useEffect that handles scrolling
     }
   };
 
@@ -507,7 +493,9 @@ const Chats = () => {
                       <div className="flex items-center space-x-4">
                         <Avatar className="h-12 w-12">
                           <AvatarFallback>
-                            {selectedChatData.displayName?.charAt(0).toUpperCase()}
+                            {selectedChatData.displayName
+                              ?.charAt(0)
+                              .toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
@@ -630,10 +618,6 @@ const Chats = () => {
                       </p>
                     </div>
                   </div>
-                  {/* <DeleteChatDialog
-                    onDelete={handleHideChat}
-                    isDeleting={isDeleting}
-                  /> */}
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-10">
@@ -667,7 +651,7 @@ const Chats = () => {
                     ) : (
                       <>
                         {hasMoreMessages && (
-                          <div className="flex  justify-center mb-4">
+                          <div className="flex justify-center mb-4">
                             <Button
                               variant="outline"
                               size="sm"
