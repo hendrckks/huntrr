@@ -23,6 +23,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Settings, Upload } from "lucide-react";
+import { updateProfileInAllChats } from "../../lib/firebase/chat";
 
 // Default placeholder image path
 const DEFAULT_PROFILE_IMAGE = "/default image.webp";
@@ -112,50 +113,85 @@ const EditAccount: React.FC = () => {
       const timestampedUrl = `${imageUrl}?t=${Date.now()}`;
 
       if (user) {
-        // Update Firebase Auth profile first
-        await updateProfile(user, { photoURL: timestampedUrl });
+        // Maximum retry attempts for Firebase operations
+        const maxRetries = 3;
+        let retryCount = 0;
 
-        // Then update Firestore document
-        const userRef = doc(db, "users", user.uid);
-        await updateDoc(userRef, {
-          photoURL: timestampedUrl,
-          updatedAt: new Date(), // Add timestamp to trigger real-time updates
-        });
+        while (retryCount < maxRetries) {
+          try {
+            // Update Firebase Auth profile first
+            await updateProfile(user, { photoURL: timestampedUrl });
 
-        // Force token refresh to ensure the new photoURL is immediately available
-        await user.getIdToken(true);
-        await user.reload();
+            // Then update Firestore document with retry mechanism
+            const userRef = doc(db, "users", user.uid);
+            await updateDoc(userRef, {
+              photoURL: timestampedUrl,
+              updatedAt: new Date(),
+            });
 
-        // Get the updated user object after reload
-        const freshUser = auth.currentUser;
-        setUser(freshUser);
+            // Update participant data in all chats where this user participates
+            await updateProfileInAllChats(user.uid, {
+              photoURL: timestampedUrl,
+            });
 
-        // Update profile image with cache-busting timestamp
-        setProfileImage(timestampedUrl);
-        setImageTimestamp(Date.now());
+            // Force token refresh to ensure the new photoURL is immediately available
+            await user.getIdToken(true);
+            await user.reload();
 
-        // Broadcast profile image change event for other components
-        window.dispatchEvent(
-          new CustomEvent("profileImageUpdated", {
-            detail: { photoURL: timestampedUrl },
-          })
-        );
+            // Get the updated user object after reload
+            const freshUser = auth.currentUser;
+            setUser(freshUser);
 
-        toast({
-          title: "",
-          variant: "success",
-          description: "Profile picture updated successfully",
-          duration: 5000,
-        });
+            // Update profile image with cache-busting timestamp
+            setProfileImage(timestampedUrl);
+            setImageTimestamp(Date.now());
+
+            // Broadcast profile image change event for other components
+            window.dispatchEvent(
+              new CustomEvent("profileImageUpdated", {
+                detail: { photoURL: timestampedUrl },
+              })
+            );
+
+            toast({
+              title: "",
+              variant: "success",
+              description: "Profile picture updated successfully",
+              duration: 5000,
+            });
+
+            // If we reach here, all operations succeeded
+            break;
+          } catch (retryError: any) {
+            retryCount++;
+            
+            // Check if it's a network error or client-side blocking
+            if (retryError.code === 'failed-precondition' || 
+                retryError.message?.includes('ERR_BLOCKED_BY_CLIENT') ||
+                retryError.name === 'FirebaseError') {
+              
+              if (retryCount === maxRetries) {
+                throw new Error('Network request blocked. Please disable any ad blockers or try again later.');
+              }
+              
+              // Wait before retrying (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+              continue;
+            }
+            
+            // If it's not a network error, throw immediately
+            throw retryError;
+          }
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "",
+        title: "Error",
         variant: "error",
-        description: "Failed to update profile picture",
+        description: error.message || "Failed to update profile picture",
         duration: 5000,
       });
-      console.error(error);
+      console.error('Profile update error:', error);
     } finally {
       setIsLoading(false);
       setImageLoading(false);
@@ -202,6 +238,11 @@ const EditAccount: React.FC = () => {
       await updateDoc(doc(db, "users", user.uid), {
         displayName: formData.displayName,
         email: formData.email,
+      });
+
+      // Update display name in all chats
+      await updateProfileInAllChats(user.uid, {
+        displayName: formData.displayName,
       });
 
       // Force token refresh

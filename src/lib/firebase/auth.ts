@@ -720,6 +720,7 @@ export const getAuthStateManager = () => {
   return AuthStateManager.getInstance();
 };
 
+
 export const signOut = async () => {
   try {
     // Get the current user ID before signing out

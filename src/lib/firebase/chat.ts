@@ -13,6 +13,7 @@ import {
   DocumentData,
   QueryDocumentSnapshot,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { ref, onValue, set, onDisconnect } from "firebase/database";
 import { db, rtdb } from "./clientApp";
@@ -34,7 +35,7 @@ export interface Chat {
   chatId: string;
   userId: string;
   displayName: string;
-  photoURL?: string;
+  photoURL?: string | null;
   lastMessage?: string;
   lastMessageTime?: any;
   timestamp?: any;
@@ -48,9 +49,10 @@ export interface Chat {
 // Type for participant data
 interface ParticipantData {
   displayName?: string;
-  photoURL?: string;
+  photoURL?: string | null;
   role?: string;
   status?: string;
+  lastSeen?: any;
 }
 
 // Subscribe to user's chats with real-time updates
@@ -76,7 +78,6 @@ export const subscribeToChats = (
 
   const handleSnapshot = async (snapshot: any) => {
     const chatsList: Chat[] = [];
-    // const chatPromises: Promise<void>[] = [];
     const chatData: { [chatId: string]: DocumentData } = {};
     const otherUserIds: { [chatId: string]: string } = {};
 
@@ -101,9 +102,35 @@ export const subscribeToChats = (
           otherUserId
         );
         const userDoc = await getDoc(participantRef);
+
+        // If participant data doesn't exist or is missing photoURL, fetch from users collection
+        let userData = userDoc.exists()
+          ? (userDoc.data() as ParticipantData)
+          : {};
+
+        if (!userData.photoURL) {
+          // Try to get user data from users collection as fallback
+          const userProfileRef = doc(db, "users", otherUserId);
+          const userProfileDoc = await getDoc(userProfileRef);
+
+          if (userProfileDoc.exists()) {
+            const profileData = userProfileDoc.data();
+            // Update participant data with profile data
+            userData = {
+              ...userData,
+              photoURL: profileData.photoURL || "",
+              displayName:
+                userData.displayName || profileData.displayName || "User",
+            };
+
+            // Update the participants collection with the latest data
+            await setDoc(participantRef, userData, { merge: true });
+          }
+        }
+
         return {
           chatId,
-          userData: userDoc.exists() ? (userDoc.data() as ParticipantData) : {},
+          userData: userData,
         };
       }
     );
@@ -138,8 +165,6 @@ export const subscribeToChats = (
     const unreadMap: { [chatId: string]: number } = {};
     unreadResults.forEach((result) => {
       // Check if we have a cached unread count of 0 for this chat
-      // This ensures that if we've marked messages as read, we don't show unread count
-      // even if we switch to another chat and back
       const cacheKey = `unread_${result.chatId}`;
       const cachedUnreadCount = globalCache.get(cacheKey);
 
@@ -162,8 +187,8 @@ export const subscribeToChats = (
         chatsList.push({
           chatId,
           userId: otherUserId,
-          displayName: userData.displayName || data.displayName || "User",
-          photoURL: userData.photoURL || data.photoURL,
+          displayName: userData.displayName || "User",
+          photoURL: "", // Always empty to force fallback
           lastMessage: data.lastMessage,
           lastMessageTime: data.lastMessageTime,
           timestamp: data.timestamp,
@@ -171,6 +196,7 @@ export const subscribeToChats = (
           senderId: data.lastMessageSenderId,
           unreadCount: unreadMap[chatId] || 0,
           status: userData.status || "offline",
+          lastSeen: userData.lastSeen || null,
         });
       }
     );
@@ -232,21 +258,29 @@ export const subscribeToChats = (
       return b.lastMessageTime.seconds - a.lastMessageTime.seconds;
     });
 
-    callback(chatsList);
+    const updatedChats = chatsList.map((chat) => ({
+      ...chat,
+      // Add cache-busting parameter using both timestamp and random number
+      photoURL: chat.photoURL
+        ? `${chat.photoURL.split("?")[0]}?t=${Date.now()}&r=${Math.random()}`
+        : "",
+    }));
+
+    callback(updatedChats);
   });
 };
-//chat.ts
-export function subscribeToUserProfile(
-  userId: string,
-  callback: (userData: DocumentData) => void
-) {
-  const userRef = doc(db, "users", userId);
-  return onSnapshot(userRef, (doc) => {
-    if (doc.exists()) {
-      callback(doc.data());
-    }
-  });
-}
+
+// export function subscribeToUserProfile(
+//   userId: string,
+//   callback: (userData: DocumentData) => void
+// ) {
+//   const userRef = doc(db, "users", userId);
+//   return onSnapshot(userRef, (doc) => {
+//     if (doc.exists()) {
+//       callback(doc.data());
+//     }
+//   });
+// }
 
 // Subscribe to messages for a specific chat with real-time updates
 export const subscribeToMessages = (
@@ -448,10 +482,6 @@ export const createChat = async (userId: string, landlordId: string) => {
     batch.set(chatRef, {
       userId,
       landlordId,
-      displayName: landlordData.displayName || "Landlord",
-      photoURL: landlordData.photoURL || null,
-      userDisplayName: userData.displayName || "User",
-      userPhotoURL: userData.photoURL || null,
       timestamp: serverTimestamp(),
       createdAt: serverTimestamp(),
     });
@@ -460,18 +490,18 @@ export const createChat = async (userId: string, landlordId: string) => {
     const participantsCollection = collection(chatRef, "participants");
     const userParticipantRef = doc(participantsCollection, userId);
     batch.set(userParticipantRef, {
-      displayName: userData.displayName,
-      photoURL: userData.photoURL || null,
+      displayName: userData.displayName || "User",
       role: userData.role,
       status: "online",
+      updatedAt: serverTimestamp(),
     });
 
     const landlordParticipantRef = doc(participantsCollection, landlordId);
     batch.set(landlordParticipantRef, {
-      displayName: landlordData.displayName,
-      photoURL: landlordData.photoURL || null,
+      displayName: landlordData.displayName || "Landlord",
       role: landlordData.role,
       status: "offline",
+      updatedAt: serverTimestamp(),
     });
 
     // Execute all operations in a single batch
@@ -720,6 +750,74 @@ export const hideChat = async (
     return true;
   } catch (error) {
     console.error("Error hiding chat:", error);
+    return false;
+  }
+};
+
+/**
+ * Updates a user's profile data in all participant collections where they appear
+ * @param userId The user ID whose profile data should be updated
+ * @param profileData An object containing profile data to update (photoURL, displayName, etc.)
+ */
+export const updateProfileInAllChats = async (
+  userId: string,
+  profileData: { [key: string]: any }
+) => {
+  try {
+    // Remove photoURL from profile data if it exists
+    const { ...otherData } = profileData;
+
+    // Find all chats where the user is a landlord
+    const landlordChatsQuery = query(
+      collection(db, "chats"),
+      where("landlordId", "==", userId)
+    );
+
+    // Find all chats where the user is a tenant
+    const tenantChatsQuery = query(
+      collection(db, "chats"),
+      where("userId", "==", userId)
+    );
+
+    // Get results from both queries
+    const [landlordChats, tenantChats] = await Promise.all([
+      getDocs(landlordChatsQuery),
+      getDocs(tenantChatsQuery),
+    ]);
+
+    // Combine the chat IDs
+    const chatIds = [
+      ...landlordChats.docs.map((doc) => doc.id),
+      ...tenantChats.docs.map((doc) => doc.id),
+    ];
+
+    // Update participant data in each chat
+    const updatePromises = chatIds.map((chatId) => {
+      const participantRef = doc(db, "chats", chatId, "participants", userId);
+      const chatRef = doc(db, "chats", chatId);
+
+      // Add timestamp to data for Firestore triggers
+      const dataWithTimestamp = {
+        ...otherData,
+        updatedAt: serverTimestamp(),
+      };
+
+      // Update both participant document and parent chat document
+      return Promise.all([
+        updateDoc(participantRef, dataWithTimestamp),
+        updateDoc(chatRef, {
+          updatedAt: serverTimestamp(),
+          lastParticipantUpdate: serverTimestamp(),
+        }),
+      ]);
+    });
+
+    // Execute all updates
+    await Promise.all(updatePromises);
+
+    return true;
+  } catch (error) {
+    console.error("Error updating profile in chats:", error);
     return false;
   }
 };

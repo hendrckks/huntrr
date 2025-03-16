@@ -321,7 +321,7 @@ const Sidebar = () => {
         {/* User Profile Section with Theme Toggle */}
         <div className="border-t dark:border-white/10 border-black/10 pt-4 mt-4 text-sm">
           <div className="flex flex-col space-y-4">
-            <div className="flex items-center justify-between py-2 rounded-lg transition-colors">
+            <div className="flex items-center  justify-between py-2 rounded-lg transition-colors">
               {isLoading ? (
                 <div className="flex items-center space-x-2">
                   <div className="h-10 w-10 rounded-full bg-white/10 animate-pulse" />
@@ -342,7 +342,7 @@ const Sidebar = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-medium text-sm">
+                    <h3 className="font-medium">
                       {user?.displayName || "User Name"}
                     </h3>
                     <p className="text-xs text-muted-foreground truncate max-w-[150px]">

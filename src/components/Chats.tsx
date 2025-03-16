@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
@@ -102,6 +102,8 @@ const Chats = () => {
     }
   }, [location, user?.uid, user?.role, navigate]);
 
+  // In Chats.tsx, modify the useEffect for subscribeToChats:
+
   useEffect(() => {
     if (!user?.uid || !user?.role) return;
 
@@ -110,18 +112,29 @@ const Chats = () => {
     }
 
     const unsubscribe = subscribeToChats(user.uid, user.role, (chatsList) => {
-      setChats(chatsList);
+      // Add a timestamp parameter to each photoURL to prevent caching
+      const updatedChats = chatsList.map((chat) => ({
+        ...chat,
+        // Add cache-busting parameter using both timestamp and random number
+        photoURL: chat.photoURL
+          ? `${chat.photoURL.split("?")[0]}?t=${Date.now()}&r=${Math.random()}`
+          : "",
+      }));
+
+      setChats(updatedChats);
+
+      setChats(updatedChats);
 
       if (selectedChat) {
-        const matchingChat = chatsList.find(
+        const matchingChat = updatedChats.find(
           (chat) => chat.chatId === selectedChat
         );
         if (matchingChat) {
           setSelectedChatData(matchingChat);
           setCreatingNewChat(false);
         }
-      } else if (!selectedChat && chatsList.length > 0 && !creatingNewChat) {
-        setSelectedChat(chatsList[0].chatId);
+      } else if (!selectedChat && updatedChats.length > 0 && !creatingNewChat) {
+        setSelectedChat(updatedChats[0].chatId);
       }
 
       setLoading(false);
@@ -493,14 +506,8 @@ const Chats = () => {
                     <div className="p-3 rounded-lg bg-secondary">
                       <div className="flex items-center space-x-4">
                         <Avatar className="h-12 w-12">
-                          <AvatarImage
-                            src={`${selectedChatData.photoURL}?t=${Date.now()}`}
-                            className="object-cover w-full h-full"
-                          />
                           <AvatarFallback>
-                            {selectedChatData.displayName
-                              ?.charAt(0)
-                              .toUpperCase()}
+                            {selectedChatData.displayName?.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
@@ -528,13 +535,7 @@ const Chats = () => {
                       onClick={() => handleChatSelection(chat.chatId)}
                     >
                       <div className="relative">
-                        <Avatar className="md:h-16 md:w-16 h-14 w-14 border border-black/20 dark:border-white/20">
-                          <AvatarImage
-                            src={`${chat.photoURL}?t=${Date.now()}`}
-                            alt={chat.displayName || "User"}
-                            className="object-cover w-full h-full"
-                            loading="eager"
-                          />
+                        <Avatar className="md:h-15 md:w-15 h-14 w-14 border border-black/20 dark:border-white/20">
                           <AvatarFallback>
                             {chat.displayName?.charAt(0).toUpperCase()}
                           </AvatarFallback>
@@ -608,10 +609,6 @@ const Chats = () => {
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <Avatar className="h-12 w-12">
-                      <AvatarImage
-                        src={`${selectedChatData?.photoURL}?t=${Date.now()}`}
-                        className="object-cover w-full h-full"
-                      />
                       <AvatarFallback>
                         {selectedChatData?.displayName?.charAt(0).toUpperCase()}
                       </AvatarFallback>
