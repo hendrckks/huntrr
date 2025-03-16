@@ -2,7 +2,7 @@ import { Message } from "../firebase/chat";
 import { globalCache } from "./cacheManager";
 
 // Constants for message cache configuration
-const MESSAGE_PAGE_SIZE = 25; // Default page size for pagination
+export const MESSAGE_PAGE_SIZE = 10; // Default page size for pagination
 // These constants will be used in future implementations
 // for cache size management and expiration policies
 export const MESSAGE_CACHE_SIZE = 500; // Maximum number of messages to cache per chat

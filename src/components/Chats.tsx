@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Loader2,
   ArrowDown,
+  ArrowUp,
 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { format } from "date-fns";
@@ -26,10 +27,12 @@ import {
   setTypingStatus,
   setupTypingStatusCleanup,
   subscribeToTypingStatus,
+  loadOlderMessages,
   type Message,
   type Chat,
   createTypingHandler,
 } from "../lib/firebase/chat";
+import { MESSAGE_PAGE_SIZE } from "../lib/cache/messageCache";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
 
@@ -45,6 +48,8 @@ const Chats = () => {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
   const [loading, setLoading] = useState(true);
+  const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [creatingNewChat, setCreatingNewChat] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -132,6 +137,10 @@ const Chats = () => {
         messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
       }
 
+      // Check if there are potentially more messages to load
+      // Use MESSAGE_PAGE_SIZE instead of hardcoded 10
+      setHasMoreMessages(messagesList.length >= MESSAGE_PAGE_SIZE);
+
       const unreadMessages = messagesList.filter(
         (msg) => msg.senderId !== user.uid && !msg.read
       );
@@ -159,11 +168,12 @@ const Chats = () => {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, selectedChat]);
-  
+
   // Handle scroll to determine when to show the scroll button
   const handleScroll = () => {
     if (messageContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+      const { scrollTop, scrollHeight, clientHeight } =
+        messageContainerRef.current;
       const isAtBottom = scrollTop + clientHeight >= scrollHeight - 20; // 20px threshold
       setShowScrollButton(!isAtBottom);
     }
@@ -175,15 +185,15 @@ const Chats = () => {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   };
-  
+
   // Add scroll event listener to message container
   useEffect(() => {
     const container = messageContainerRef.current;
     if (container) {
-      container.addEventListener('scroll', handleScroll);
+      container.addEventListener("scroll", handleScroll);
       // Initial check
       handleScroll();
-      return () => container.removeEventListener('scroll', handleScroll);
+      return () => container.removeEventListener("scroll", handleScroll);
     }
   }, [selectedChat, messages]);
 
@@ -380,6 +390,38 @@ const Chats = () => {
     setShowMessages(false);
   };
 
+  // Function to load older messages
+  const handleLoadOlderMessages = async () => {
+    if (!selectedChat || !messages.length || loadingOlderMessages) return;
+
+    setLoadingOlderMessages(true);
+    try {
+      // Get the oldest message ID as the cursor
+      const oldestMessage = messages[0];
+
+      // Load older messages before this one
+      const olderMessages = await loadOlderMessages(
+        selectedChat,
+        oldestMessage.id
+      );
+
+      if (olderMessages.length > 0) {
+        // Update messages state with older messages prepended
+        setMessages((prevMessages) => [...olderMessages, ...prevMessages]);
+        // Check if there might be more messages to load
+        setHasMoreMessages(olderMessages.length >= MESSAGE_PAGE_SIZE);
+      } else {
+        // No more messages to load
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      console.error("Error loading older messages:", error);
+      setHasMoreMessages(false);
+    } finally {
+      setLoadingOlderMessages(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 md:-mt-4 -mt-6 md:-mb-4 mb-0 max-w-7xl md:h-[calc(100vh-6rem)] h-fit overflow-scroll">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 h-[85vh] md:h-full">
@@ -389,12 +431,12 @@ const Chats = () => {
               <CardTitle className="flex items-center justify-between">
                 <Button
                   onClick={() => navigate(-1)}
-                  className="text-xs py-2 px-3"
+                  className="text-sm py-2 px-4 rounded-lg"
                 >
                   Back
                 </Button>
                 <span>Conversations</span>
-                <Badge variant="secondary" className="ml-2">
+                <Badge variant="secondary" className="ml-2 py-2 px-4">
                   {chats.length}
                 </Badge>
               </CardTitle>
@@ -568,11 +610,36 @@ const Chats = () => {
                         </div>
                       </div>
                     ) : (
-                      messageElements
+                      <>
+                        {hasMoreMessages && (
+                          <div className="flex  justify-center mb-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1"
+                              onClick={handleLoadOlderMessages}
+                              disabled={loadingOlderMessages}
+                            >
+                              {loadingOlderMessages ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                  Loading...
+                                </>
+                              ) : (
+                                <>
+                                  <ArrowUp className="h-3 w-3" />
+                                  Load Previous Messages
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                        {messageElements}
+                      </>
                     )}
                     <div ref={messagesEndRef} />
                   </div>
-                  
+
                   <AnimatePresence>
                     {showScrollButton && (
                       <motion.div

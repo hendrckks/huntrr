@@ -16,7 +16,7 @@ import {
 import { ref, onValue, set, onDisconnect } from "firebase/database";
 import { db, rtdb } from "./clientApp";
 import { globalCache } from "../cache/cacheManager";
-import { messageCache } from "../cache/messageCache";
+import { messageCache, MESSAGE_PAGE_SIZE } from "../cache/messageCache";
 
 export interface Message {
   id: string;
@@ -233,7 +233,7 @@ export const subscribeToChats = (
 export const subscribeToMessages = (
   chatId: string,
   callback: (messages: Message[]) => void,
-  messagesLimit = 100 // Default to 100 recent messages, can be adjusted
+  messagesLimit = MESSAGE_PAGE_SIZE // Use MESSAGE_PAGE_SIZE instead of 100
 ) => {
   // Import messageCache here to avoid circular dependencies
   
@@ -247,7 +247,7 @@ export const subscribeToMessages = (
   const messagesQuery = query(
     collection(db, "messages"),
     where("chatId", "==", chatId),
-    orderBy("timestamp", "asc"),
+    orderBy("timestamp", "desc"),
     limit(messagesLimit)
   );
 
@@ -267,10 +267,13 @@ export const subscribeToMessages = (
       messageCache.cacheMessage(message);
     });
     
-    // Cache the entire page
-    messageCache.cacheMessagePage(chatId, 0, messagesList, messagesList.length >= messagesLimit);
+    // Reverse the messages list to maintain chronological order in UI
+    const orderedMessages = [...messagesList].reverse();
     
-    callback(messagesList);
+    // Cache the entire page
+    messageCache.cacheMessagePage(chatId, 0, orderedMessages, messagesList.length >= messagesLimit);
+    
+    callback(orderedMessages);
   });
 };
 
@@ -278,10 +281,8 @@ export const subscribeToMessages = (
 export const loadOlderMessages = async (
   chatId: string,
   beforeMessageId: string,
-  pageSize = 25
+  pageSize = MESSAGE_PAGE_SIZE
 ): Promise<Message[]> => {
-  // Import messageCache here to avoid circular dependencies
-  
   try {
     // Get the message to use as cursor
     const cursorMsgRef = doc(db, "messages", beforeMessageId);
@@ -297,8 +298,7 @@ export const loadOlderMessages = async (
     const olderMsgsQuery = query(
       collection(db, "messages"),
       where("chatId", "==", chatId),
-      orderBy("timestamp", "asc"),
-      // End before the cursor message
+      orderBy("timestamp", "desc"),
       where("timestamp", "<", cursorMsg.timestamp),
       limit(pageSize)
     );
@@ -321,18 +321,21 @@ export const loadOlderMessages = async (
     });
     
     // Determine page number based on message ID
-    // This is a simplified approach - in a real app you might want to track page numbers more explicitly
     const pageIndex = messageCache.getMessagePageIndex(chatId, beforeMessageId);
     if (pageIndex !== undefined && typeof pageIndex === 'number') {
+      // Reverse the messages to maintain chronological order (oldest to newest)
+      const orderedMessages = [...olderMessages].reverse();
       messageCache.cacheMessagePage(
         chatId,
         pageIndex + 1,
-        olderMessages,
+        orderedMessages,
         olderMessages.length >= pageSize
       );
+      return orderedMessages;
     }
     
-    return olderMessages;
+    // If no page index found, still return in chronological order
+    return [...olderMessages].reverse();
   } catch (error) {
     console.error("Error loading older messages:", error);
     return [];
