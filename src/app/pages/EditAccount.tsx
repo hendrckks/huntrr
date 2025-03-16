@@ -96,10 +96,24 @@ const EditAccount: React.FC = () => {
       const imageUrl = await uploadImage(e.target.files[0], user.uid);
 
       if (user) {
+        // Update Firebase Auth profile first
         await updateProfile(user, { photoURL: imageUrl });
-        await updateDoc(doc(db, "users", user.uid), { photoURL: imageUrl });
-        setUser({ ...user, photoURL: imageUrl });
+        
+        // Then update Firestore document
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, { 
+          photoURL: imageUrl,
+          updatedAt: new Date() // Add timestamp to trigger real-time updates
+        });
+
+        // Force a token refresh to ensure the new photoURL is available immediately
+        await user.reload();
+        const updatedUser = auth.currentUser;
+        
+        // Update local state
+        setUser(updatedUser);
         setProfileImage(imageUrl);
+        
         toast({
           title: "",
           variant: "success",
@@ -211,7 +225,20 @@ const EditAccount: React.FC = () => {
                   src={profileImage}
                   alt="Profile"
                   className="w-16 h-16 rounded-full object-cover"
-                  onError={() => setProfileImage(DEFAULT_PROFILE_IMAGE)}
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    if (!img.dataset.retryCount || parseInt(img.dataset.retryCount) < 3) {
+                      // Set retry count
+                      img.dataset.retryCount = img.dataset.retryCount ? (parseInt(img.dataset.retryCount) + 1).toString() : '1';
+                      // Add a small delay before retrying
+                      setTimeout(() => {
+                        img.src = profileImage;
+                      }, 1000);
+                    } else {
+                      // Only set fallback after retry attempts fail
+                      setProfileImage(DEFAULT_PROFILE_IMAGE);
+                    }
+                  }}
                 />
                 <input
                   type="file"
