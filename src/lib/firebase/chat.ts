@@ -15,7 +15,7 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import { ref, onValue, set, onDisconnect } from "firebase/database";
+import { ref, onValue, set, onDisconnect, get } from "firebase/database";
 import { db, rtdb } from "./clientApp";
 import { globalCache } from "../cache/cacheManager";
 import { messageCache, MESSAGE_PAGE_SIZE } from "../cache/messageCache";
@@ -474,6 +474,14 @@ export const createChat = async (userId: string, landlordId: string) => {
     const userData = userDoc.data() as DocumentData;
     const landlordData = landlordDoc.data() as DocumentData;
 
+    // Check landlord's actual online status from RTDB
+    const landlordStatusRef = ref(rtdb, `status/${landlordId}`);
+    const landlordStatusSnapshot = await get(landlordStatusRef);
+    const landlordStatus = landlordStatusSnapshot.exists() ? 
+      landlordStatusSnapshot.val().status : "offline";
+    const landlordLastSeen = landlordStatusSnapshot.exists() ? 
+      landlordStatusSnapshot.val().lastSeen : null;
+
     // Use batch operations for creating chat and participants
     const batch = writeBatch(db);
 
@@ -500,7 +508,8 @@ export const createChat = async (userId: string, landlordId: string) => {
     batch.set(landlordParticipantRef, {
       displayName: landlordData.displayName || "Landlord",
       role: landlordData.role,
-      status: "offline",
+      status: landlordStatus,  // Use actual status from RTDB
+      lastSeen: landlordStatus === "offline" ? landlordLastSeen : null,
       updatedAt: serverTimestamp(),
     });
 
@@ -513,7 +522,6 @@ export const createChat = async (userId: string, landlordId: string) => {
     throw error;
   }
 };
-
 // Mark messages as read
 export const markMessagesAsRead = async (
   chatId: string,
