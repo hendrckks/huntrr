@@ -279,7 +279,7 @@ const FilterModal = () => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger asChild className="font-inter">
         <Button
           variant="outline"
           size="icon"
@@ -306,7 +306,7 @@ const FilterModal = () => {
           <DialogTitle className="font-medium">Filter Properties</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-3 dark:bg-[#121212]">
+        <div className="space-y-4 py-3 font-inter dark:bg-[#121212]">
           {/* Price Range */}
           <div className="space-y-2">
             <Label>Price Range (KSh)</Label>
