@@ -38,10 +38,12 @@ interface FormData {
 const EditAccount: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [imageLoading, setImageLoading] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [profileImage, setProfileImage] = useState<string>(
     DEFAULT_PROFILE_IMAGE
   );
+  const [imageTimestamp, setImageTimestamp] = useState<number>(Date.now());
   const [formData, setFormData] = useState<FormData>({
     displayName: "",
     email: "",
@@ -55,16 +57,16 @@ const EditAccount: React.FC = () => {
       if (currentUser) {
         setUser(currentUser);
 
-        // Determine profile image priority
-        const googleProfilePicture = currentUser.photoURL;
-        const storedCustomProfilePicture = currentUser.photoURL;
+        // Determine profile image priority and add timestamp to bypass cache
+        const userPhotoURL = currentUser.photoURL;
+        const timestampedPhotoURL = userPhotoURL
+          ? `${userPhotoURL}${
+              userPhotoURL.includes("?") ? "&" : "?"
+            }t=${Date.now()}`
+          : DEFAULT_PROFILE_IMAGE;
 
-        // Set profile image with fallback
-        setProfileImage(
-          googleProfilePicture ||
-            storedCustomProfilePicture ||
-            DEFAULT_PROFILE_IMAGE
-        );
+        setProfileImage(timestampedPhotoURL);
+        setImageTimestamp(Date.now());
 
         setFormData((prevState) => ({
           ...prevState,
@@ -79,6 +81,14 @@ const EditAccount: React.FC = () => {
     return () => unsubscribe();
   }, [navigate]);
 
+  const refreshProfileImage = () => {
+    setImageTimestamp(Date.now());
+    if (user?.photoURL) {
+      const baseUrl = user.photoURL.split("?")[0]; // Remove any existing query params
+      setProfileImage(`${baseUrl}?t=${Date.now()}`);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prevState) => ({
@@ -92,28 +102,45 @@ const EditAccount: React.FC = () => {
 
     try {
       setIsLoading(true);
+      setImageLoading(true);
       if (!user) return;
-      const imageUrl = await uploadImage(e.target.files[0], user.uid);
+
+      const file = e.target.files[0];
+      const imageUrl = await uploadImage(file, user.uid);
+
+      // Add timestamp to URL to prevent caching
+      const timestampedUrl = `${imageUrl}?t=${Date.now()}`;
 
       if (user) {
         // Update Firebase Auth profile first
-        await updateProfile(user, { photoURL: imageUrl });
-        
+        await updateProfile(user, { photoURL: timestampedUrl });
+
         // Then update Firestore document
         const userRef = doc(db, "users", user.uid);
-        await updateDoc(userRef, { 
-          photoURL: imageUrl,
-          updatedAt: new Date() // Add timestamp to trigger real-time updates
+        await updateDoc(userRef, {
+          photoURL: timestampedUrl,
+          updatedAt: new Date(), // Add timestamp to trigger real-time updates
         });
 
-        // Force a token refresh to ensure the new photoURL is available immediately
+        // Force token refresh to ensure the new photoURL is immediately available
+        await user.getIdToken(true);
         await user.reload();
-        const updatedUser = auth.currentUser;
-        
-        // Update local state
-        setUser(updatedUser);
-        setProfileImage(imageUrl);
-        
+
+        // Get the updated user object after reload
+        const freshUser = auth.currentUser;
+        setUser(freshUser);
+
+        // Update profile image with cache-busting timestamp
+        setProfileImage(timestampedUrl);
+        setImageTimestamp(Date.now());
+
+        // Broadcast profile image change event for other components
+        window.dispatchEvent(
+          new CustomEvent("profileImageUpdated", {
+            detail: { photoURL: timestampedUrl },
+          })
+        );
+
         toast({
           title: "",
           variant: "success",
@@ -131,6 +158,7 @@ const EditAccount: React.FC = () => {
       console.error(error);
     } finally {
       setIsLoading(false);
+      setImageLoading(false);
     }
   };
 
@@ -175,6 +203,9 @@ const EditAccount: React.FC = () => {
         displayName: formData.displayName,
         email: formData.email,
       });
+
+      // Force token refresh
+      await user.getIdToken(true);
 
       toast({
         title: "",
@@ -221,25 +252,43 @@ const EditAccount: React.FC = () => {
           <CardContent className="space-y-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="relative">
-                <img
-                  src={profileImage}
-                  alt="Profile"
-                  className="w-16 h-16 rounded-full object-cover"
-                  onError={(e) => {
-                    const img = e.target as HTMLImageElement;
-                    if (!img.dataset.retryCount || parseInt(img.dataset.retryCount) < 3) {
-                      // Set retry count
-                      img.dataset.retryCount = img.dataset.retryCount ? (parseInt(img.dataset.retryCount) + 1).toString() : '1';
-                      // Add a small delay before retrying
-                      setTimeout(() => {
-                        img.src = profileImage;
-                      }, 1000);
-                    } else {
-                      // Only set fallback after retry attempts fail
-                      setProfileImage(DEFAULT_PROFILE_IMAGE);
-                    }
-                  }}
-                />
+                <div
+                  className={`w-16 h-16 rounded-full overflow-hidden ${
+                    imageLoading ? "opacity-60" : ""
+                  }`}
+                >
+                  <img
+                    src={`${profileImage}&_=${imageTimestamp}`}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                    onLoad={() => setImageLoading(false)}
+                    onError={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      if (
+                        !img.dataset.retryCount ||
+                        parseInt(img.dataset.retryCount) < 3
+                      ) {
+                        // Set retry count
+                        img.dataset.retryCount = img.dataset.retryCount
+                          ? (parseInt(img.dataset.retryCount) + 1).toString()
+                          : "1";
+                        // Add a small delay before retrying
+                        setTimeout(() => {
+                          refreshProfileImage();
+                        }, 1000);
+                      } else {
+                        // Only set fallback after retry attempts fail
+                        setProfileImage(DEFAULT_PROFILE_IMAGE);
+                        setImageLoading(false);
+                      }
+                    }}
+                  />
+                  {imageLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
                 <input
                   type="file"
                   accept="image/*"

@@ -12,6 +12,7 @@ import {
   limit,
   DocumentData,
   QueryDocumentSnapshot,
+  setDoc,
 } from "firebase/firestore";
 import { ref, onValue, set, onDisconnect } from "firebase/database";
 import { db, rtdb } from "./clientApp";
@@ -78,31 +79,35 @@ export const subscribeToChats = (
     // const chatPromises: Promise<void>[] = [];
     const chatData: { [chatId: string]: DocumentData } = {};
     const otherUserIds: { [chatId: string]: string } = {};
-    
+
     // First pass: extract basic chat data and collect IDs for batch operations
-    snapshot.docs.forEach((docSnapshot: QueryDocumentSnapshot<DocumentData>) => {
-      const data = docSnapshot.data();
-      chatData[docSnapshot.id] = data;
-      const otherUserId =
-        userRole === "landlord_verified" && data.landlordId === userId
-          ? data.userId
-          : data.landlordId;
-      otherUserIds[docSnapshot.id] = otherUserId;
-    });
-    
+    snapshot.docs.forEach(
+      (docSnapshot: QueryDocumentSnapshot<DocumentData>) => {
+        const data = docSnapshot.data();
+        chatData[docSnapshot.id] = data;
+        const otherUserId =
+          userRole === "landlord_verified" && data.landlordId === userId
+            ? data.userId
+            : data.landlordId;
+        otherUserIds[docSnapshot.id] = otherUserId;
+      }
+    );
+
     // Batch get participant data
-    const participantPromises = Object.entries(otherUserIds).map(async ([chatId, otherUserId]) => {
-      const participantRef = doc(
-        collection(db, "chats", chatId, "participants"),
-        otherUserId
-      );
-      const userDoc = await getDoc(participantRef);
-      return {
-        chatId,
-        userData: userDoc.exists() ? (userDoc.data() as ParticipantData) : {}
-      };
-    });
-    
+    const participantPromises = Object.entries(otherUserIds).map(
+      async ([chatId, otherUserId]) => {
+        const participantRef = doc(
+          collection(db, "chats", chatId, "participants"),
+          otherUserId
+        );
+        const userDoc = await getDoc(participantRef);
+        return {
+          chatId,
+          userData: userDoc.exists() ? (userDoc.data() as ParticipantData) : {},
+        };
+      }
+    );
+
     // Batch get unread counts
     const unreadPromises = Object.keys(chatData).map(async (chatId) => {
       const unreadQuery = query(
@@ -114,30 +119,30 @@ export const subscribeToChats = (
       const unreadSnapshot = await getDocs(unreadQuery);
       return {
         chatId,
-        unreadCount: unreadSnapshot.size
+        unreadCount: unreadSnapshot.size,
       };
     });
-    
+
     // Wait for all batch operations to complete
     const [participantResults, unreadResults] = await Promise.all([
       Promise.all(participantPromises),
-      Promise.all(unreadPromises)
+      Promise.all(unreadPromises),
     ]);
-    
+
     // Create a map for faster lookups
     const participantMap: { [chatId: string]: ParticipantData } = {};
-    participantResults.forEach(result => {
+    participantResults.forEach((result) => {
       participantMap[result.chatId] = result.userData;
     });
-    
+
     const unreadMap: { [chatId: string]: number } = {};
-    unreadResults.forEach(result => {
+    unreadResults.forEach((result) => {
       // Check if we have a cached unread count of 0 for this chat
       // This ensures that if we've marked messages as read, we don't show unread count
       // even if we switch to another chat and back
       const cacheKey = `unread_${result.chatId}`;
       const cachedUnreadCount = globalCache.get(cacheKey);
-      
+
       // If we have a cached value of 0, use it instead of the query result
       if (cachedUnreadCount === 0) {
         unreadMap[result.chatId] = 0;
@@ -145,29 +150,31 @@ export const subscribeToChats = (
         unreadMap[result.chatId] = result.unreadCount;
       }
     });
-    
+
     // Build final chat list
-    snapshot.docs.forEach((docSnapshot: QueryDocumentSnapshot<DocumentData>) => {
-      const chatId = docSnapshot.id;
-      const data = chatData[chatId];
-      const otherUserId = otherUserIds[chatId];
-      const userData = participantMap[chatId] || {};
-      
-      chatsList.push({
-        chatId,
-        userId: otherUserId,
-        displayName: userData.displayName || data.displayName || "User",
-        photoURL: userData.photoURL || data.photoURL,
-        lastMessage: data.lastMessage,
-        lastMessageTime: data.lastMessageTime,
-        timestamp: data.timestamp,
-        role: userData.role || data.role,
-        senderId: data.lastMessageSenderId,
-        unreadCount: unreadMap[chatId] || 0,
-        status: userData.status || "offline",
-      });
-    });
-    
+    snapshot.docs.forEach(
+      (docSnapshot: QueryDocumentSnapshot<DocumentData>) => {
+        const chatId = docSnapshot.id;
+        const data = chatData[chatId];
+        const otherUserId = otherUserIds[chatId];
+        const userData = participantMap[chatId] || {};
+
+        chatsList.push({
+          chatId,
+          userId: otherUserId,
+          displayName: userData.displayName || data.displayName || "User",
+          photoURL: userData.photoURL || data.photoURL,
+          lastMessage: data.lastMessage,
+          lastMessageTime: data.lastMessageTime,
+          timestamp: data.timestamp,
+          role: userData.role || data.role,
+          senderId: data.lastMessageSenderId,
+          unreadCount: unreadMap[chatId] || 0,
+          status: userData.status || "offline",
+        });
+      }
+    );
+
     return chatsList;
   };
 
@@ -228,6 +235,18 @@ export const subscribeToChats = (
     callback(chatsList);
   });
 };
+//chat.ts
+export function subscribeToUserProfile(
+  userId: string,
+  callback: (userData: DocumentData) => void
+) {
+  const userRef = doc(db, "users", userId);
+  return onSnapshot(userRef, (doc) => {
+    if (doc.exists()) {
+      callback(doc.data());
+    }
+  });
+}
 
 // Subscribe to messages for a specific chat with real-time updates
 export const subscribeToMessages = (
@@ -236,7 +255,7 @@ export const subscribeToMessages = (
   messagesLimit = MESSAGE_PAGE_SIZE // Use MESSAGE_PAGE_SIZE instead of 100
 ) => {
   // Import messageCache here to avoid circular dependencies
-  
+
   // Check if we have a cached first page
   const cachedPage = messageCache.getCachedMessagePage(chatId, 0);
   if (cachedPage) {
@@ -260,19 +279,24 @@ export const subscribeToMessages = (
         ...data,
         timestamp: data.timestamp || new Date(),
       } as Message;
-      
+
       messagesList.push(message);
-      
+
       // Cache individual message
       messageCache.cacheMessage(message);
     });
-    
+
     // Reverse the messages list to maintain chronological order in UI
     const orderedMessages = [...messagesList].reverse();
-    
+
     // Cache the entire page
-    messageCache.cacheMessagePage(chatId, 0, orderedMessages, messagesList.length >= messagesLimit);
-    
+    messageCache.cacheMessagePage(
+      chatId,
+      0,
+      orderedMessages,
+      messagesList.length >= messagesLimit
+    );
+
     callback(orderedMessages);
   });
 };
@@ -287,13 +311,13 @@ export const loadOlderMessages = async (
     // Get the message to use as cursor
     const cursorMsgRef = doc(db, "messages", beforeMessageId);
     const cursorMsgSnap = await getDoc(cursorMsgRef);
-    
+
     if (!cursorMsgSnap.exists()) {
       throw new Error("Cursor message not found");
     }
-    
+
     const cursorMsg = cursorMsgSnap.data();
-    
+
     // Query for older messages
     const olderMsgsQuery = query(
       collection(db, "messages"),
@@ -302,10 +326,10 @@ export const loadOlderMessages = async (
       where("timestamp", "<", cursorMsg.timestamp),
       limit(pageSize)
     );
-    
+
     const olderMsgsSnap = await getDocs(olderMsgsQuery);
     const olderMessages: Message[] = [];
-    
+
     olderMsgsSnap.forEach((doc) => {
       const data = doc.data();
       const message = {
@@ -313,16 +337,16 @@ export const loadOlderMessages = async (
         ...data,
         timestamp: data.timestamp || new Date(),
       } as Message;
-      
+
       olderMessages.push(message);
-      
+
       // Cache individual message
       messageCache.cacheMessage(message);
     });
-    
+
     // Determine page number based on message ID
     const pageIndex = messageCache.getMessagePageIndex(chatId, beforeMessageId);
-    if (pageIndex !== undefined && typeof pageIndex === 'number') {
+    if (pageIndex !== undefined && typeof pageIndex === "number") {
       // Reverse the messages to maintain chronological order (oldest to newest)
       const orderedMessages = [...olderMessages].reverse();
       messageCache.cacheMessagePage(
@@ -333,7 +357,7 @@ export const loadOlderMessages = async (
       );
       return orderedMessages;
     }
-    
+
     // If no page index found, still return in chronological order
     return [...olderMessages].reverse();
   } catch (error) {
@@ -418,7 +442,7 @@ export const createChat = async (userId: string, landlordId: string) => {
 
     // Use batch operations for creating chat and participants
     const batch = writeBatch(db);
-    
+
     // Create new chat
     const chatRef = doc(collection(db, "chats"));
     batch.set(chatRef, {
@@ -452,7 +476,7 @@ export const createChat = async (userId: string, landlordId: string) => {
 
     // Execute all operations in a single batch
     await batch.commit();
-    
+
     return chatRef.id;
   } catch (error) {
     console.error("Error creating chat:", error);
@@ -467,9 +491,9 @@ export const markMessagesAsRead = async (
 ) => {
   try {
     if (messageIds.length === 0) return true;
-    
+
     // Import messageCache here to avoid circular dependencies
-    
+
     const batch = writeBatch(db);
 
     messageIds.forEach((messageId) => {
@@ -483,7 +507,7 @@ export const markMessagesAsRead = async (
     // This helps prevent the unread counter from reappearing when switching chats
     const cacheKey = `unread_${chatId}`;
     globalCache.set(cacheKey, 0);
-    
+
     // Update read status in message cache
     messageCache.updateMessageReadStatus(chatId, messageIds);
 
@@ -496,11 +520,15 @@ export const markMessagesAsRead = async (
 };
 
 // Typing indicator methods
-export const setTypingStatus = (chatId: string, userId: string, isTyping: boolean) => {
+export const setTypingStatus = (
+  chatId: string,
+  userId: string,
+  isTyping: boolean
+) => {
   const typingRef = ref(rtdb, `typing/${chatId}/${userId}`);
   return set(typingRef, {
     isTyping,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
 };
 
@@ -509,49 +537,53 @@ export const createTypingHandler = (chatId: string, userId: string) => {
   let typingTimeout: NodeJS.Timeout | null = null;
   let isCurrentlyTyping = false;
   let lastUpdateTime = 0;
-  
+
   // Setup cleanup handler
   const typingRef = ref(rtdb, `typing/${chatId}/${userId}`);
   onDisconnect(typingRef).remove();
-  
+
   return {
     handleTyping: () => {
       const now = Date.now();
       // Only update if not currently typing or if last update was > 2 seconds ago
-      if (!isCurrentlyTyping || (now - lastUpdateTime > 2000)) {
+      if (!isCurrentlyTyping || now - lastUpdateTime > 2000) {
         isCurrentlyTyping = true;
         lastUpdateTime = now;
         set(typingRef, { isTyping: true, timestamp: now });
       }
-      
+
       // Clear existing timeout
       if (typingTimeout) {
         clearTimeout(typingTimeout);
       }
-      
+
       // Set a new timeout to stop typing status
       typingTimeout = setTimeout(() => {
-          isCurrentlyTyping = false;
-          set(typingRef, { isTyping: false, timestamp: Date.now() });
-        }, 2000);
-      },
-      cleanup: () => {
-        if (typingTimeout) {
-          clearTimeout(typingTimeout);
-        }
+        isCurrentlyTyping = false;
         set(typingRef, { isTyping: false, timestamp: Date.now() });
+      }, 2000);
+    },
+    cleanup: () => {
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
       }
-    };
+      set(typingRef, { isTyping: false, timestamp: Date.now() });
+    },
   };
+};
 
 export const setupTypingStatusCleanup = (chatId: string, userId: string) => {
   const typingRef = ref(rtdb, `typing/${chatId}/${userId}`);
   onDisconnect(typingRef).remove();
 };
 
-export const subscribeToTypingStatus = (chatId: string, otherUserId: string, callback: (isTyping: boolean) => void) => {
+export const subscribeToTypingStatus = (
+  chatId: string,
+  otherUserId: string,
+  callback: (isTyping: boolean) => void
+) => {
   const typingRef = ref(rtdb, `typing/${chatId}/${otherUserId}`);
-  
+
   return onValue(typingRef, (snapshot) => {
     const data = snapshot.val();
     if (data && data.isTyping) {
@@ -568,99 +600,126 @@ export const subscribeToTypingStatus = (chatId: string, otherUserId: string, cal
 
 // Optimized user status tracking
 export const setupOnlineStatusTracking = (userId: string) => {
-    const userStatusRef = ref(rtdb, `status/${userId}`);
-    
-    // Set when online
-    set(userStatusRef, { status: 'online', lastSeen: Date.now() });
-    
-    // When user disconnects, update to offline
-    onDisconnect(userStatusRef).set({ 
-      status: 'offline', 
-      lastSeen: Date.now() 
-    });
-    
-    // Create a connection reference to track connection state
-    const connectedRef = ref(rtdb, '.info/connected');
-    
-    // Subscribe to connection state
-    const unsubscribe = onValue(connectedRef, (snap) => {
-      if (snap.val() === true) {
-        // We're connected (or reconnected)
-        // Update status in RTDB
-        set(userStatusRef, { status: 'online', lastSeen: Date.now() });
-        
-        // Set up disconnect handler
-        onDisconnect(userStatusRef).set({
-          status: 'offline',
-          lastSeen: Date.now()
-        });
-      }
-    });
-    
-    return () => {
-      // Cleanup function
-      unsubscribe();
-      set(userStatusRef, { status: 'offline', lastSeen: Date.now() });
-      
-      // Update all chat participants with offline status
-      updateUserStatus(userId, "offline");
-    };
-  };
-  
-  export const updateUserStatus = async (
-    userId: string,
-    status: "online" | "offline"
-  ) => {
-    try {
-      const chatsQuery = query(
-        collection(db, "chats"),
-        where("userId", "==", userId)
-      );
-  
-      const landlordChatsQuery = query(
-        collection(db, "chats"),
-        where("landlordId", "==", userId)
-      );
-  
-      const batch = writeBatch(db);
-      
-      // Also update the user's status in RTDB
-      const userStatusRef = ref(rtdb, `status/${userId}`);
-      set(userStatusRef, { 
-        status, 
-        lastSeen: status === "offline" ? Date.now() : null 
+  const userStatusRef = ref(rtdb, `status/${userId}`);
+
+  // Set when online
+  set(userStatusRef, { status: "online", lastSeen: Date.now() });
+
+  // When user disconnects, update to offline
+  onDisconnect(userStatusRef).set({
+    status: "offline",
+    lastSeen: Date.now(),
+  });
+
+  // Create a connection reference to track connection state
+  const connectedRef = ref(rtdb, ".info/connected");
+
+  // Subscribe to connection state
+  const unsubscribe = onValue(connectedRef, (snap) => {
+    if (snap.val() === true) {
+      // We're connected (or reconnected)
+      // Update status in RTDB
+      set(userStatusRef, { status: "online", lastSeen: Date.now() });
+
+      // Set up disconnect handler
+      onDisconnect(userStatusRef).set({
+        status: "offline",
+        lastSeen: Date.now(),
       });
-  
-      // Update as tenant
-      const snapshot = await getDocs(chatsQuery);
-      snapshot.forEach((docSnapshot) => {
-        const participantRef = doc(
-          collection(docSnapshot.ref, "participants"),
-          userId
-        );
-        batch.update(participantRef, { 
-          status,
-          lastSeen: status === "offline" ? serverTimestamp() : null
-        });
-      });
-  
-      // Update as landlord
-      const landlordSnapshot = await getDocs(landlordChatsQuery);
-      landlordSnapshot.forEach((docSnapshot) => {
-        const participantRef = doc(
-          collection(docSnapshot.ref, "participants"),
-          userId
-        );
-        batch.update(participantRef, { 
-          status,
-          lastSeen: status === "offline" ? serverTimestamp() : null
-        });
-      });
-  
-      await batch.commit();
-      return true;
-    } catch (error) {
-      console.error("Error updating user status:", error);
-      return false;
     }
+  });
+
+  return () => {
+    // Cleanup function
+    unsubscribe();
+    set(userStatusRef, { status: "offline", lastSeen: Date.now() });
+
+    // Update all chat participants with offline status
+    updateUserStatus(userId, "offline");
   };
+};
+
+export const updateUserStatus = async (
+  userId: string,
+  status: "online" | "offline"
+) => {
+  try {
+    const chatsQuery = query(
+      collection(db, "chats"),
+      where("userId", "==", userId)
+    );
+
+    const landlordChatsQuery = query(
+      collection(db, "chats"),
+      where("landlordId", "==", userId)
+    );
+
+    const batch = writeBatch(db);
+
+    // Also update the user's status in RTDB
+    const userStatusRef = ref(rtdb, `status/${userId}`);
+    set(userStatusRef, {
+      status,
+      lastSeen: status === "offline" ? Date.now() : null,
+    });
+
+    // Update as tenant
+    const snapshot = await getDocs(chatsQuery);
+    snapshot.forEach((docSnapshot) => {
+      const participantRef = doc(
+        collection(docSnapshot.ref, "participants"),
+        userId
+      );
+      batch.update(participantRef, {
+        status,
+        lastSeen: status === "offline" ? serverTimestamp() : null,
+      });
+    });
+
+    // Update as landlord
+    const landlordSnapshot = await getDocs(landlordChatsQuery);
+    landlordSnapshot.forEach((docSnapshot) => {
+      const participantRef = doc(
+        collection(docSnapshot.ref, "participants"),
+        userId
+      );
+      batch.update(participantRef, {
+        status,
+        lastSeen: status === "offline" ? serverTimestamp() : null,
+      });
+    });
+
+    await batch.commit();
+    return true;
+  } catch (error) {
+    console.error("Error updating user status:", error);
+    return false;
+  }
+};
+
+// Add this function to your chat.ts file in the firebase/lib directory
+
+/**
+ * Hides a chat for a specific user without deleting the actual messages
+ * @param chatId The ID of the chat to hide
+ * @param userId The ID of the user hiding the chat
+ * @returns Promise that resolves when the chat is hidden
+ */
+export const hideChat = async (
+  chatId: string,
+  userId: string
+): Promise<boolean> => {
+  try {
+    const userChatRef = doc(db, "users", userId, "hiddenChats", chatId);
+
+    await setDoc(userChatRef, {
+      hidden: true,
+      hiddenAt: serverTimestamp(),
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Error hiding chat:", error);
+    return false;
+  }
+};

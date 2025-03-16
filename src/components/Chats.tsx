@@ -31,10 +31,12 @@ import {
   type Message,
   type Chat,
   createTypingHandler,
+  //   hideChat,
 } from "../lib/firebase/chat";
 import { MESSAGE_PAGE_SIZE } from "../lib/cache/messageCache";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
+// import DeleteChatDialog from "./dialogs/DeleteChatDialog";
 
 const Chats = () => {
   const { user } = useAuth();
@@ -53,6 +55,7 @@ const Chats = () => {
   const [creatingNewChat, setCreatingNewChat] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  //   const [isDeleting, setIsDeleting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -266,6 +269,36 @@ const Chats = () => {
     }
   };
 
+  //   const handleHideChat = async () => {
+  //     if (!selectedChat || !user?.uid) return;
+
+  //     setIsDeleting(true);
+  //     try {
+  //       const success = await hideChat(selectedChat, user.uid);
+
+  //       if (success) {
+  //         // Remove the chat from the local state
+  //         setChats((prevChats) =>
+  //           prevChats.filter((chat) => chat.chatId !== selectedChat)
+  //         );
+
+  //         // Reset selected chat
+  //         setSelectedChat(null);
+  //         setSelectedChatData(null);
+  //         setMessages([]);
+
+  //         // Go back to chat list on mobile
+  //         if (window.innerWidth < 768) {
+  //           setShowMessages(false);
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error("Error hiding chat:", error);
+  //     } finally {
+  //       setIsDeleting(false);
+  //     }
+  //   };
+
   // Memoize chat selection function
   const handleChatSelection = useCallback((chatId: string) => {
     setSelectedChat(chatId);
@@ -341,8 +374,8 @@ const Chats = () => {
           <div
             className={`p-3 md:px-6 px-4 ${
               message.senderId === user?.uid
-                ? "bg-[#8752f3] text-primary-foreground rounded-t-full rounded-bl-full"
-                : "bg-primary dark:bg-white dark:text-black text-white rounded-t-full rounded-br-full"
+                ? "bg-[#8752f3] text-primary-foreground rounded-t-[18px] rounded-bl-[18px]"
+                : "bg-primary dark:bg-white dark:text-black text-white rounded-t-[18px] rounded-br-[18px]"
             }`}
           >
             <p className="text-sm">{message.content}</p>
@@ -460,7 +493,10 @@ const Chats = () => {
                     <div className="p-3 rounded-lg bg-secondary">
                       <div className="flex items-center space-x-4">
                         <Avatar className="h-12 w-12">
-                          <AvatarImage src={selectedChatData.photoURL} />
+                          <AvatarImage
+                            src={`${selectedChatData.photoURL}?t=${Date.now()}`}
+                            className="object-cover w-full h-full"
+                          />
                           <AvatarFallback>
                             {selectedChatData.displayName
                               ?.charAt(0)
@@ -492,8 +528,13 @@ const Chats = () => {
                       onClick={() => handleChatSelection(chat.chatId)}
                     >
                       <div className="relative">
-                        <Avatar className="h-16 w-16 border border-black/20 dark:border-white/20">
-                          <AvatarImage src={chat.photoURL} />
+                        <Avatar className="md:h-16 md:w-16 h-14 w-14 border border-black/20 dark:border-white/20">
+                          <AvatarImage
+                            src={`${chat.photoURL}?t=${Date.now()}`}
+                            alt={chat.displayName || "User"}
+                            className="object-cover w-full h-full"
+                            loading="eager"
+                          />
                           <AvatarFallback>
                             {chat.displayName?.charAt(0).toUpperCase()}
                           </AvatarFallback>
@@ -510,8 +551,14 @@ const Chats = () => {
                           <div className="flex items-center gap-1 mt-1">
                             {chat.chatId !== selectedChat && (
                               <Badge
-                                variant={chat.unreadCount && chat.unreadCount > 0 ? "default" : "outline"}
-                                className={`text-xs ${chat.unreadCount === 0 ? "opacity-70" : ""}`}
+                                variant={
+                                  chat.unreadCount && chat.unreadCount > 0
+                                    ? "default"
+                                    : "outline"
+                                }
+                                className={`text-xs ${
+                                  chat.unreadCount === 0 ? "opacity-70" : ""
+                                }`}
                               >
                                 {chat.unreadCount || 0}
                               </Badge>
@@ -550,37 +597,46 @@ const Chats = () => {
           <Card className="md:col-span-2 h-[86vh] md:h-full flex flex-col">
             <CardHeader className="border-b p-4">
               {selectedChatData ? (
-                <div className="flex items-center space-x-4">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="md:hidden"
-                    onClick={handleBackToList}
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={selectedChatData?.photoURL} />
-                    <AvatarFallback>
-                      {selectedChatData?.displayName?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <CardTitle className="">
-                      {selectedChatData?.displayName}
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      {otherUserTyping
-                        ? "Typing..."
-                        : selectedChatData?.status === "online"
-                        ? "Online"
-                        : selectedChatData?.lastSeen
-                        ? `Last seen ${formatLastSeen(
-                            selectedChatData.lastSeen
-                          )}`
-                        : "Offline"}
-                    </p>
+                <div className="flex items-center justify-between ">
+                  <div className="flex items-center gap-4">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="md:hidden"
+                      onClick={handleBackToList}
+                    >
+                      <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage
+                        src={`${selectedChatData?.photoURL}?t=${Date.now()}`}
+                        className="object-cover w-full h-full"
+                      />
+                      <AvatarFallback>
+                        {selectedChatData?.displayName?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <CardTitle className="">
+                        {selectedChatData?.displayName}
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground">
+                        {otherUserTyping
+                          ? "Typing..."
+                          : selectedChatData?.status === "online"
+                          ? "Online"
+                          : selectedChatData?.lastSeen
+                          ? `Last seen ${formatLastSeen(
+                              selectedChatData.lastSeen
+                            )}`
+                          : "Offline"}
+                      </p>
+                    </div>
                   </div>
+                  {/* <DeleteChatDialog
+                    onDelete={handleHideChat}
+                    isDeleting={isDeleting}
+                  /> */}
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-10">

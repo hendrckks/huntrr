@@ -56,6 +56,56 @@ const Sidebar = () => {
     }
   }, [user?.uid]);
 
+  // Add this in the Sidebar component's useEffect
+  useEffect(() => {
+    const handleProfileUpdate = (event: CustomEvent) => {
+      if (event.detail?.photoURL) {
+        // First, get the current user data from session storage
+        const sessionUser = sessionStorage.getItem("user");
+
+        if (sessionUser) {
+          try {
+            // Parse the current user data
+            const userData = JSON.parse(sessionUser);
+
+            // Update the photoURL with the new one
+            userData.photoURL = event.detail.photoURL;
+
+            // Update session and local storage
+            sessionStorage.setItem("user", JSON.stringify(userData));
+            localStorage.setItem("user", JSON.stringify(userData));
+
+            // Update the Auth context state
+            setUser(userData);
+
+            // Force reload the current user's image
+            const avatarImage = document.querySelector(
+              ".Avatar .AvatarImage"
+            ) as HTMLImageElement;
+            if (avatarImage) {
+              // Add timestamp to bypass cache
+              avatarImage.src = `${event.detail.photoURL}&_=${Date.now()}`;
+            }
+          } catch (error) {
+            console.error("Error updating profile image in session:", error);
+          }
+        }
+      }
+    };
+
+    window.addEventListener(
+      "profileImageUpdated",
+      handleProfileUpdate as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "profileImageUpdated",
+        handleProfileUpdate as EventListener
+      );
+    };
+  }, [setUser]); // Make sure to include setUser in the dependency array
+
   const fetchNotifications = async () => {
     try {
       let allNotifs = [];
@@ -282,8 +332,11 @@ const Sidebar = () => {
                 </div>
               ) : (
                 <>
-                  <Avatar className="h-10 w-10 mr-2 border dark:border-white/10 border-black/15">
-                    <AvatarImage src={user?.photoURL || ""} />
+                  <Avatar className="h-12 w-12 mr-2 border dark:border-white/10 border-black/15">
+                    <AvatarImage
+                      src={user?.photoURL || ""}
+                      className="object-cover w-full h-full"
+                    />
                     <AvatarFallback>
                       {user?.displayName ? getInitials(user.displayName) : "?"}
                     </AvatarFallback>
