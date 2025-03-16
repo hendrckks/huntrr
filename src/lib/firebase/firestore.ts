@@ -259,7 +259,6 @@ export const createListing = async (
 
   // Create a new document reference with the slug as the ID
   const listingRef = doc(collection(db, "listings"), slug);
-  console.log("Creating listing with slug:", slug);
   const timestamp = Timestamp.now();
 
   try {
