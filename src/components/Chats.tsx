@@ -33,7 +33,14 @@ import {
   createTypingHandler,
 } from "../lib/firebase/chat";
 import { MESSAGE_PAGE_SIZE } from "../lib/cache/messageCache";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  getDocs,
+  collection,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
 
 const Chats = () => {
@@ -57,52 +64,131 @@ const Chats = () => {
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const processingLandlordIdRef = useRef(false);
 
   // Add this ref to track when we're loading older messages
   const isLoadingOlderMessagesRef = useRef(false);
   // Add this ref to preserve scroll position when loading older messages
   const oldMessagesHeightRef = useRef(0);
 
+  // Check for existing chat directly using Firebase query
+  const checkForExistingChat = async (userId: string, landlordId: string) => {
+    try {
+      // First check in 'chats' collection where current user is a participant
+      const userChatsQuery = query(
+        collection(db, "chats"),
+        where("participants", "array-contains", userId)
+      );
+
+      const querySnapshot = await getDocs(userChatsQuery);
+
+      // Filter the chats to find one with the landlord as the other participant
+      for (const doc of querySnapshot.docs) {
+        const chatData = doc.data();
+        // Check if the landlord is a participant in this chat
+        if (
+          chatData.participants &&
+          chatData.participants.includes(landlordId)
+        ) {
+          return doc.id; // Return the chat ID if found
+        }
+      }
+
+      return null; // No existing chat found
+    } catch (error) {
+      console.error("Error checking for existing chat:", error);
+      return null;
+    }
+  };
+
+  // Modified effect to handle landlordId parameter
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const landlordId = params.get("landlordId");
 
-    if (landlordId && user?.uid && user?.role) {
-      setCreatingNewChat(true);
+    if (
+      landlordId &&
+      user?.uid &&
+      user?.role &&
+      !processingLandlordIdRef.current
+    ) {
+      processingLandlordIdRef.current = true;
       setLoading(true);
 
-      createChat(user.uid, landlordId)
-        .then((chatId) => {
-          if (chatId) {
-            navigate("/chats", { replace: true });
-            setSelectedChat(chatId);
-            setShowMessages(true);
+      // Check for existing chat using direct Firebase query
+      (async () => {
+        const existingChatId = await checkForExistingChat(user.uid, landlordId);
 
-            getDoc(doc(db, "users", landlordId)).then((landlordDoc) => {
-              if (landlordDoc.exists()) {
-                const landlordData = landlordDoc.data();
-                setSelectedChatData({
-                  chatId: chatId,
-                  userId: landlordId,
-                  displayName: landlordData.displayName || "Landlord",
-                  lastMessage: "",
-                  role: landlordData.role || "landlord_verified",
-                  status: "offline",
-                  photoURL: landlordData.photoURL || "",
-                  unreadCount: 0,
+        if (existingChatId) {
+          // Existing chat found - navigate and select it
+          navigate("/chats", { replace: true });
+          setSelectedChat(existingChatId);
+          setShowMessages(true);
+
+          // Get landlord data to display while we wait for the main chat subscription
+          getDoc(doc(db, "users", landlordId)).then((landlordDoc) => {
+            if (landlordDoc.exists()) {
+              const landlordData = landlordDoc.data();
+              // Set temporary chat data until the main subscription updates
+              setSelectedChatData({
+                chatId: existingChatId,
+                userId: landlordId,
+                displayName: landlordData.displayName || "Landlord",
+                lastMessage: "",
+                role: landlordData.role || "landlord_verified",
+                status: "offline",
+                photoURL: landlordData.photoURL || "",
+                unreadCount: 0,
+              });
+            }
+            setLoading(false);
+          });
+        } else {
+          // No existing chat - create a new one
+          setCreatingNewChat(true);
+
+          createChat(user.uid, landlordId)
+            .then((chatId) => {
+              if (chatId) {
+                navigate("/chats", { replace: true });
+                setSelectedChat(chatId);
+                setShowMessages(true);
+
+                getDoc(doc(db, "users", landlordId)).then((landlordDoc) => {
+                  if (landlordDoc.exists()) {
+                    const landlordData = landlordDoc.data();
+                    setSelectedChatData({
+                      chatId: chatId,
+                      userId: landlordId,
+                      displayName: landlordData.displayName || "Landlord",
+                      lastMessage: "",
+                      role: landlordData.role || "landlord_verified",
+                      status: "offline",
+                      photoURL: landlordData.photoURL || "",
+                      unreadCount: 0,
+                    });
+                    setLoading(false);
+                  }
                 });
-                setLoading(false);
               }
+            })
+            .catch((error) => {
+              console.error("Error initializing chat:", error);
+              setLoading(false);
+              setCreatingNewChat(false);
+              processingLandlordIdRef.current = false;
             });
-          }
-        })
-        .catch((error) => {
-          console.error("Error initializing chat:", error);
-          setLoading(false);
-          setCreatingNewChat(false);
-        });
+        }
+      })();
     }
   }, [location, user?.uid, user?.role, navigate]);
+
+  // Clean up the processing flag when component unmounts or user changes
+  useEffect(() => {
+    return () => {
+      processingLandlordIdRef.current = false;
+    };
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!user?.uid || !user?.role) return;
@@ -130,6 +216,7 @@ const Chats = () => {
         if (matchingChat) {
           setSelectedChatData(matchingChat);
           setCreatingNewChat(false);
+          processingLandlordIdRef.current = false;
         }
       } else if (!selectedChat && updatedChats.length > 0 && !creatingNewChat) {
         setSelectedChat(updatedChats[0].chatId);
