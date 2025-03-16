@@ -339,7 +339,11 @@ const Chats = () => {
       >
         <div className="flex flex-col space-y-1 max-w-[70%]">
           <div
-            className={`p-3 md:px-6 px-4 ${message.senderId === user?.uid ? "bg-[#8752f3] text-primary-foreground rounded-t-full rounded-bl-full" : "bg-primary dark:bg-white dark:text-black text-white rounded-t-full rounded-br-full"}`}
+            className={`p-3 md:px-6 px-4 ${
+              message.senderId === user?.uid
+                ? "bg-[#8752f3] text-primary-foreground rounded-t-full rounded-bl-full"
+                : "bg-primary dark:bg-white dark:text-black text-white rounded-t-full rounded-br-full"
+            }`}
           >
             <p className="text-sm">{message.content}</p>
           </div>
@@ -482,13 +486,13 @@ const Chats = () => {
                       key={chat.chatId}
                       className={`flex items-center space-x-4 p-3 rounded-lg cursor-pointer transition-colors ${
                         selectedChat === chat.chatId
-                          ? "bg-secondary"
+                          ? "bg-black/5 dark:bg-white/5"
                           : "hover:bg-secondary/50"
                       }`}
                       onClick={() => handleChatSelection(chat.chatId)}
                     >
                       <div className="relative">
-                        <Avatar className="h-12 w-12 border border-black/20 dark:border-white/20">
+                        <Avatar className="h-16 w-16 border border-black/20 dark:border-white/20">
                           <AvatarImage src={chat.photoURL} />
                           <AvatarFallback>
                             {chat.displayName?.charAt(0).toUpperCase()}
@@ -499,32 +503,34 @@ const Chats = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start">
+                        <div className="flex justify-between items-center">
                           <p className="text-sm font-medium truncate">
                             {chat.displayName}
                           </p>
+                          <div className="flex items-center gap-1 mt-1">
+                            {chat.chatId !== selectedChat && (
+                              <Badge
+                                variant={chat.unreadCount && chat.unreadCount > 0 ? "default" : "outline"}
+                                className={`text-xs ${chat.unreadCount === 0 ? "opacity-70" : ""}`}
+                              >
+                                {chat.unreadCount || 0}
+                              </Badge>
+                            )}
+                            <Badge
+                              variant="outline"
+                              className="text-xs border border-black/20 bg-[#8752f3]/30 rounded-sm dark:border-white/20"
+                            >
+                              {chat.role === "landlord_verified"
+                                ? "Landlord"
+                                : "Tenant"}
+                            </Badge>
+                          </div>
                           <span className="text-xs text-muted-foreground">
                             {chat.lastMessageTime &&
                               formatMessageTime(chat.lastMessageTime)}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <Badge
-                            variant="outline"
-                            className="text-xs border border-black/20 dark:border-white/20"
-                          >
-                            {chat.role === "landlord_verified"
-                              ? "Landlord"
-                              : "Tenant"}
-                          </Badge>
-                          {chat.unreadCount &&
-                            chat.unreadCount > 0 &&
-                            chat.chatId !== selectedChat && (
-                              <Badge variant="default" className="text-xs">
-                                {chat.unreadCount}
-                              </Badge>
-                            )}
-                        </div>
+
                         {chat.lastMessage && (
                           <p className="text-xs text-muted-foreground truncate mt-1">
                             {chat.senderId === user?.uid ? "You: " : ""}
