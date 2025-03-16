@@ -92,7 +92,8 @@ const EditAccount: React.FC = () => {
 
     try {
       setIsLoading(true);
-      const imageUrl = await uploadImage(e.target.files[0]);
+      if (!user) return;
+      const imageUrl = await uploadImage(e.target.files[0], user.uid);
 
       if (user) {
         await updateProfile(user, { photoURL: imageUrl });
