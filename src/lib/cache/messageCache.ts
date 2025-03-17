@@ -3,18 +3,21 @@ import { globalCache } from "./cacheManager";
 
 // Constants for message cache configuration
 export const MESSAGE_PAGE_SIZE = 10; // Default page size for pagination
-// These constants will be used in future implementations
-// for cache size management and expiration policies
-export const MESSAGE_CACHE_SIZE = 500; // Maximum number of messages to cache per chat
-export const MESSAGE_CACHE_TTL = 60; // Time to live in minutes (for future use)
+// Cache expiration time in minutes
+export const MESSAGE_CACHE_TTL = 30; // Time to live in minutes
+// Maximum number of messages to cache per chat
+export const MESSAGE_CACHE_SIZE = 500;
+// Cache hit threshold before considering data as "fresh"
+export const CACHE_FRESHNESS_THRESHOLD = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Interface for cached message pages
 interface MessagePage {
   messages: Message[];
-  startCursor: string | null; // ID of first message in page
-  endCursor: string | null; // ID of last message in page
+  startCursor: string | null;
+  endCursor: string | null;
   hasMore: boolean;
   timestamp: number;
+  lastAccessed?: number; // Track when the page was last accessed
 }
 
 // Interface for message cache stats
@@ -58,6 +61,7 @@ export class MessageCache {
       endCursor,
       hasMore,
       timestamp: Date.now(),
+      lastAccessed: Date.now(), // Initialize lastAccessed
     };
     
     globalCache.set(cacheKey, pageData);
@@ -67,11 +71,38 @@ export class MessageCache {
   }
 
   /**
-   * Get a cached page of messages
+   * Get a cached page of messages for a specific chat
    */
   public getCachedMessagePage(chatId: string, page: number): MessagePage | undefined {
     const cacheKey = this.getPageCacheKey(chatId, page);
-    return globalCache.get(cacheKey) as MessagePage | undefined;
+    const pageData = globalCache.get(cacheKey) as MessagePage | undefined;
+
+    if (pageData) {
+      const now = Date.now();
+      const age = now - pageData.timestamp;
+      
+      // Update last accessed time
+      pageData.lastAccessed = now;
+      globalCache.set(cacheKey, pageData);
+
+      // If cache is older than TTL but was recently accessed, extend its life
+      if (age > MESSAGE_CACHE_TTL * 60 * 1000) {
+        const timeSinceLastAccess = now - (pageData.lastAccessed || pageData.timestamp);
+        if (timeSinceLastAccess < CACHE_FRESHNESS_THRESHOLD) {
+          // Refresh the timestamp to extend cache life
+          pageData.timestamp = now;
+          globalCache.set(cacheKey, pageData);
+          return pageData;
+        }
+        // Cache is stale but return it while marking it for refresh
+        return {
+          ...pageData,
+          hasMore: true, // Force hasMore to true so UI will try to refresh
+        };
+      }
+    }
+
+    return pageData;
   }
 
   /**

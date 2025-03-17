@@ -25,8 +25,6 @@ import {
   createChat,
   markMessagesAsRead,
   setTypingStatus,
-  setupTypingStatusCleanup,
-  subscribeToTypingStatus,
   loadOlderMessages,
   type Message,
   type Chat,
@@ -51,7 +49,6 @@ const Chats = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [otherUserTyping, setOtherUserTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -70,6 +67,13 @@ const Chats = () => {
   const isLoadingOlderMessagesRef = useRef(false);
   // Add this ref to preserve scroll position when loading older messages
   const oldMessagesHeightRef = useRef(0);
+
+  // Add a ref to track if user is manually scrolling
+  const userIsScrollingRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
+
+  // Add a ref to track if we just sent a message
+  const justSentMessageRef = useRef(false);
 
   // Check for existing chat directly using Firebase query
   const checkForExistingChat = async (userId: string, landlordId: string) => {
@@ -218,8 +222,6 @@ const Chats = () => {
           setCreatingNewChat(false);
           processingLandlordIdRef.current = false;
         }
-      } else if (!selectedChat && updatedChats.length > 0 && !creatingNewChat) {
-        setSelectedChat(updatedChats[0].chatId);
       }
 
       setLoading(false);
@@ -233,26 +235,54 @@ const Chats = () => {
 
     const unsubscribe = subscribeToMessages(selectedChat, (messagesList) => {
       setMessages(messagesList);
-
-      // Check if there are potentially more messages to load
       setHasMoreMessages(messagesList.length >= MESSAGE_PAGE_SIZE);
 
+      // Get the latest message
+      const latestMessage = messagesList[messagesList.length - 1];
+
+      // Update unread count in real-time when new message arrives
+      if (latestMessage?.senderId !== user.uid && !latestMessage?.read) {
+        setChats((prevChats) =>
+          prevChats.map((chat) => {
+            // For the chat where the message was received
+            if (chat.chatId === latestMessage.chatId) {
+              // Only increment if it's not the selected chat
+              return chat.chatId !== selectedChat
+                ? { ...chat, unreadCount: (chat.unreadCount || 0) + 1 }
+                : chat;
+            }
+            return chat;
+          })
+        );
+      }
+
+      // Mark messages as read for the selected chat
       const unreadMessages = messagesList.filter(
         (msg) => msg.senderId !== user.uid && !msg.read
       );
 
       if (unreadMessages.length > 0) {
+        // Optimistically update the UI
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) =>
+            unreadMessages.some((unread) => unread.id === msg.id)
+              ? { ...msg, read: true }
+              : msg
+          )
+        );
+
+        // Reset unread count for the selected chat
+        setChats((prevChats) =>
+          prevChats.map((chat) =>
+            chat.chatId === selectedChat ? { ...chat, unreadCount: 0 } : chat
+          )
+        );
+
+        // Update in the database
         markMessagesAsRead(
           selectedChat,
           unreadMessages.map((msg) => msg.id)
-        ).then(() => {
-          // Update the unread count in the chats list
-          setChats((prevChats) =>
-            prevChats.map((chat) =>
-              chat.chatId === selectedChat ? { ...chat, unreadCount: 0 } : chat
-            )
-          );
-        });
+        );
       }
     });
 
@@ -274,20 +304,49 @@ const Chats = () => {
         isLoadingOlderMessagesRef.current = false;
       }, 0);
     } else if (messagesEndRef.current && !isLoadingOlderMessagesRef.current) {
-      // Only scroll to bottom if we're not loading older messages
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      // Auto-scroll only when:
+      // 1. User just sent a message (justSentMessageRef.current)
+      // 2. Messages first load (selectedChat changes)
+      // 3. User is already at the bottom when new message arrives
+      if (messageContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } =
+          messageContainerRef.current;
+        const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+
+        // Only auto-scroll if we just sent a message, or if we're near bottom and not manually scrolling
+        const shouldAutoScroll =
+          messages.length > 0 &&
+          (justSentMessageRef.current ||
+            (isNearBottom && !userIsScrollingRef.current));
+
+        if (shouldAutoScroll) {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }
     }
-  }, [messages, selectedChat]);
+  }, [messages, selectedChat, user?.uid]);
 
   // Handle scroll to determine when to show the scroll button
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     if (messageContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } =
         messageContainerRef.current;
       const isAtBottom = scrollTop + clientHeight >= scrollHeight - 20; // 20px threshold
       setShowScrollButton(!isAtBottom);
+
+      // Set userIsScrolling flag when scrolling up
+      if (scrollTop < lastScrollTopRef.current) {
+        userIsScrollingRef.current = true;
+        justSentMessageRef.current = false;
+      }
+      lastScrollTopRef.current = scrollTop;
+
+      // Reset the scrolling flag if user reaches bottom
+      if (isAtBottom) {
+        userIsScrollingRef.current = false;
+      }
     }
-  };
+  }, []);
 
   // Scroll to bottom function for the arrow button
   const scrollToBottom = () => {
@@ -305,37 +364,13 @@ const Chats = () => {
       handleScroll();
       return () => container.removeEventListener("scroll", handleScroll);
     }
-  }, [selectedChat, messages]);
+  }, [selectedChat, messages, handleScroll]);
 
   useEffect(() => {
     if (selectedChat && window.innerWidth < 768) {
       setShowMessages(true);
     }
   }, [selectedChat]);
-
-  useEffect(() => {
-    if (!selectedChat || !user?.uid || !selectedChatData) return;
-
-    const otherUserId = selectedChatData.userId;
-
-    const unsubscribe = subscribeToTypingStatus(
-      selectedChat,
-      otherUserId,
-      (isTyping) => {
-        setOtherUserTyping(isTyping);
-      }
-    );
-
-    setupTypingStatusCleanup(selectedChat, user.uid);
-
-    return () => {
-      unsubscribe();
-      if (isTypingRef.current) {
-        setTypingStatus(selectedChat, user.uid, false);
-        isTypingRef.current = false;
-      }
-    };
-  }, [selectedChat, user?.uid, selectedChatData]);
 
   useEffect(() => {
     return () => {
@@ -376,12 +411,36 @@ const Chats = () => {
   };
 
   // Memoize chat selection function
-  const handleChatSelection = useCallback((chatId: string) => {
-    setSelectedChat(chatId);
-    if (window.innerWidth < 768) {
-      setShowMessages(true);
-    }
-  }, []);
+  const handleChatSelection = useCallback(
+    (chatId: string) => {
+      setSelectedChat(chatId);
+      const chat = chats.find((c) => c.chatId === chatId);
+      if (chat) {
+        setSelectedChatData(chat);
+        // Reset unread count when selecting a chat
+        setChats((prevChats) =>
+          prevChats.map((c) =>
+            c.chatId === chatId ? { ...c, unreadCount: 0 } : c
+          )
+        );
+      }
+      // Reset scroll flags when selecting a new chat
+      userIsScrollingRef.current = false;
+      justSentMessageRef.current = false;
+      if (window.innerWidth < 768) {
+        setShowMessages(true);
+      }
+      // Reset messages to ensure clean state for new chat
+      setMessages([]);
+      // Scroll to bottom after messages load
+      setTimeout(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 200); // Increased delay to ensure messages are loaded
+    },
+    [chats]
+  );
 
   // Memoize filtered and sorted chats
   const sortedChats = useMemo(() => {
@@ -407,6 +466,9 @@ const Chats = () => {
       )
         return;
 
+      // Reset scroll flags when sending a new message
+      userIsScrollingRef.current = false;
+      justSentMessageRef.current = true;
       setIsTyping(true);
 
       try {
@@ -420,6 +482,10 @@ const Chats = () => {
 
         if (success) {
           setNewMessage("");
+          // Clear justSentMessage flag after a short delay
+          setTimeout(() => {
+            justSentMessageRef.current = false;
+          }, 500);
         }
       } catch (error) {
         console.error("Error sending message:", error);
@@ -577,7 +643,7 @@ const Chats = () => {
                 <>
                   {creatingNewChat && selectedChatData && (
                     <div className="p-3 rounded-lg bg-secondary">
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center gap-4">
                         <Avatar className="h-12 w-12">
                           <AvatarFallback>
                             {selectedChatData.displayName
@@ -624,20 +690,9 @@ const Chats = () => {
                           <p className="text-sm font-medium truncate">
                             {chat.displayName}
                           </p>
-                          <div className="flex items-center gap-1 mt-1">
-                            {chat.chatId !== selectedChat && (
-                              <Badge
-                                variant={
-                                  chat.unreadCount && chat.unreadCount > 0
-                                    ? "default"
-                                    : "outline"
-                                }
-                                className={`text-xs ${
-                                  chat.unreadCount === 0 ? "opacity-70" : ""
-                                }`}
-                              >
-                                {chat.unreadCount || 0}
-                              </Badge>
+                          <div className="flex items-center text-transparent gap-1 mt-1">
+                            {(chat.unreadCount ?? 0) > 0 && (
+                              <div className="w-2 h-2 rounded-full bg-[#8752f3]" />
                             )}
                             <Badge
                               variant="outline"
@@ -693,9 +748,7 @@ const Chats = () => {
                         {selectedChatData?.displayName}
                       </CardTitle>
                       <p className="text-xs text-muted-foreground">
-                        {otherUserTyping
-                          ? "Typing..."
-                          : selectedChatData?.status === "online"
+                        {selectedChatData?.status === "online"
                           ? "Online"
                           : selectedChatData?.lastSeen
                           ? `Last seen ${formatLastSeen(
