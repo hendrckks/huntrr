@@ -8,7 +8,7 @@ import { incrementAnalyticMetric } from "../lib/firebase/analytics";
 import ImageModal from "./ImageModal";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "../hooks/useToast";
 
@@ -16,8 +16,22 @@ const ListingView = () => {
   const { slug } = useParams<{ slug: string }>(); // Change from id to slug
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showContact, setShowContact] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+
+  const handleContactToggle = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please login to view contact information",
+        variant: "warning",
+        duration: 5000,
+      });
+      return;
+    }
+    setShowContact(!showContact);
+  };
 
   const { data: listing, isLoading } = useQuery<ListingDocument>({
     queryKey: ["listing", slug],
@@ -38,6 +52,20 @@ const ListingView = () => {
     enabled: Boolean(slug),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
+
+  const maskPhoneNumber = (phone: string) => {
+    if (!phone) return "";
+    const cleaned = phone.replace(/\D/g, "");
+    return `${cleaned.slice(0, 3)}•••••${cleaned.slice(-2)}`;
+  };
+
+  const maskEmail = (email: string) => {
+    if (!email) return "";
+    const [username, domain] = email.split("@");
+    if (!domain) return email;
+    return `${username[0]}•••••@${domain}`;
+  };
+
   // Track view count when listing is viewed
   useEffect(() => {
     if (listing?.id) {
@@ -175,15 +203,34 @@ const ListingView = () => {
                 <p className="text-gray-600 dark:text-gray-300">
                   {listing.landlordName}
                 </p>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Phone: {listing.landlordContact.phone}
-                </p>
-                {listing.landlordContact.showEmail &&
-                  listing.landlordContact.email && (
+                <div className="flex items-center gap-2">
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Phone: {showContact ? listing.landlordContact.phone : maskPhoneNumber(listing.landlordContact.phone)}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="p-0 h-auto"
+                    onClick={handleContactToggle}
+                  >
+                    {showContact ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {listing.landlordContact.showEmail && listing.landlordContact.email && (
+                  <div className="flex items-center gap-2">
                     <p className="text-gray-600 dark:text-gray-300">
-                      Email: {listing.landlordContact.email}
+                      Email: {showContact ? listing.landlordContact.email : maskEmail(listing.landlordContact.email)}
                     </p>
-                  )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-0 h-auto"
+                      onClick={handleContactToggle}
+                    >
+                      {showContact ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className="flex items-center justify-start">
                 <Button
@@ -192,7 +239,7 @@ const ListingView = () => {
                       navigate("/login");
                       toast({
                         title: "Error",
-                        variant: "error",
+                        variant: "warning",
                         description: "Please login to chat with the owners",
                         duration: 5000,
                       });
