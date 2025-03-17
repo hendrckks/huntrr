@@ -531,9 +531,15 @@ const Chats = () => {
             {message.senderId === user?.uid && (
               <span>
                 {message.read ? (
-                  <CheckCheck className="h-3 w-3" />
+                  <div className="flex items-center gap-2">
+                    <CheckCheck className="h-3 w-3" />
+                    <span className="text-xs">Read</span>
+                  </div>
                 ) : (
-                  <Check className="h-3 w-3" />
+                  <div className="flex items-center gap-2">
+                    <Check className="h-3 w-3" />
+                    <span className="text-xs">delivered</span>
+                  </div>
                 )}
               </span>
             )}
