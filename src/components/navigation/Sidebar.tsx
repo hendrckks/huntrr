@@ -310,7 +310,7 @@ const Sidebar = () => {
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </div>
-                <span className="text-sm font-medium tracking-normal">
+                <span className="text-base font-medium tracking-normal">
                   {item.label}
                 </span>
               </Link>
