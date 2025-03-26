@@ -1,0 +1,54 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Base function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Function to check if user is accessing their own data
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Function to validate image uploads
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*') &&
+             request.resource.size <= 5 * 1024 * 1024; // 5MB max
+    }
+
+    // Profile pictures
+    match /profile-pictures/{fileName} {
+      allow read: if true; // Public read access for profile pictures
+      allow create, update: if isAuthenticated() && isValidImage();
+      allow delete: if isAuthenticated();
+    }
+
+    // Listing images
+    match /listings/{userId}/{listingId}/{fileName} {
+      allow read: if true;
+      allow create, update: if isAuthenticated() && 
+        isOwner(userId) && 
+        isValidImage();
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // KYC documents
+    match /users/{userId}/kyc/{fileName} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow create, update: if isAuthenticated() && 
+        isOwner(userId) && 
+        isValidImage();
+      allow delete: if false; // Prevent deletion of KYC documents
+    }
+
+    // Profile images in user folder structure
+    match /users/{userId}/profile/{fileName} {
+      allow read: if true;
+      allow create, update: if isAuthenticated() && 
+        isOwner(userId) && 
+        isValidImage();
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+  }
+}
