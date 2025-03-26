@@ -294,8 +294,8 @@ const Sidebar = () => {
                 to={item.path}
                 className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors ${
                   isActive
-                    ? "bg-black/90 dark:bg-white/90 dark:text-black text-white"
-                    : "hover:bg-white/5 dark:text-white/80 text-[#4b5563]"
+                    ? "bg-black/90 dark:bg-white/90 shadow-xs dark:text-black text-white"
+                    : "dark:hover:bg-white/5 hover:bg-black/5 dark:text-white/80 text-[#4b5563]"
                 }`}
               >
                 <div className="relative">
