@@ -176,18 +176,17 @@ const Sidebar = () => {
 
   const navItems = [
     { icon: HomeIcon, label: "Home", path: "/", color: "text-blue-400/90" },
-    {
-      icon: User,
-      label: "Dashboard",
-      path:
-        user?.role === "admin"
-          ? "/admin-dashboard"
-          : user?.role === "landlord_verified" ||
-            user?.role === "landlord_unverified"
-          ? "/dashboard"
-          : "/profile",
-      color: "text-pink-400/70",
-    },
+    user?.role === "admin" || user?.role === "landlord_verified" || user?.role === "landlord_unverified"
+      ? {
+          icon: User,
+          label: "Dashboard",
+          path:
+            user?.role === "admin"
+              ? "/admin-dashboard"
+              : "/dashboard",
+          color: "text-pink-400/70",
+        }
+      : null,
     user?.role === "landlord_unverified"
       ? {
           icon: FileCheck,

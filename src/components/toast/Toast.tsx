@@ -69,7 +69,7 @@ const Toast = React.forwardRef<
       case "success":
         Icon = (
           <RiCheckboxCircleFill
-            className="size-5 shrink-0 text-primary dark:text-primary"
+            className="size-5 shrink-0 text-primary dark:text-white"
             aria-hidden="true"
           />
         );
@@ -140,7 +140,7 @@ const Toast = React.forwardRef<
           {Icon}
           <div className="flex flex-col gap-1">
             {title && (
-              <ToastPrimitives.Title className="text-sm font-semibold text-gray-900 dark:text-textBlack">
+              <ToastPrimitives.Title className="text-sm font-semibold text-gray-900 dark:text-white">
                 {title}
               </ToastPrimitives.Title>
             )}

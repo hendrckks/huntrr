@@ -56,7 +56,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           case "admin": return "/admin-dashboard";
           case "landlord_verified":
           case "landlord_unverified": return "/dashboard";
-          case "user": return "/profile";
+          case "user": return "/";
           default: return "/";
         }
       })() : "/";
