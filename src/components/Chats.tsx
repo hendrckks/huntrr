@@ -15,7 +15,10 @@ import {
   Loader2,
   ArrowDown,
   ArrowUp,
+  Smile,
 } from "lucide-react";
+import EmojiPicker from "emoji-picker-react";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Badge } from "./ui/badge";
 import { format } from "date-fns";
 import {
@@ -503,6 +506,11 @@ const Chats = () => {
     return format(date, "HH:mm");
   };
 
+  // Handle emoji selection
+  const handleEmojiClick = (emojiData: any) => {
+    setNewMessage((prevMessage) => prevMessage + emojiData.emoji);
+  };
+
   // Memoize the messages rendering
   const messageElements = useMemo(() => {
     return messages.map((message) => (
@@ -514,10 +522,10 @@ const Chats = () => {
       >
         <div className="flex flex-col space-y-1 max-w-[70%]">
           <div
-            className={`p-3 md:px-6 px-4 ${
+            className={`p-3 md:px-4 px-4 ${
               message.senderId === user?.uid
-                ? "bg-[#8752f3] text-primary-foreground rounded-t-[18px] rounded-bl-[18px]"
-                : "bg-primary dark:bg-white dark:text-black text-white rounded-t-[18px] rounded-br-[18px]"
+                ? "bg-[#8752f3] text-primary-foreground rounded-t-[25px] rounded-bl-[25px]"
+                : "bg-primary dark:bg-white dark:text-black text-white rounded-t-[25px] rounded-br-[25px]"
             }`}
           >
             <p className="text-sm">{message.content}</p>
@@ -813,9 +821,7 @@ const Chats = () => {
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-10">
-                  <p className="text-muted-foreground">
-                    {loading ? "" : ""}
-                  </p>
+                  <p className="text-muted-foreground">{loading ? "" : ""}</p>
                 </div>
               )}
             </CardHeader>
@@ -902,6 +908,33 @@ const Chats = () => {
                       className="flex-1"
                       disabled={isTyping || !selectedChatData}
                     />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-9 w-9 rounded-full"
+                          disabled={isTyping || !selectedChatData}
+                        >
+                          <Smile className="h-full w-full text-muted-foreground" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-full p-0 border-none shadow-lg"
+                        align="end"
+                        side="top"
+                      >
+                        <EmojiPicker
+                          onEmojiClick={handleEmojiClick}
+                          searchDisabled
+                          skinTonesDisabled
+                          width={300}
+                          height={350}
+                          previewConfig={{ showPreview: false }}
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <Button
                       type="submit"
                       size="icon"
@@ -914,7 +947,7 @@ const Chats = () => {
               ) : (
                 <div className="h-full md:h-[400px] flex items-center justify-center text-muted-foreground">
                   <div className="text-center flex flex-col items-center w-1/2 justify-center gap-3 p-8 bg-black/5 rounded-2xl">
-                    <p className="text-lg text-[#121212]">
+                    <p className="text-base text-[#121212]">
                       {loading
                         ? "Loading conversations..."
                         : "Select a conversation"}
@@ -925,7 +958,7 @@ const Chats = () => {
                         : "Choose from your existing conversations, start a new one, or just keep hunting."}
                     </p>
                     {loading ? (
-                      <Clock className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                      <Clock className="h-10 w-10 mx-auto text-muted-foreground/50" />
                     ) : (
                       <span className="flex select-none items-center justify-center text-[72px] before:absolute before:opacity-80 before:blur-[40px] before:content-[var(--emoji)]">
                         👀
