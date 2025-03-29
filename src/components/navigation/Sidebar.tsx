@@ -273,7 +273,7 @@ const Sidebar = () => {
             alt="Huntrr Logo"
             className="w-fit h-full -p-8 rounded-lg border bg-black/2 border-black/30 dark:border-white/20 backdrop-blur-3xl shadow-md"
           />
-          <span className="text-lg font-medium tracking-tight mt-1">
+          <span className="text-lg font-medium tracking-tight">
             Huntrr
             <span className="text-[10px] px-2 py-0.5 ml-2 rounded-sm bg-[#8752f3]/20 font-medium">
               beta
@@ -310,7 +310,7 @@ const Sidebar = () => {
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </div>
-                <span className="text-[15px] font-medium tracking-normal">
+                <span className="font-medium tracking-normal">
                   {item.label}
                 </span>
               </Link>

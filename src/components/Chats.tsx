@@ -622,7 +622,7 @@ const Chats = () => {
               <CardTitle className="flex items-center justify-between">
                 <Button
                   onClick={() => navigate(-1)}
-                  className="text-sm py-2 px-4 rounded-lg"
+                  className="text-xs py-2 px-4 rounded-lg"
                 >
                   Back
                 </Button>
@@ -674,10 +674,10 @@ const Chats = () => {
                   {sortedChats.map((chat) => (
                     <div
                       key={chat.chatId}
-                      className={`flex items-center space-x-4 p-3 rounded-lg cursor-pointer transition-colors ${
+                      className={`flex items-center space-x-4 p-3 bg-black/5 dark:bg-white/5 mb-1 rounded-xl cursor-pointer transition-colors ${
                         selectedChat === chat.chatId
                           ? "bg-black/5 dark:bg-white/5"
-                          : "hover:bg-secondary/50"
+                          : "hover:bg-black/10 dark:hover:bg-white/10"
                       }`}
                       onClick={() => handleChatSelection(chat.chatId)}
                     >
@@ -698,7 +698,7 @@ const Chats = () => {
 
                             {chat.role === "landlord_verified" && (
                               <svg
-                                width="18px"
+                                width="20px"
                                 xmlns="http://www.w3.org/2000/svg"
                                 viewBox="0 0 20 20"
                                 className="inline-block ml-2"
@@ -778,7 +778,7 @@ const Chats = () => {
 
                         {selectedChatData?.role === "landlord_verified" && (
                           <svg
-                            width="18px"
+                            width="20px"
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 20 20"
                             className="inline-block ml-2"
@@ -814,7 +814,7 @@ const Chats = () => {
               ) : (
                 <div className="flex items-center justify-center h-10">
                   <p className="text-muted-foreground">
-                    {loading ? "" : "Select a conversation"}
+                    {loading ? "" : ""}
                   </p>
                 </div>
               )}
@@ -913,13 +913,24 @@ const Chats = () => {
                 </div>
               ) : (
                 <div className="h-full md:h-[400px] flex items-center justify-center text-muted-foreground">
-                  <div className="text-center">
-                    <Clock className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                    <p>
+                  <div className="text-center flex flex-col items-center w-1/2 justify-center gap-3 p-8 bg-black/5 rounded-2xl">
+                    <p className="text-lg text-[#121212]">
                       {loading
                         ? "Loading conversations..."
-                        : "Select a conversation to start chatting"}
+                        : "Select a conversation"}
                     </p>
+                    <p className="w-2/3">
+                      {loading
+                        ? ""
+                        : "Choose from your existing conversations, start a new one, or just keep hunting."}
+                    </p>
+                    {loading ? (
+                      <Clock className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                    ) : (
+                      <span className="flex select-none items-center justify-center text-[72px] before:absolute before:opacity-80 before:blur-[40px] before:content-[var(--emoji)]">
+                        👀
+                      </span>
+                    )}
                   </div>
                 </div>
               )}

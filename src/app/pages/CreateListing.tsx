@@ -281,7 +281,7 @@ export default function CreateListingForm() {
     }
   };
   return (
-    <Container className="max-w-7xl">
+    <Container className="max-w-7xl px-2">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <Card>
