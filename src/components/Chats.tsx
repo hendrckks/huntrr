@@ -528,8 +528,8 @@ const Chats = () => {
                 : "bg-primary dark:bg-white dark:text-black text-white rounded-t-[10px] rounded-br-[10px]"
             }`}
           >
-            <p className="text-sm">{message.content}</p>
-            <span className="text-xs ml-4">
+            <p className="text-sm text-opacity-85 mb-0.5">{message.content}</p>
+            <span className="text-xs text-white/80 ml-4">
               {formatMessageTime(message.timestamp)}
             </span>
             <span className="ml-1">
@@ -641,12 +641,12 @@ const Chats = () => {
               <CardTitle className="flex items-center justify-between">
                 <Button
                   onClick={() => navigate(-1)}
-                  className="text-xs py-2 px-4 rounded-lg"
+                  className="text-xs py-2 px-3 shadow-lg backdrop-blur-lg rounded-lg"
                 >
-                  Back
+                  <ArrowLeft size={18}/>
                 </Button>
                 <span>Conversations</span>
-                <Badge variant="secondary" className="ml-2 py-2 px-4">
+                <Badge variant="secondary" className="ml-2 py-2 px-4 shadow-lg backdrop-blur-lg rounded-lg">
                   {chats.length}
                 </Badge>
               </CardTitle>
@@ -701,7 +701,7 @@ const Chats = () => {
                       onClick={() => handleChatSelection(chat.chatId)}
                     >
                       <div className="relative">
-                        <Avatar className="md:h-15 md:w-15 h-14 w-14 border border-black/20 dark:border-white/20">
+                        <Avatar className="h-14 w-14 border border-black/20 dark:border-white/20">
                           <AvatarFallback>
                             {chat.displayName?.charAt(0).toUpperCase()}
                           </AvatarFallback>
@@ -712,7 +712,7 @@ const Chats = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center">
-                          <p className="text-sm flex items-center font-medium truncate">
+                          <p className="md:text-base text-[15px] tracking-tight flex items-center font-medium truncate">
                             {chat.displayName}
 
                             {chat.role === "landlord_verified" && (
