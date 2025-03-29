@@ -234,8 +234,8 @@ const SignIn = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen h-full w-full">
-      <Button onClick={() => navigate(-1)} className="absolute top-4 left-4">
-        <ArrowLeft size={20} />
+      <Button onClick={() => navigate(-1)} className="absolute text-sm top-4 md:left-4 left-8">
+        <ArrowLeft size={18} />
         Back
       </Button>
       <Card className="w-full max-w-md mx-4">

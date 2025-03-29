@@ -516,42 +516,53 @@ const Chats = () => {
     return messages.map((message) => (
       <div
         key={message.id}
-        className={`flex ${
-          message.senderId === user?.uid ? "justify-end" : "justify-start"
+        className={`flex flex-col ${
+          message.senderId === user?.uid ? "items-end" : "items-start"
         }`}
       >
-        <div className="flex flex-col space-y-1 max-w-[70%]">
+        <div className="flex flex-col space-y-1 max-w-[70%] w-fit">
           <div
-            className={`p-3 md:px-4 px-4 ${
+            className={`py-1 md:px-3 px-4 flex items-center ${
               message.senderId === user?.uid
-                ? "bg-[#8752f3] text-primary-foreground rounded-t-[25px] rounded-bl-[25px]"
-                : "bg-primary dark:bg-white dark:text-black text-white rounded-t-[25px] rounded-br-[25px]"
+                ? "bg-[#8752f3] text-primary-foreground rounded-t-[10px] rounded-bl-[10px]"
+                : "bg-primary dark:bg-white dark:text-black text-white rounded-t-[10px] rounded-br-[10px]"
             }`}
           >
             <p className="text-sm">{message.content}</p>
+            <span className="text-xs ml-4">
+              {formatMessageTime(message.timestamp)}
+            </span>
+            <span className="ml-1">
+              {message.read ? (
+                <div className="flex items-center gap-2">
+                  <CheckCheck className="h-4 w-4" />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4" />
+                </div>
+              )}
+            </span>
           </div>
-          <div
-            className={`flex items-center space-x-2 text-xs text-muted-foreground ${
-              message.senderId === user?.uid ? "justify-end" : "justify-start"
-            }`}
-          >
-            <span>{formatMessageTime(message.timestamp)}</span>
-            {message.senderId === user?.uid && (
-              <span>
-                {message.read ? (
-                  <div className="flex items-center gap-2">
-                    <CheckCheck className="h-3 w-3" />
-                    <span className="text-xs">Read</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Check className="h-3 w-3" />
-                    <span className="text-xs">delivered</span>
-                  </div>
-                )}
-              </span>
-            )}
-          </div>
+        </div>
+        <div
+          className={`flex items-center space-x-2 text-xs text-muted-foreground ${
+            message.senderId === user?.uid ? "justify-end" : "justify-start"
+          }`}
+        >
+          {message.senderId === user?.uid && (
+            <span>
+              {message.read ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">Read</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">delivered</span>
+                </div>
+              )}
+            </span>
+          )}
         </div>
       </div>
     ));

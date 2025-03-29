@@ -115,15 +115,19 @@ const ResetPassword = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen w-full">
-      <Button onClick={() => navigate(-1)} className="absolute top-4 left-4">
-        <ArrowLeft size={20} />
+      <Button
+        onClick={() => navigate(-1)}
+        className="absolute text-sm top-4 md:left-4 left-8"
+      >
+        <ArrowLeft size={18} />
         Back
       </Button>
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="space-y-1">
           <h2 className="text-2xl font-medium text-center">Reset Password</h2>
           <p className="text-sm text-muted-foreground text-center">
-            Enter your email address and we'll send you a link to reset your password
+            Enter your email address and we'll send you a link to reset your
+            password
           </p>
         </CardHeader>
         <CardContent>
@@ -152,12 +156,10 @@ const ResetPassword = () => {
             </div>
 
             {!hasSubmitted ? (
-              <Button 
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full"
-              >
-                {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              <Button type="submit" disabled={isSubmitting} className="w-full">
+                {isSubmitting && (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                )}
                 Send Reset Link
               </Button>
             ) : (
@@ -169,14 +171,16 @@ const ResetPassword = () => {
                   disabled={!canResend || isSubmitting || countdown > 0}
                   className="w-full"
                 >
-                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  {isSubmitting && (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  )}
                   {countdown > 0
                     ? `Resend available in ${formatTime(countdown)}`
                     : "Resend Reset Link"}
                 </Button>
                 {countdown > 0 && (
-                  <Progress 
-                    value={(countdown / COUNTDOWN_TIME) * 100} 
+                  <Progress
+                    value={(countdown / COUNTDOWN_TIME) * 100}
                     className="h-1"
                   />
                 )}
@@ -198,7 +202,7 @@ const ResetPassword = () => {
               <div className="space-y-2">
                 <h3 className="font-medium">Security Note</h3>
                 <p className="text-sm text-muted-foreground">
-                  For your security, the reset link will expire after 24 hours. 
+                  For your security, the reset link will expire after 24 hours.
                   Please check your spam folder if you don't see the email.
                 </p>
               </div>
