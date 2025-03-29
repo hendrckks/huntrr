@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Mail, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Mail, Loader2, ArrowLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { resetPassword } from "../../lib/firebase/auth";
 import { ResetPasswordInput } from "../../lib/types/auth";
 import { toast } from "../../hooks/useToast";
@@ -22,6 +22,7 @@ const ResetPassword = () => {
   const [canResend, setCanResend] = useState(true);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -113,7 +114,11 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen w-full bg-background">
+    <div className="flex items-center justify-center min-h-screen w-full">
+      <Button onClick={() => navigate(-1)} className="absolute top-4 left-4">
+        <ArrowLeft size={20} />
+        Back
+      </Button>
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="space-y-1">
           <h2 className="text-2xl font-medium text-center">Reset Password</h2>

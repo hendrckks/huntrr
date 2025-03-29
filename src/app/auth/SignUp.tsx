@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { User, KeyRound, Mail, Loader2 } from "lucide-react";
+import { User, KeyRound, Mail, Loader2, ArrowLeft } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { signInWithGoogle, signUp } from "../../lib/firebase/auth";
 import { SignUpInput, SignUpRole, UserRole } from "../../lib/types/auth";
@@ -179,6 +179,10 @@ const SignUp = () => {
 
   return (
     <div className="h-screen flex items-center justify-center overflow-hidden">
+      <Button onClick={() => navigate(-1)} className="absolute top-4 left-4">
+        <ArrowLeft size={20} />
+        Back
+      </Button>
       <Card className="w-full max-w-md">
         <CardHeader>
           <h2 className="text-xl font-medium text-center">Create an account</h2>

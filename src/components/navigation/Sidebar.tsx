@@ -9,7 +9,7 @@ import {
   User,
   LogOut,
   MoreHorizontal,
-  PlusIcon as HousePlus,
+  HousePlus,
   HelpCircle,
   FileCheck,
   MessageCircle,
@@ -215,6 +215,14 @@ const Sidebar = () => {
         return true;
       },
     },
+    user?.role === "admin" || user?.role === "landlord_verified"
+      ? {
+          icon: HousePlus,
+          label: "List your property",
+          path: "/add-listing",
+          color: "text-green-400/90",
+        }
+      : null,
     {
       icon: Bell,
       label: "Notifications",
@@ -231,14 +239,6 @@ const Sidebar = () => {
       path: "/bookmarks",
       color: "text-pink-400/70",
     },
-    user?.role === "admin" || user?.role === "landlord_verified"
-      ? {
-          icon: HousePlus,
-          label: "List your property",
-          path: "/add-listing",
-          color: "text-purple-400/90",
-        }
-      : null,
 
     {
       icon: Settings,
@@ -310,7 +310,7 @@ const Sidebar = () => {
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </div>
-                <span className="text-base font-medium tracking-normal">
+                <span className="text-[15px] font-medium tracking-normal">
                   {item.label}
                 </span>
               </Link>
@@ -342,10 +342,10 @@ const Sidebar = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-medium">
+                    <h3 className="font-medium text-base">
                       {user?.displayName || "User Name"}
                     </h3>
-                    <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                    <p className="text-sm text-muted-foreground truncate max-w-[150px]">
                       {user?.email || "user@email.com"}
                     </p>
                   </div>

@@ -31,14 +31,14 @@ const MainLayout: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <div className="flex fixed inset-0 tracking-normal word-spacing-sm bg-black/5 dark:bg-[#171717] font-noto overflow-hidden">
+    <div className="flex fixed inset-0 tracking-normal word-spacing-sm bg-black/5 dark:bg-black/90 font-noto overflow-hidden">
       {isAuthenticated && <PresenceHandler />}
       <ScrollToTop />
       {!shouldHideNavbar && <Sidebar />}
-      <div className={`flex-1 flex flex-col font-noto ${!shouldHideNavbar ? 'md:ml-[calc(0.5rem+16rem)]' : ''} ${isHomePage ? 'mt-2' : 'mt-2'} overflow-hidden`}>
-        <main className={`flex-1 font-noto tracking-tight p-4 md:p-6 md:mb-2 mb-0 -mx-5 md:mx-0 ${isHomePage ? 'shadow-lg' : 'bg-white/60 dark:bg-[#121212] shadow-lg backdrop-blur-3xl'} bg-white/60 dark:bg-[#121212] rounded-xl overflow-y-auto h-[calc(100vh-1rem)] pb-20 md:pb-6`}>
+      <div className={`flex-1 flex flex-col font-noto ${!shouldHideNavbar ? 'md:ml-[calc(0.5rem+16rem)]' : ''} ${isHomePage ? 'mt-2' : 'mt-2'} overflow-hidden mx-2`}>
+        <main className={`flex-1 font-noto tracking-tight p-4 md:p-6 md:mb-2 mb-0 -mx-5 md:mx-0 ${isHomePage ? 'shadow-lg' : 'bg-white/60 dark:bg-[#111111]  shadow-lg backdrop-blur-3xl'} bg-white/60 dark:bg-[#121212] rounded-xl border dark:border-white/10 border-black/10 overflow-y-auto h-[calc(100vh-1rem)] pb-20 md:pb-6`}>
           {!shouldHideNavbar && (
-            <div className="flex mx-auto max-w-7xl justify-between items-center px-4 md:mb-6 gap-4">
+            <div className="flex mx-auto max-w-7xl justify-between items-center px-2 md:mb-6 gap-4">
               <div className="flex items-center">
                 <BreadcrumbNav />
               </div>

@@ -614,8 +614,8 @@ const Chats = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 md:-mt-4 -mt-6 md:-mb-4 mb-0 max-w-7xl md:h-[calc(100vh-6rem)] h-fit overflow-scroll">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 h-[85vh] md:h-full">
+    <div className="container mx-auto p-4 px-2 md:-mt-4 -mt-6 md:-mb-4 mb-0 max-w-7xl md:h-[calc(100vh-6rem)] h-fit overflow-scroll">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 h-[85vh] md:h-full">
         {(!showMessages || window.innerWidth >= 768) && (
           <Card className="md:col-span-1 h-full flex flex-col">
             <CardHeader>
@@ -693,22 +693,45 @@ const Chats = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center">
-                          <p className="text-sm font-medium truncate">
+                          <p className="text-sm flex items-center font-medium truncate">
                             {chat.displayName}
-                          </p>
-                          <div className="flex items-center text-transparent gap-1 mt-1">
-                            {(chat.unreadCount ?? 0) > 0 && (
-                              <div className="w-2 h-2 rounded-full bg-[#8752f3]" />
+
+                            {chat.role === "landlord_verified" && (
+                              <svg
+                                width="18px"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                className="inline-block ml-2"
+                              >
+                                <path
+                                  clipRule="evenodd"
+                                  d="M6.26202 4.15083C6.61985 4.18385 6.98697 4.16957 7.31887 4.03183C7.6505 3.89421 7.92359 3.64355 8.15302 3.36736C8.59325 2.83743 9.25722 2.5 10 2.5C10.7428 2.5 11.4067 2.83743 11.847 3.36737C12.0764 3.64355 12.3495 3.89421 12.6811 4.03183C13.013 4.16956 13.3801 4.18385 13.7379 4.15083C14.4238 4.08755 15.1317 4.31847 15.6568 4.84357C16.182 5.36881 16.4129 6.07693 16.3495 6.76296C16.3164 7.12056 16.3307 7.48746 16.4683 7.81917C16.6058 8.15061 16.8563 8.42355 17.1324 8.65282C17.6625 9.09305 18 9.75711 18 10.5C18 11.2429 17.6625 11.907 17.1324 12.3472C16.8563 12.5764 16.6058 12.8494 16.4683 13.1808C16.3307 13.5125 16.3164 13.8794 16.3495 14.237C16.4129 14.9231 16.182 15.6312 15.6568 16.1564C15.1317 16.6815 14.4238 16.9124 13.7379 16.8492C13.3801 16.8162 13.013 16.8304 12.6811 16.9682C12.3495 17.1058 12.0764 17.3564 11.847 17.6326C11.4067 18.1626 10.7428 18.5 10 18.5C9.25722 18.5 8.59325 18.1626 8.15302 17.6326C7.92359 17.3565 7.6505 17.1058 7.31887 16.9682C6.98696 16.8304 6.61985 16.8161 6.26202 16.8492C5.57615 16.9124 4.86826 16.6815 4.34315 16.1564C3.81788 15.6312 3.58699 14.923 3.65047 14.2369C3.68356 13.8794 3.66932 13.5125 3.53169 13.1808C3.39418 12.8494 3.14369 12.5765 2.86765 12.3472C2.33755 11.907 2 11.2429 2 10.5C2 9.75709 2.33755 9.09302 2.86765 8.65279C3.14369 8.42354 3.39418 8.15063 3.53169 7.81921C3.66932 7.48752 3.68356 7.12065 3.65047 6.76306C3.58699 6.077 3.81788 5.36883 4.34315 4.84357C4.86826 4.31846 5.57616 4.08755 6.26202 4.15083Z"
+                                  fill="#FF6143"
+                                  fillRule="evenodd"
+                                ></path>
+                                <path
+                                  d="M8 10.5L9.5 12L12 9"
+                                  stroke="white"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
                             )}
-                            <Badge
+                            <div className="flex items-center text-transparent gap-1 ml-2">
+                              {(chat.unreadCount ?? 0) > 0 && (
+                                <div className="w-2 h-2 rounded-full bg-[#8752f3]" />
+                              )}
+                              {/* <Badge
                               variant="outline"
                               className="text-xs border border-black/20 bg-[#8752f3]/30 rounded-sm dark:border-white/20"
                             >
                               {chat.role === "landlord_verified"
                                 ? "Landlord"
                                 : "Tenant"}
-                            </Badge>
-                          </div>
+                            </Badge> */}
+                            </div>
+                          </p>
                           <span className="text-xs text-muted-foreground">
                             {chat.lastMessageTime &&
                               formatMessageTime(chat.lastMessageTime)}
@@ -750,8 +773,31 @@ const Chats = () => {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <CardTitle className="">
+                      <CardTitle className="flex items-center">
                         {selectedChatData?.displayName}
+
+                        {selectedChatData?.role === "landlord_verified" && (
+                          <svg
+                            width="18px"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            className="inline-block ml-2"
+                          >
+                            <path
+                              clipRule="evenodd"
+                              d="M6.26202 4.15083C6.61985 4.18385 6.98697 4.16957 7.31887 4.03183C7.6505 3.89421 7.92359 3.64355 8.15302 3.36736C8.59325 2.83743 9.25722 2.5 10 2.5C10.7428 2.5 11.4067 2.83743 11.847 3.36737C12.0764 3.64355 12.3495 3.89421 12.6811 4.03183C13.013 4.16956 13.3801 4.18385 13.7379 4.15083C14.4238 4.08755 15.1317 4.31847 15.6568 4.84357C16.182 5.36881 16.4129 6.07693 16.3495 6.76296C16.3164 7.12056 16.3307 7.48746 16.4683 7.81917C16.6058 8.15061 16.8563 8.42355 17.1324 8.65282C17.6625 9.09305 18 9.75711 18 10.5C18 11.2429 17.6625 11.907 17.1324 12.3472C16.8563 12.5764 16.6058 12.8494 16.4683 13.1808C16.3307 13.5125 16.3164 13.8794 16.3495 14.237C16.4129 14.9231 16.182 15.6312 15.6568 16.1564C15.1317 16.6815 14.4238 16.9124 13.7379 16.8492C13.3801 16.8162 13.013 16.8304 12.6811 16.9682C12.3495 17.1058 12.0764 17.3564 11.847 17.6326C11.4067 18.1626 10.7428 18.5 10 18.5C9.25722 18.5 8.59325 18.1626 8.15302 17.6326C7.92359 17.3565 7.6505 17.1058 7.31887 16.9682C6.98696 16.8304 6.61985 16.8161 6.26202 16.8492C5.57615 16.9124 4.86826 16.6815 4.34315 16.1564C3.81788 15.6312 3.58699 14.923 3.65047 14.2369C3.68356 13.8794 3.66932 13.5125 3.53169 13.1808C3.39418 12.8494 3.14369 12.5765 2.86765 12.3472C2.33755 11.907 2 11.2429 2 10.5C2 9.75709 2.33755 9.09302 2.86765 8.65279C3.14369 8.42354 3.39418 8.15063 3.53169 7.81921C3.66932 7.48752 3.68356 7.12065 3.65047 6.76306C3.58699 6.077 3.81788 5.36883 4.34315 4.84357C4.86826 4.31846 5.57616 4.08755 6.26202 4.15083Z"
+                              fill="#FF6143"
+                              fillRule="evenodd"
+                            ></path>
+                            <path
+                              d="M8 10.5L9.5 12L12 9"
+                              stroke="white"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        )}
                       </CardTitle>
                       <p className="text-xs text-muted-foreground">
                         {selectedChatData?.status === "online"

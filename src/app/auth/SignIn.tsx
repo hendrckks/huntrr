@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { KeyRound, Mail, Loader2 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { KeyRound, Mail, Loader2, ArrowLeft } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   login,
   resendVerificationEmail,
@@ -29,6 +29,7 @@ const SignIn = () => {
   const location = useLocation();
   const [message, setMessage] = useState<string | null>(null);
   const { setUser } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const state = location.state;
@@ -232,7 +233,11 @@ const SignIn = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen w-full bg-background">
+    <div className="flex items-center justify-center min-h-screen h-full w-full">
+      <Button onClick={() => navigate(-1)} className="absolute top-4 left-4">
+        <ArrowLeft size={20} />
+        Back
+      </Button>
       <Card className="w-full max-w-md mx-4">
         <CardHeader>
           <h2 className="text-2xl font-medium text-center">Welcome back!</h2>

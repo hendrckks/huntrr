@@ -250,7 +250,7 @@ const LandlordDashboard: React.FC = () => {
       key={listing.id}
       className="mb-4 w-full hover:shadow-lg transition-shadow duration-200"
     >
-      <CardContent className="pt-6 px-4 sm:px-6">
+      <CardContent className="pt-6 px-2 sm:px-6">
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
           <div className="space-y-3 w-full sm:w-auto max-w-[70%]">
             <div className="flex items-start gap-2 flex-wrap">
@@ -326,7 +326,7 @@ const LandlordDashboard: React.FC = () => {
   );
 
   return (
-    <div className="container mx-auto max-w-7xl px-4 space-y-4 md:mt-0 mt-4">
+    <div className="container mx-auto max-w-7xl px-2 space-y-4 md:mt-0 mt-4">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-2">
           <User className="h-6 w-6" />

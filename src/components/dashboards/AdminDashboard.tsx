@@ -551,7 +551,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto px-4">
+    <div className="container mx-auto 2">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
           <User className="h-6 w-6" />

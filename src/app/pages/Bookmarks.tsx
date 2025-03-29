@@ -138,7 +138,7 @@ const BookmarksPage = () => {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 md:p-0 p-4">
+      <div className="max-w-7xl mx-auto px-2 md:p-0 p-4">
         <div className="flex items-center gap-2 mb-6">
           <Bookmark className="h-6 w-6" />
           <h1 className="text-xl font-medium">Your Bookmarks</h1>
@@ -153,7 +153,7 @@ const BookmarksPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:p-0 p-4">
+    <div className="max-w-7xl mx-auto px-2 md:p-0 p-4">
       <div className="flex items-center gap-2 mb-6">
         <Bookmark className="h-6 w-6" />
         <h1 className="text-xl font-medium">Your Bookmarks</h1>
