@@ -983,8 +983,8 @@ const Chats = () => {
                 </div>
               ) : (
                 <div className="h-full md:h-[400px] flex items-center justify-center text-muted-foreground">
-                  <div className="text-center flex flex-col items-center w-1/2 justify-center gap-3 p-8 bg-black/5 rounded-2xl">
-                    <p className="text-base text-[#121212]">
+                  <div className="text-center flex flex-col items-center w-1/2 justify-center gap-3 p-8 bg-black/5 dark:bg-white/5 rounded-2xl">
+                    <p className="text-base text-[#121212] dark:text-[#fafafa]">
                       {loading
                         ? creatingNewChat
                           ? "Creating new conversation..."
