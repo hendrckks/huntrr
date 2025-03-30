@@ -8,7 +8,6 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
-  Clock,
   Check,
   CheckCheck,
   ArrowLeft,
@@ -108,7 +107,60 @@ const Chats = () => {
     }
   };
 
-  // Modified effect to handle landlordId parameter
+  // In the Chats component, modify the useEffect for chat subscription
+
+  useEffect(() => {
+    if (!user?.uid || !user?.role) return;
+
+    // Don't set loading to true if we're in the middle of creating a new chat
+    if (!creatingNewChat && !selectedChatData) {
+      setLoading(true);
+    }
+
+    const unsubscribe = subscribeToChats(user.uid, user.role, (chatsList) => {
+      // Add a timestamp parameter to each photoURL to prevent caching
+      const updatedChats = chatsList
+        .filter((chat) => chat && typeof chat === "object") // Filter out undefined/null chats
+        .map((chat) => ({
+          ...chat,
+          // Add cache-busting parameter using both timestamp and random number
+          photoURL: chat.photoURL
+            ? `${
+                chat.photoURL.split("?")[0]
+              }?t=${Date.now()}&r=${Math.random()}`
+            : "",
+        }));
+
+      setChats(updatedChats);
+
+      if (selectedChat) {
+        const matchingChat = updatedChats.find(
+          (chat) => chat && chat.chatId === selectedChat
+        );
+
+        if (matchingChat) {
+          setSelectedChatData(matchingChat);
+
+          // Only reset creatingNewChat state when the chat data is fully loaded and visible
+          // Set a small delay to ensure the UI has time to update
+          setTimeout(() => {
+            setCreatingNewChat(false);
+            setLoading(false);
+            processingLandlordIdRef.current = false;
+          }, 1000); // Add a small delay to ensure the message shows
+        }
+      } else {
+        // Only set loading to false if we're not creating a new chat
+        if (!creatingNewChat) {
+          setLoading(false);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user, selectedChat, creatingNewChat, selectedChatData]);
+
+  // Also modify the landlordId effect to ensure loading state is properly maintained
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const landlordId = params.get("landlordId");
@@ -121,22 +173,23 @@ const Chats = () => {
     ) {
       processingLandlordIdRef.current = true;
       setLoading(true);
+      setCreatingNewChat(true);
 
-      // Check for existing chat using direct Firebase query
       (async () => {
-        const existingChatId = await checkForExistingChat(user.uid, landlordId);
+        try {
+          const existingChatId = await checkForExistingChat(
+            user.uid,
+            landlordId
+          );
 
-        if (existingChatId) {
-          // Existing chat found - navigate and select it
-          navigate("/chats", { replace: true });
-          setSelectedChat(existingChatId);
-          setShowMessages(true);
+          if (existingChatId) {
+            navigate("/chats", { replace: true });
+            setSelectedChat(existingChatId);
+            setShowMessages(true);
 
-          // Get landlord data to display while we wait for the main chat subscription
-          getDoc(doc(db, "users", landlordId)).then((landlordDoc) => {
+            const landlordDoc = await getDoc(doc(db, "users", landlordId));
             if (landlordDoc.exists()) {
               const landlordData = landlordDoc.data();
-              // Set temporary chat data until the main subscription updates
               setSelectedChatData({
                 chatId: existingChatId,
                 userId: landlordId,
@@ -148,90 +201,49 @@ const Chats = () => {
                 unreadCount: 0,
               });
             }
-            setLoading(false);
-          });
-        } else {
-          // No existing chat - create a new one
-          setCreatingNewChat(true);
+          } else {
+            try {
+              const chatId = await createChat(user.uid, landlordId);
 
-          createChat(user.uid, landlordId)
-            .then((chatId) => {
               if (chatId) {
                 navigate("/chats", { replace: true });
                 setSelectedChat(chatId);
                 setShowMessages(true);
 
-                getDoc(doc(db, "users", landlordId)).then((landlordDoc) => {
-                  if (landlordDoc.exists()) {
-                    const landlordData = landlordDoc.data();
-                    setSelectedChatData({
-                      chatId: chatId,
-                      userId: landlordId,
-                      displayName: landlordData.displayName || "Landlord",
-                      lastMessage: "",
-                      role: landlordData.role || "landlord_verified",
-                      status: "offline",
-                      photoURL: landlordData.photoURL || "",
-                      unreadCount: 0,
-                    });
-                    setLoading(false);
-                  }
-                });
+                const landlordDoc = await getDoc(doc(db, "users", landlordId));
+                if (landlordDoc.exists()) {
+                  const landlordData = landlordDoc.data();
+                  setSelectedChatData({
+                    chatId: chatId,
+                    userId: landlordId,
+                    displayName: landlordData.displayName || "Landlord",
+                    lastMessage: "",
+                    role: landlordData.role || "landlord_verified",
+                    status: "offline",
+                    photoURL: landlordData.photoURL || "",
+                    unreadCount: 0,
+                  });
+                }
               }
-            })
-            .catch((error) => {
-              console.error("Error initializing chat:", error);
+            } catch (error) {
+              console.error("Error creating new chat:", error);
               setLoading(false);
               setCreatingNewChat(false);
               processingLandlordIdRef.current = false;
-            });
+            }
+          }
+
+          // Don't reset states here - let the chat subscription handle it
+          // when the chat data is fully loaded
+        } catch (error) {
+          console.error("Error in landlordId processing:", error);
+          setLoading(false);
+          setCreatingNewChat(false);
+          processingLandlordIdRef.current = false;
         }
       })();
     }
   }, [location, user?.uid, user?.role, navigate]);
-
-  // Clean up the processing flag when component unmounts or user changes
-  useEffect(() => {
-    return () => {
-      processingLandlordIdRef.current = false;
-    };
-  }, [user?.uid]);
-
-  useEffect(() => {
-    if (!user?.uid || !user?.role) return;
-
-    if (!creatingNewChat && !selectedChatData) {
-      setLoading(true);
-    }
-
-    const unsubscribe = subscribeToChats(user.uid, user.role, (chatsList) => {
-      // Add a timestamp parameter to each photoURL to prevent caching
-      const updatedChats = chatsList.map((chat) => ({
-        ...chat,
-        // Add cache-busting parameter using both timestamp and random number
-        photoURL: chat.photoURL
-          ? `${chat.photoURL.split("?")[0]}?t=${Date.now()}&r=${Math.random()}`
-          : "",
-      }));
-
-      setChats(updatedChats);
-
-      if (selectedChat) {
-        const matchingChat = updatedChats.find(
-          (chat) => chat.chatId === selectedChat
-        );
-        if (matchingChat) {
-          setSelectedChatData(matchingChat);
-          setCreatingNewChat(false);
-          processingLandlordIdRef.current = false;
-        }
-      }
-
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user, selectedChat, creatingNewChat, selectedChatData]);
 
   useEffect(() => {
     if (!selectedChat || !user?.uid) return;
@@ -513,6 +525,7 @@ const Chats = () => {
 
   // Memoize the messages rendering
   const messageElements = useMemo(() => {
+    // Inside the messageElements useMemo function
     return messages.map((message) => (
       <div
         key={message.id}
@@ -532,17 +545,20 @@ const Chats = () => {
             <span className="text-xs text-white/80 ml-4">
               {formatMessageTime(message.timestamp)}
             </span>
-            <span className="ml-1">
-              {message.read ? (
-                <div className="flex items-center gap-2">
-                  <CheckCheck className="h-4 w-4" />
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4" />
-                </div>
-              )}
-            </span>
+            {/* Only show check marks for messages sent by the current user */}
+            {message.senderId === user?.uid && (
+              <span className="ml-1">
+                {message.read ? (
+                  <div className="flex items-center gap-2">
+                    <CheckCheck className="h-4 w-4" />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4" />
+                  </div>
+                )}
+              </span>
+            )}
           </div>
         </div>
         <div
@@ -643,10 +659,13 @@ const Chats = () => {
                   onClick={() => navigate(-1)}
                   className="text-xs py-2 px-3 shadow-lg backdrop-blur-lg rounded-lg"
                 >
-                  <ArrowLeft size={18}/>
+                  <ArrowLeft size={18} />
                 </Button>
                 <span>Conversations</span>
-                <Badge variant="secondary" className="ml-2 py-2 px-4 shadow-lg backdrop-blur-lg rounded-lg">
+                <Badge
+                  variant="secondary"
+                  className="ml-2 py-2 px-4 shadow-lg backdrop-blur-lg rounded-lg"
+                >
                   {chats.length}
                 </Badge>
               </CardTitle>
@@ -655,7 +674,11 @@ const Chats = () => {
               {loading ? (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
                   <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                  <span>Loading conversations...</span>
+                  <span>
+                    {creatingNewChat
+                      ? "Creating new conversation..."
+                      : "Loading conversations..."}
+                  </span>
                 </div>
               ) : chats.length === 0 && !selectedChatData ? (
                 <div className="flex items-center justify-center h-full text-center text-muted-foreground">
@@ -960,16 +983,20 @@ const Chats = () => {
                   <div className="text-center flex flex-col items-center w-1/2 justify-center gap-3 p-8 bg-black/5 rounded-2xl">
                     <p className="text-base text-[#121212]">
                       {loading
-                        ? "Loading conversations..."
+                        ? creatingNewChat
+                          ? "Creating new conversation..."
+                          : "Loading conversations..."
                         : "Select a conversation"}
                     </p>
                     <p className="w-2/3">
                       {loading
-                        ? ""
+                        ? creatingNewChat
+                          ? "Please wait while we set up your conversation..."
+                          : ""
                         : "Choose from your existing conversations, start a new one, or just keep hunting."}
                     </p>
                     {loading ? (
-                      <Clock className="h-10 w-10 mx-auto text-muted-foreground/50" />
+                      <Loader2 className="h-10 w-10 mx-auto text-muted-foreground/50 animate-spin" />
                     ) : (
                       <span className="flex select-none items-center justify-center text-[72px] before:absolute before:opacity-80 before:blur-[40px] before:content-[var(--emoji)]">
                         👀

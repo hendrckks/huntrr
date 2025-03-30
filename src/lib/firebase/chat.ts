@@ -448,24 +448,30 @@ export const sendMessage = async ({
 
 // Create a new chat between tenant and landlord if it doesn't exist
 export const createChat = async (userId: string, landlordId: string) => {
+  console.log("🔍 createChat - START", { userId, landlordId });
+
   try {
-    // Check if chat already exists
-    const chatsQuery = query(
-      collection(db, "chats"),
-      where("userId", "==", userId),
-      where("landlordId", "==", landlordId)
-    );
+    // Create the participants array
+    const participants = [userId, landlordId];
+    console.log("🔍 Participants array created:", participants);
 
-    const snapshot = await getDocs(chatsQuery);
+    // Check for existing chat
+    console.log("🔍 Checking for existing chat...");
+    const existingChatId = await checkForExistingChat(userId, landlordId);
+    console.log("🔍 Existing chat check complete:", existingChatId);
 
-    if (!snapshot.empty) {
-      // Chat already exists
-      return snapshot.docs[0].id;
+    if (existingChatId) {
+      console.log("🔍 Found existing chat, returning ID:", existingChatId);
+      return existingChatId;
     }
 
-    // Get user and landlord profiles
+    // Fetch user profiles
+    console.log("🔍 Fetching user profiles...");
     const userDoc = await getDoc(doc(db, "users", userId));
+    console.log("🔍 User document fetched:", userDoc.exists());
+
     const landlordDoc = await getDoc(doc(db, "users", landlordId));
+    console.log("🔍 Landlord document fetched:", landlordDoc.exists());
 
     if (!userDoc.exists() || !landlordDoc.exists()) {
       throw new Error("User or landlord not found");
@@ -475,51 +481,132 @@ export const createChat = async (userId: string, landlordId: string) => {
     const landlordData = landlordDoc.data() as DocumentData;
 
     // Check landlord's actual online status from RTDB
-    const landlordStatusRef = ref(rtdb, `status/${landlordId}`);
-    const landlordStatusSnapshot = await get(landlordStatusRef);
-    const landlordStatus = landlordStatusSnapshot.exists() ? 
-      landlordStatusSnapshot.val().status : "offline";
-    const landlordLastSeen = landlordStatusSnapshot.exists() ? 
-      landlordStatusSnapshot.val().lastSeen : null;
+    console.log("🔍 Checking landlord status...");
+    let landlordStatus = "offline"; // Default status
+    let landlordLastSeen = null;
 
-    // Use batch operations for creating chat and participants
-    const batch = writeBatch(db);
+    try {
+      const landlordStatusRef = ref(rtdb, `status/${landlordId}`);
 
-    // Create new chat
+      // Create a promise that will reject after 5 seconds
+      const statusPromise = get(landlordStatusRef);
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(
+          () => reject(new Error("RTDB status check timed out")),
+          5000
+        );
+      });
+
+      // Race between the actual fetch and the timeout
+      const result = await Promise.race([statusPromise, timeoutPromise]).catch(
+        (error) => {
+          console.warn("⚠️ Error or timeout getting landlord status:", error);
+          return null; // Return null to indicate failure
+        }
+      );
+
+      if (result) {
+        // Use type assertion to handle the TypeScript issue
+        const snapshot = result as any;
+        if (snapshot.exists && snapshot.exists()) {
+          const val = snapshot.val();
+          landlordStatus = val.status || "offline";
+          landlordLastSeen = val.lastSeen || null;
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error in landlord status check:", error);
+    }
+
+    console.log("🔍 Landlord status (determined):", landlordStatus);
+
+    // STEP 1: Create just the main chat document first
+    console.log("🔍 Creating main chat document...");
     const chatRef = doc(collection(db, "chats"));
-    batch.set(chatRef, {
+    await setDoc(chatRef, {
       userId,
       landlordId,
+      participants, // This array is critical for your query to work
       timestamp: serverTimestamp(),
       createdAt: serverTimestamp(),
+      lastMessageTime: serverTimestamp(),
     });
+    console.log("✅ Main chat document created successfully:", chatRef.id);
 
-    // Add participants data to subcollection
-    const participantsCollection = collection(chatRef, "participants");
-    const userParticipantRef = doc(participantsCollection, userId);
-    batch.set(userParticipantRef, {
-      displayName: userData.displayName || "User",
-      role: userData.role,
-      status: "online",
-      updatedAt: serverTimestamp(),
-    });
+    // STEP 2: Now create the user participant document separately
+    try {
+      console.log("🔍 Creating user participant document...");
+      const userParticipantRef = doc(
+        collection(db, `chats/${chatRef.id}/participants`),
+        userId
+      );
+      await setDoc(userParticipantRef, {
+        displayName: userData.displayName || "User",
+        role: userData.role,
+        status: "online",
+        updatedAt: serverTimestamp(),
+      });
+      console.log("✅ User participant document created successfully");
+    } catch (error) {
+      console.error("⚠️ Error creating user participant:", error);
+      // Continue anyway since we already created the main chat
+    }
 
-    const landlordParticipantRef = doc(participantsCollection, landlordId);
-    batch.set(landlordParticipantRef, {
-      displayName: landlordData.displayName || "Landlord",
-      role: landlordData.role,
-      status: landlordStatus,  // Use actual status from RTDB
-      lastSeen: landlordStatus === "offline" ? landlordLastSeen : null,
-      updatedAt: serverTimestamp(),
-    });
+    // STEP 3: Create the landlord participant document separately
+    try {
+      console.log("🔍 Creating landlord participant document...");
+      const landlordParticipantRef = doc(
+        collection(db, `chats/${chatRef.id}/participants`),
+        landlordId
+      );
+      await setDoc(landlordParticipantRef, {
+        displayName: landlordData.displayName || "Landlord",
+        role: landlordData.role,
+        status: landlordStatus,
+        lastSeen: landlordStatus === "offline" ? landlordLastSeen : null,
+        updatedAt: serverTimestamp(),
+      });
+      console.log("✅ Landlord participant document created successfully");
+    } catch (error) {
+      console.error("⚠️ Error creating landlord participant:", error);
+      // Continue anyway since we already created the main chat
+    }
 
-    // Execute all operations in a single batch
-    await batch.commit();
-
+    // STEP 4: Return the chat ID even if some steps failed
+    console.log("🎉 Chat creation process complete with ID:", chatRef.id);
     return chatRef.id;
   } catch (error) {
-    console.error("Error creating chat:", error);
+    console.error("❌ Error creating chat:", error);
     throw error;
+  } finally {
+    console.log("🔍 createChat - COMPLETE (success or failure)");
+  }
+};
+
+// Add this helper function within the same file
+export const checkForExistingChat = async (
+  userId: string,
+  landlordId: string
+) => {
+  try {
+    const userChatsQuery = query(
+      collection(db, "chats"),
+      where("participants", "array-contains", userId)
+    );
+
+    const querySnapshot = await getDocs(userChatsQuery);
+
+    for (const doc of querySnapshot.docs) {
+      const chatData = doc.data();
+      if (chatData.participants && chatData.participants.includes(landlordId)) {
+        return doc.id;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error checking for existing chat:", error);
+    return null;
   }
 };
 // Mark messages as read

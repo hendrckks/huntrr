@@ -13,6 +13,7 @@ import {
   HelpCircle,
   FileCheck,
   MessageCircle,
+  LogIn,
 } from "lucide-react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../lib/firebase/clientApp";
@@ -355,9 +356,18 @@ const Sidebar = () => {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-[232px] mt-3">
+                      {!isAuthenticated && (
+                        <DropdownMenuItem
+                          onClick={() => navigate("/login")}
+                          className="text-black font-inter"
+                        >
+                          <LogIn className="mr-2 h-4 w-4" />
+                          Login
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         onClick={handleSignOut}
-                        className="text-red-500 focus:text-red-500"
+                        className="text-red-500 focus:text-red-500 font-inter"
                       >
                         <LogOut className="mr-2 h-4 w-4" />
                         Sign out
