@@ -252,15 +252,15 @@ const Chats = () => {
       setMessages(messagesList);
       setHasMoreMessages(messagesList.length >= MESSAGE_PAGE_SIZE);
 
-      // Get the latest message
-      const latestMessage = messagesList[messagesList.length - 1];
+      // Get the latest message if there are any messages
+      const latestMessage = messagesList.length > 0 ? messagesList[messagesList.length - 1] : null;
 
       // Update unread count in real-time when new message arrives
-      if (latestMessage?.senderId !== user.uid && !latestMessage?.read) {
+      if (latestMessage && latestMessage.senderId !== user.uid && !latestMessage.read) {
         setChats((prevChats) =>
           prevChats.map((chat) => {
             // For the chat where the message was received
-            if (chat.chatId === latestMessage.chatId) {
+            if (chat && chat.chatId === latestMessage.chatId) {
               // Only increment if it's not the selected chat
               return chat.chatId !== selectedChat
                 ? { ...chat, unreadCount: (chat.unreadCount || 0) + 1 }
@@ -289,7 +289,7 @@ const Chats = () => {
         // Reset unread count for the selected chat
         setChats((prevChats) =>
           prevChats.map((chat) =>
-            chat.chatId === selectedChat ? { ...chat, unreadCount: 0 } : chat
+            chat && chat.chatId === selectedChat ? { ...chat, unreadCount: 0 } : chat
           )
         );
 
@@ -429,13 +429,13 @@ const Chats = () => {
   const handleChatSelection = useCallback(
     (chatId: string) => {
       setSelectedChat(chatId);
-      const chat = chats.find((c) => c.chatId === chatId);
+      const chat = chats.find((c) => c && typeof c === 'object' && c.chatId === chatId);
       if (chat) {
         setSelectedChatData(chat);
         // Reset unread count when selecting a chat
         setChats((prevChats) =>
           prevChats.map((c) =>
-            c.chatId === chatId ? { ...c, unreadCount: 0 } : c
+            c && c.chatId === chatId ? { ...c, unreadCount: 0 } : c
           )
         );
       }
@@ -459,11 +459,14 @@ const Chats = () => {
 
   // Memoize filtered and sorted chats
   const sortedChats = useMemo(() => {
-    return [...chats].sort((a, b) => {
-      if (!a.lastMessageTime) return 1;
-      if (!b.lastMessageTime) return -1;
-      return b.lastMessageTime.seconds - a.lastMessageTime.seconds;
-    });
+    // Filter out any undefined or null chat objects before sorting
+    return [...chats]
+      .filter(chat => chat && typeof chat === 'object' && chat.chatId)
+      .sort((a, b) => {
+        if (!a.lastMessageTime) return 1;
+        if (!b.lastMessageTime) return -1;
+        return b.lastMessageTime.seconds - a.lastMessageTime.seconds;
+      });
   }, [chats]);
 
   // Memoize the message sending function
