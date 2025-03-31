@@ -16,7 +16,6 @@ const GoogleMapsPicker: React.FC<GoogleMapsPickerProps> = ({
   const [coordinates, setCoordinates] = useState<Coordinates>(
     initialCoordinates || { lat: 0, lng: 0 }
   );
-  const [mapLoaded, setMapLoaded] = useState(false);
   const [error, setError] = useState<string>('');
   const [searchAddress, setSearchAddress] = useState('');
   const mapRef = useRef<HTMLDivElement>(null);
@@ -146,7 +145,6 @@ const GoogleMapsPicker: React.FC<GoogleMapsPickerProps> = ({
       onLocationSelect(newCoords);
     });
 
-    setMapLoaded(true);
   };
 
   // Reverse geocode coordinates to address
