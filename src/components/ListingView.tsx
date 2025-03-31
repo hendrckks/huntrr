@@ -9,6 +9,7 @@ import ImageModal from "./ImageModal";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { MessageSquare, Eye, EyeOff } from "lucide-react";
+import PropertyLocationMap from "./PropertyLocationMap";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "../hooks/useToast";
 
@@ -135,47 +136,48 @@ const ListingView = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Image Gallery */}
-        <div className="space-y-4">
-          <div
-            className="relative w-full pb-[56.25%] rounded-lg overflow-hidden cursor-pointer"
-            onClick={() => setIsModalOpen(true)}
-          >
-            <img
-              src={
-                listing.photos?.[selectedImageIndex]?.url ||
-                "https://via.placeholder.com/800x600?text=No+Image"
-              }
-              alt={listing.title}
-              className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-in-out transform hover:scale-[1.02]"
-            />
-          </div>
-          <div className="relative">
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Image Gallery */}
+          <div className="space-y-4">
             <div
-              className="overflow-x-auto scroll-smooth listing-gallery-scroll"
-              style={{ scrollBehavior: "smooth" }}
+              className="relative w-full pb-[56.25%] rounded-lg overflow-hidden cursor-pointer"
+              onClick={() => setIsModalOpen(true)}
             >
-              <div className="flex gap-3 pb-4">
-                {listing.photos?.map((photo, index) => (
-                  <div
-                    key={photo.id}
-                    className="flex-none w-[calc(25%-9px)] relative pb-[calc(25%-9px)] rounded-lg overflow-hidden cursor-pointer"
-                    onClick={() => {
-                      setSelectedImageIndex(index);
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    <img
-                      src={photo.url}
-                      alt={photo.caption || listing.title}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                    />
-                  </div>
-                ))}
-              </div>
+              <img
+                src={
+                  listing.photos?.[selectedImageIndex]?.url ||
+                  "https://via.placeholder.com/800x600?text=No+Image"
+                }
+                alt={listing.title}
+                className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-in-out transform hover:scale-[1.02]"
+              />
             </div>
-            {/* <style>
+            <div className="relative">
+              <div
+                className="overflow-x-auto scroll-smooth listing-gallery-scroll"
+                style={{ scrollBehavior: "smooth" }}
+              >
+                <div className="flex gap-3 pb-4">
+                  {listing.photos?.map((photo, index) => (
+                    <div
+                      key={photo.id}
+                      className="flex-none w-[calc(25%-9px)] relative pb-[calc(25%-9px)] rounded-lg overflow-hidden cursor-pointer"
+                      onClick={() => {
+                        setSelectedImageIndex(index);
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      <img
+                        src={photo.url}
+                        alt={photo.caption || listing.title}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* <style>
               {`
               .listing-gallery-scroll::-webkit-scrollbar {
                 height: 8px;
@@ -193,33 +195,22 @@ const ListingView = () => {
               }
               `}
             </style> */}
-          </div>
+            </div>
 
-          {/* Contact Landlord Section */}
-          <section className="border-t pt-4 mt-4">
-            <h2 className="text-xl font-semibold mb-2">Contact Landlord</h2>
-            <div className="space-y-4">
-              <div className="space-y-2 text-sm">
-                <p className="text-gray-600 dark:text-gray-300">
-                  {listing.landlordName}
-                </p>
-                <div className="flex items-center gap-2">
+            {/* Contact Landlord Section */}
+            <section className="border-t pt-4 mt-4">
+              <h2 className="text-xl font-semibold mb-2">Contact Landlord</h2>
+              <div className="space-y-4">
+                <div className="space-y-2 text-sm">
                   <p className="text-gray-600 dark:text-gray-300">
-                    Phone: {showContact ? listing.landlordContact.phone : maskPhoneNumber(listing.landlordContact.phone)}
+                    {listing.landlordName}
                   </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="p-0 h-auto"
-                    onClick={handleContactToggle}
-                  >
-                    {showContact ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-                {listing.landlordContact.showEmail && listing.landlordContact.email && (
                   <div className="flex items-center gap-2">
                     <p className="text-gray-600 dark:text-gray-300">
-                      Email: {showContact ? listing.landlordContact.email : maskEmail(listing.landlordContact.email)}
+                      Phone:{" "}
+                      {showContact
+                        ? listing.landlordContact.phone
+                        : maskPhoneNumber(listing.landlordContact.phone)}
                     </p>
                     <Button
                       variant="ghost"
@@ -227,179 +218,219 @@ const ListingView = () => {
                       className="p-0 h-auto"
                       onClick={handleContactToggle}
                     >
-                      {showContact ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showContact ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
-                )}
+                  {listing.landlordContact.showEmail &&
+                    listing.landlordContact.email && (
+                      <div className="flex items-center gap-2">
+                        <p className="text-gray-600 dark:text-gray-300">
+                          Email:{" "}
+                          {showContact
+                            ? listing.landlordContact.email
+                            : maskEmail(listing.landlordContact.email)}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-0 h-auto"
+                          onClick={handleContactToggle}
+                        >
+                          {showContact ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                </div>
+                <div className="flex items-center justify-start">
+                  <Button
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        navigate("/login");
+                        toast({
+                          title: "Error",
+                          variant: "warning",
+                          description: "Please login to chat with the owners",
+                          duration: 5000,
+                        });
+                        return;
+                      }
+                      navigate(`/chats?landlordId=${listing.landlordId}`);
+                    }}
+                    className="w-full sm:w-auto"
+                    variant="default"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Chat with Owner
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center justify-start">
-                <Button
-                  onClick={() => {
-                    if (!isAuthenticated) {
-                      navigate("/login");
-                      toast({
-                        title: "Error",
-                        variant: "warning",
-                        description: "Please login to chat with the owners",
-                        duration: 5000,
-                      });
-                      return;
-                    }
-                    navigate(`/chats?landlordId=${listing.landlordId}`);
-                  }}
-                  className="w-full sm:w-auto"
-                  variant="default"
-                >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Chat with Owner
-                </Button>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        {/* Listing Details */}
-        <div className="space-y-6">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-semibold">{listing.title}</h1>
-            {listing.status !== "published" && (
-              <Badge
-                variant={
-                  listing.status === "denied"
-                    ? "destructive"
-                    : listing.status === "pending_review"
-                    ? "default"
-                    : "secondary"
-                }
-                className="w-fit"
-              >
-                {listing.status.replace("_", " ").toUpperCase()}
-              </Badge>
-            )}
+            </section>
           </div>
 
-          <section className="border-t pt-6">
-            <h2 className="text-xl font-semibold mb-4">Location</h2>
-            <p className="text-gray-600 text-sm dark:text-gray-300">
-              {listing.location.address}, {listing.location.neighborhood}
-              <br />
-              {listing.location.area}, {listing.location.city}
-            </p>
-          </section>
-
-          <section className="border-t pt-6">
-            <h2 className="text-xl font-semibold mb-4">Description</h2>
-            <p className="text-gray-600 text-sm tracking-wide dark:text-gray-300 whitespace-pre-line">
-              {listing.description}
-            </p>
-          </section>
-
-          <section className="border-t pt-6">
-            <h2 className="text-xl font-semibold mb-4">
-              Utilities & Amenities
-            </h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="text-sm">
-                <dt className="text-gray-500 dark:text-gray-400">
-                  Water Availability
-                </dt>
-                <dd className="text-gray-900 dark:text-white capitalize">
-                  {listing.utilities.waterAvailability.replace(/_/g, " ")}
-                </dd>
-              </div>
-              <div className="text-sm">
-                <dt className="text-gray-500 dark:text-gray-400">
-                  Carrier Coverage
-                </dt>
-                <dd className="text-gray-900 dark:text-white capitalize">
-                  {listing.utilities.carrierCoverage}
-                </dd>
-              </div>
-            </dl>
-            {listing.utilities.includedUtilities.length > 0 && (
-              <div className="mt-4">
-                <dt className="text-gray-600 dark:text-white font-semibold mb-2">
-                  Included Utilities
-                </dt>
-                <dd className="flex flex-wrap gap-2 text-sm">
-                  {listing.utilities.includedUtilities.map((utility) => (
-                    <span
-                      key={utility}
-                      className="px-3 py-1 bg-gray-100 dark:bg-white/20 rounded-md text-sm"
-                    >
-                      {utility}
-                    </span>
-                  ))}
-                </dd>
-              </div>
-            )}
-          </section>
-
-          <section className="border-t pt-6">
-            <h2 className="text-xl font-semibold mb-4">Security Features</h2>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center">
-                <span className="text-gray-600 dark:text-gray-300">
-                  {listing.security.hasGuard ? "✓" : "✗"} Security Guard
-                </span>
-              </div>
-              <div className="flex items-center">
-                <span className="text-gray-600 dark:text-gray-300">
-                  {listing.security.hasCCTV ? "✓" : "✗"} CCTV
-                </span>
-              </div>
-              <div className="flex items-center">
-                <span className="text-gray-600 dark:text-gray-300">
-                  {listing.security.hasSecureParking ? "✓" : "✗"} Secure Parking
-                </span>
-              </div>
+          {/* Listing Details */}
+          <div className="space-y-6">
+            <div className="flex flex-col gap-2">
+              <h1 className="text-3xl font-semibold">{listing.title}</h1>
+              {listing.status !== "published" && (
+                <Badge
+                  variant={
+                    listing.status === "denied"
+                      ? "destructive"
+                      : listing.status === "pending_review"
+                      ? "default"
+                      : "secondary"
+                  }
+                  className="w-fit"
+                >
+                  {listing.status.replace("_", " ").toUpperCase()}
+                </Badge>
+              )}
             </div>
-          </section>
 
-          <section className="border-t pt-6">
-            <h2 className="text-xl font-semibold mb-4">Terms</h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <div>
-                <dt className="text-gray-500 dark:text-gray-400">Deposit</dt>
-                <dd className="text-gray-900 dark:text-white">
-                  KSh {listing.terms.depositAmount.toLocaleString()}
-                </dd>
+            <section className="border-t pt-6">
+              <h2 className="text-xl font-semibold mb-4">Location</h2>
+              <p className="text-gray-600 text-sm dark:text-gray-300 mb-4">
+                {listing.location.address}, {listing.location.neighborhood}
+                <br />
+                {listing.location.area}, {listing.location.city}
+              </p>
+            </section>
+
+            <section className="border-t pt-6">
+              <h2 className="text-xl font-semibold mb-4">Description</h2>
+              <p className="text-gray-600 text-sm tracking-wide dark:text-gray-300 whitespace-pre-line">
+                {listing.description}
+              </p>
+            </section>
+
+            <section className="border-t pt-6">
+              <h2 className="text-xl font-semibold mb-4">
+                Utilities & Amenities
+              </h2>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="text-sm">
+                  <dt className="text-gray-500 dark:text-gray-400">
+                    Water Availability
+                  </dt>
+                  <dd className="text-gray-900 dark:text-white capitalize">
+                    {listing.utilities.waterAvailability.replace(/_/g, " ")}
+                  </dd>
+                </div>
+                <div className="text-sm">
+                  <dt className="text-gray-500 dark:text-gray-400">
+                    Carrier Coverage
+                  </dt>
+                  <dd className="text-gray-900 dark:text-white capitalize">
+                    {listing.utilities.carrierCoverage}
+                  </dd>
+                </div>
+              </dl>
+              {listing.utilities.includedUtilities.length > 0 && (
+                <div className="mt-4">
+                  <dt className="text-gray-600 dark:text-white font-semibold mb-2">
+                    Included Utilities
+                  </dt>
+                  <dd className="flex flex-wrap gap-2 text-sm">
+                    {listing.utilities.includedUtilities.map((utility) => (
+                      <span
+                        key={utility}
+                        className="px-3 py-1 bg-gray-100 dark:bg-white/20 rounded-md text-sm"
+                      >
+                        {utility}
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              )}
+            </section>
+
+            <section className="border-t pt-6">
+              <h2 className="text-xl font-semibold mb-4">Security Features</h2>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="flex items-center">
+                  <span className="text-gray-600 dark:text-gray-300">
+                    {listing.security.hasGuard ? "✓" : "✗"} Security Guard
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-gray-600 dark:text-gray-300">
+                    {listing.security.hasCCTV ? "✓" : "✗"} CCTV
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-gray-600 dark:text-gray-300">
+                    {listing.security.hasSecureParking ? "✓" : "✗"} Secure
+                    Parking
+                  </span>
+                </div>
               </div>
-              <div>
-                <dt className="text-gray-500 dark:text-gray-400">
-                  Lease Length
-                </dt>
-                <dd className="text-gray-900 dark:text-white">
-                  {listing.terms.leaseLength} months
-                </dd>
-              </div>
-              <div>
-                <dt className="text-gray-500 dark:text-gray-400">
-                  Pets Allowed
-                </dt>
-                <dd className="text-gray-900 dark:text-white">
-                  {listing.terms.petsAllowed ? "Yes" : "No"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-gray-500 dark:text-gray-400">
-                  Smoking Allowed
-                </dt>
-                <dd className="text-gray-900 dark:text-white">
-                  {listing.terms.smokingAllowed ? "Yes" : "No"}
-                </dd>
-              </div>
-            </dl>
-          </section>
+            </section>
+
+            <section className="border-t pt-6">
+              <h2 className="text-xl font-semibold mb-4">Terms</h2>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <dt className="text-gray-500 dark:text-gray-400">Deposit</dt>
+                  <dd className="text-gray-900 dark:text-white">
+                    KSh {listing.terms.depositAmount.toLocaleString()}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-gray-500 dark:text-gray-400">
+                    Lease Length
+                  </dt>
+                  <dd className="text-gray-900 dark:text-white">
+                    {listing.terms.leaseLength} months
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-gray-500 dark:text-gray-400">
+                    Pets Allowed
+                  </dt>
+                  <dd className="text-gray-900 dark:text-white">
+                    {listing.terms.petsAllowed ? "Yes" : "No"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-gray-500 dark:text-gray-400">
+                    Smoking Allowed
+                  </dt>
+                  <dd className="text-gray-900 dark:text-white">
+                    {listing.terms.smokingAllowed ? "Yes" : "No"}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+          </div>
         </div>
-      </div>
 
-      <ImageModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        imageUrl={listing?.photos?.[selectedImageIndex]?.url || ""}
-        alt={listing?.title}
-      />
+        {/* Full-width map at the bottom */}
+        <div className="mt-8 rounded-lg mx-auto">
+          <p className="text-[22px] font-medium tracking-tight mb-4">Where the house/apartment is</p>
+          <PropertyLocationMap
+            coordinates={{
+              lat: listing.location.coordinates?.lat ?? 0,
+              lng: listing.location.coordinates?.lng ?? 0,
+            }}
+            address={`${listing.location.address}, ${listing.location.neighborhood}, ${listing.location.area}, ${listing.location.city}`}
+          />
+        </div>
+
+        <ImageModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          imageUrl={listing?.photos?.[selectedImageIndex]?.url || ""}
+          alt={listing?.title}
+        />
+      </div>
     </div>
   );
 };

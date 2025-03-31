@@ -545,7 +545,7 @@ const Chats = () => {
             }`}
           >
             <p className="text-sm text-opacity-85 mb-0.5">{message.content}</p>
-            <span className="text-xs text-white/80 ml-4">
+            <span className="text-xs text-opacity-80 ml-4">
               {formatMessageTime(message.timestamp)}
             </span>
             {/* Only show check marks for messages sent by the current user */}

@@ -5,6 +5,12 @@ import type { Timestamp } from "firebase/firestore";
 export const PropertyType = z.enum(["apartment", "house", "studio", "villa"]);
 export type PropertyType = z.infer<typeof PropertyType>;
 
+export const coordinatesSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
+});
+export type Coordinates = z.infer<typeof coordinatesSchema>;
+
 export const ListingStatus = z.enum([
   "draft",
   "pending_review",
@@ -88,6 +94,8 @@ export const locationSchema = z.object({
   neighborhood: z.string().min(1, "Neighborhood is required"),
   city: z.string().min(1, "City is required"),
   searchKeywords: z.array(z.string()).optional(),
+  coordinates: coordinatesSchema.optional(),
+  hasMapLocation: z.boolean().optional().default(false),
 });
 export type Location = z.infer<typeof locationSchema>;
 

@@ -47,7 +47,8 @@ import {
 import { useToast } from "../../hooks/useToast";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-
+import GoogleMapsPicker from "../../components/GoogleMapsPicker";
+import { Coordinates } from "../../lib/types/Listing";
 export default function CreateListingForm() {
   const { user, isAuthenticated } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,6 +59,10 @@ export default function CreateListingForm() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [debugLog, setDebugLog] = useState<string[]>([]);
+  const [mapCoordinates, setMapCoordinates] = useState<Coordinates | undefined>(
+    undefined
+  );
+  const [useMapLocation, setUseMapLocation] = useState(false);
 
   const form = useForm<ListingFormData>({
     resolver: zodResolver(listingFormSchema),
@@ -108,6 +113,12 @@ export default function CreateListingForm() {
       FLAG_THRESHOLD: 5,
     },
   });
+
+  const handleLocationSelect = (coordinates: Coordinates) => {
+    setMapCoordinates(coordinates);
+    form.setValue("location.coordinates", coordinates);
+    form.setValue("location.hasMapLocation", true);
+  };
 
   useEffect(() => {
     const subscription = form.watch((value, { name, type }) => {
@@ -174,6 +185,11 @@ export default function CreateListingForm() {
         utilityResponsibilities: data.terms.utilityResponsibilities.map(
           (item) => item.trim()
         ),
+      },
+      location: {
+        ...data.location,
+        coordinates: mapCoordinates,
+        hasMapLocation: !!mapCoordinates,
       },
     };
 
@@ -500,6 +516,42 @@ export default function CreateListingForm() {
                     />
                   ))}
                 </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Precise Location</h3>
+                <div className="flex items-center space-x-3 mb-4">
+                  <Checkbox
+                    checked={useMapLocation}
+                    onCheckedChange={(checked) => {
+                      setUseMapLocation(!!checked);
+                      if (!checked) {
+                        form.setValue("location.hasMapLocation", false);
+                      }
+                    }}
+                    id="use-map-location"
+                  />
+                  <label
+                    htmlFor="use-map-location"
+                    className="text-sm font-medium"
+                  >
+                    Use precise map location (Recommended)
+                  </label>
+                </div>
+
+                {useMapLocation && (
+                  <div className="p-4 border rounded-md bg-gray-50">
+                    <p className="text-sm text-gray-500 mb-4">
+                      Drag the marker or click on the map to set the exact
+                      location of your property. You can also search for an
+                      address to find the location more quickly.
+                    </p>
+                    <GoogleMapsPicker
+                      initialCoordinates={mapCoordinates}
+                      onLocationSelect={handleLocationSelect}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">
