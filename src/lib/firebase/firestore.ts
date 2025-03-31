@@ -35,6 +35,7 @@ import {
 import { globalCache } from "../cache/cacheManager";
 import { uploadImage } from "./storage";
 import { generateUniqueSlug } from "../utils/slugify";
+import { initializeAnalytics } from "./analytics";
 
 const LISTINGS_PER_PAGE = 20;
 
@@ -45,19 +46,17 @@ const compressImage = async (image: File, index: number): Promise<File> => {
     maxSizeMB: 2,
     maxWidthOrHeight: 1920,
     useWebWorker: true,
-    fileType: "image/avif"
+    fileType: "image/avif",
   };
 
   try {
     // Compress the image
     const compressedFile = await imageCompression(image, options);
-    
+
     // Return as new File with .avif extension
-    return new File(
-      [compressedFile], 
-      `listing-image-${index}.avif`, 
-      { type: "image/avif" }
-    );
+    return new File([compressedFile], `listing-image-${index}.avif`, {
+      type: "image/avif",
+    });
   } catch (error) {
     console.error("Error compressing image:", error);
     // Fallback to original file if compression fails
@@ -256,38 +255,31 @@ export const createListing = async (
 ): Promise<string> => {
   // Generate a unique slug from the listing title
   const slug = await generateUniqueSlug(listing.title, checkSlugExists);
-
   // Create a new document reference with the slug as the ID
   const listingRef = doc(collection(db, "listings"), slug);
   const timestamp = Timestamp.now();
-
   try {
     // Compress and upload images
     const photos: Photo[] = [];
     const imageUrls: string[] = [];
-    
     for (let i = 0; i < images.length; i++) {
       // Compress the image first
       const compressedImage = await compressImage(images[i], i);
-      
       // Upload the compressed image
       const url = await uploadImage(compressedImage, slug, listing.landlordId);
       imageUrls.push(url);
-      
       photos.push({
         id: `photo_${i}`,
         url,
         isPrimary: i === 0,
       });
     }
-
     // Generate search keywords from location
     const searchKeywords = generateLocationSearchKeywords(
       listing.location.area,
       listing.location.city,
       listing.location.neighborhood
     );
-
     // Create the listing data with the slug and search keywords
     const listingData: ListingDocument = {
       ...listing,
@@ -312,14 +304,12 @@ export const createListing = async (
         searchKeywords,
       },
     };
-
     // Validate the data
     const validationResult = listingSchema.safeParse({
       ...listingData,
       createdAt: timestamp.toDate(),
       updatedAt: timestamp.toDate(),
     });
-
     if (!validationResult.success) {
       throw new Error(
         `Validation failed: ${validationResult.error.errors
@@ -327,8 +317,11 @@ export const createListing = async (
           .join(", ")}`
       );
     }
-
     await setDoc(listingRef, listingData);
+
+    // Initialize analytics for the new listing
+    await initializeAnalytics(slug);
+
     globalCache.invalidate("listings_");
     return listingRef.id;
   } catch (error) {
@@ -336,7 +329,6 @@ export const createListing = async (
     throw error;
   }
 };
-
 // Updated to include image compression
 export const updateListing = async (
   listingId: string,
@@ -351,7 +343,7 @@ export const updateListing = async (
   if (userDoc.exists() && userDoc.data().role !== "admin") {
     (updates as Partial<Listing>).status = "pending_review";
   }
-  
+
   // Compress and upload new images
   const imageUrls: string[] = [];
   const photos: Photo[] = [];
@@ -360,11 +352,11 @@ export const updateListing = async (
     for (let i = 0; i < images.length; i++) {
       // Compress the image first
       const compressedImage = await compressImage(images[i], i);
-      
+
       // Upload the compressed image
       const url = await uploadImage(compressedImage, listingId, userId);
       imageUrls.push(url);
-      
+
       photos.push({
         id: `photo_${i}`,
         url,
@@ -775,7 +767,6 @@ export const incrementListingView = async (
   });
 };
 
-
 // Batch operations
 export const batchUpdateListings = async (
   updates: Array<{ id: string; data: Partial<ListingDocument> }>
@@ -843,5 +834,3 @@ export const cleanupOldNotifications = async (daysOld = 30): Promise<void> => {
   await batch.commit();
   globalCache.invalidate("admin_notifications");
 };
-
-

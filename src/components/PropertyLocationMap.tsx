@@ -16,48 +16,57 @@ const PropertyLocationMap: React.FC<PropertyLocationMapProps> = ({
   const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // In PropertyLocationMap.tsx
     const loadGoogleMapsAPI = async () => {
       try {
+        // If Maps is already loaded, just initialize the map
         if (window.google?.maps) {
-          await initMap();
+          initMap();
           return;
         }
+
+        // Properly type the dynamic callback with an interface
+        interface WindowWithCallbacks extends Window {
+          [key: string]: any;
+        }
+        const windowWithCallbacks = window as WindowWithCallbacks;
+
+        // Create a proper callback name and function
+        const callbackName = `initGoogleMap_${Date.now()}`;
+        windowWithCallbacks[callbackName] = () => {
+          initMap();
+          delete windowWithCallbacks[callbackName];
+        };
 
         // Check if script is already loading
-        const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+        const existingScript = document.querySelector(
+          'script[src*="maps.googleapis.com"]'
+        );
         if (existingScript) {
-          existingScript.addEventListener('load', async () => {
-            if (window.google?.maps) {
-              await initMap();
-            } else {
-              console.error('Google Maps library failed to load properly.');
-            }
-          });
+          // If it's loading but no Google Maps yet, wait for it
+          if (!window.google?.maps) {
+            const checkInterval = setInterval(() => {
+              if (window.google?.maps) {
+                clearInterval(checkInterval);
+                initMap();
+              }
+            }, 100);
+          }
           return;
         }
 
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&loading=async&callback=Function.prototype`;
+        // Load the script with proper callback
+        const script = document.createElement("script");
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&callback=${callbackName}`;
         script.async = true;
         script.defer = true;
-        
-        const loadPromise = new Promise((resolve, reject) => {
-          script.addEventListener('load', resolve);
-          script.addEventListener('error', () => 
-            reject(new Error('Failed to load Google Maps API'))
-          );
-        });
 
         document.head.appendChild(script);
-        await loadPromise;
-        
-        if (!window.google?.maps) {
-          throw new Error('Google Maps library failed to load properly.');
-        }
-
-        await initMap();
       } catch (err) {
-        console.error('Error loading Google Maps:', err instanceof Error ? err.message : 'An unknown error occurred');
+        console.error(
+          "Error loading Google Maps:",
+          err instanceof Error ? err.message : "An unknown error occurred"
+        );
       }
     };
 
@@ -72,20 +81,20 @@ const PropertyLocationMap: React.FC<PropertyLocationMapProps> = ({
       zoom: 15,
       mapTypeControl: true,
       mapTypeControlOptions: {
-        position: google.maps.ControlPosition.BOTTOM_RIGHT
+        position: google.maps.ControlPosition.BOTTOM_RIGHT,
       },
       streetViewControl: true,
       fullscreenControl: true,
       fullscreenControlOptions: {
-        position: google.maps.ControlPosition.BOTTOM_RIGHT
+        position: google.maps.ControlPosition.BOTTOM_RIGHT,
       },
       styles: [
         {
           featureType: "poi",
           elementType: "labels",
-          stylers: [{ visibility: "off" }]
-        }
-      ]
+          stylers: [{ visibility: "off" }],
+        },
+      ],
     });
 
     // Create a circle overlay
@@ -111,9 +120,9 @@ const PropertyLocationMap: React.FC<PropertyLocationMapProps> = ({
         strokeWeight: 0,
         rotation: 0,
         scale: 1.3,
-        anchor: new google.maps.Point(12, 12)
+        anchor: new google.maps.Point(12, 12),
       },
-      title: "Property Location"
+      title: "Property Location",
     });
 
     // Create info window with booking message and address
@@ -125,7 +134,7 @@ const PropertyLocationMap: React.FC<PropertyLocationMapProps> = ({
         <p style="color: #1A1A1A; font-size: 1.15em;">Exact location provided after booking a house tour.</p>
         <p style="color: #666; font-size: 1.05em;">${address}</p>
       </div>`,
-      pixelOffset: new google.maps.Size(0, -10)
+      pixelOffset: new google.maps.Size(0, -10),
     });
 
     marker.addListener("click", () => {
@@ -134,14 +143,17 @@ const PropertyLocationMap: React.FC<PropertyLocationMapProps> = ({
 
     // Open info window by default and make circle interactive
     infoWindow.open(map, marker);
-    circle.addListener('click', () => {
+    circle.addListener("click", () => {
       infoWindow.open(map, marker);
     });
   };
 
   return (
     <div>
-      <div ref={mapRef} className="h-[500px] max-w-[1120px] w-full rounded-2xl border-t"></div>
+      <div
+        ref={mapRef}
+        className="h-[500px] max-w-[1120px] w-full rounded-2xl border-t"
+      ></div>
     </div>
   );
 };
