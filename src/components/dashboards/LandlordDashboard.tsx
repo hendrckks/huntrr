@@ -460,7 +460,7 @@ const LandlordDashboard: React.FC = () => {
                         No published listings
                       </p>
                     ) : (
-                      <div className="space-y-4 -mt-5">
+                      <div className="space-y-4">
                         {publishedListings.map((listing) => (
                           <ListingCard key={listing.id} listing={listing} />
                         ))}
@@ -480,7 +480,7 @@ const LandlordDashboard: React.FC = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <ScrollArea className="h-[500px] -mt-5 pr-2 sm:pr-4">
+                  <ScrollArea className="h-[500px] pr-2 sm:pr-4">
                     {pendingListings.length === 0 ? (
                       <p className="text-center text-gray-500">
                         No pending listings
