@@ -19,7 +19,7 @@ const ListingView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showContact, setShowContact] = useState(false);
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const handleContactToggle = () => {
     if (!isAuthenticated) {
@@ -250,26 +250,29 @@ const ListingView = () => {
                     )}
                 </div>
                 <div className="flex items-center justify-start">
-                  <Button
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        navigate("/login");
-                        toast({
-                          title: "Error",
-                          variant: "warning",
-                          description: "Please login to chat with the owners",
-                          duration: 5000,
-                        });
-                        return;
-                      }
-                      navigate(`/chats?landlordId=${listing.landlordId}`);
-                    }}
-                    className="w-full sm:w-auto"
-                    variant="default"
-                  >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Chat with Owner
-                  </Button>
+                  {/* Hide chat button if user is the landlord of this listing */}
+                  {(!user || user.uid !== listing.landlordId) && (
+                    <Button
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          navigate("/login");
+                          toast({
+                            title: "Error",
+                            variant: "warning",
+                            description: "Please login to chat with the owners",
+                            duration: 5000,
+                          });
+                          return;
+                        }
+                        navigate(`/chats?landlordId=${listing.landlordId}`);
+                      }}
+                      className="w-full sm:w-auto"
+                      variant="default"
+                    >
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Chat with Owner
+                    </Button>
+                  )}
                 </div>
               </div>
             </section>
