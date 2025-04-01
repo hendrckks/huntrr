@@ -58,7 +58,7 @@ const Help = () => {
       </div>
 
       <Tabs defaultValue="faq" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
+        <TabsList className="md:grid w-full flex gap-2 overflow-x-auto grid-cols-3 mb-8">
           <TabsTrigger value="faq">Frequently Asked Questions</TabsTrigger>
           <TabsTrigger value="contact">Contact Support</TabsTrigger>
           <TabsTrigger value="resources">Resources</TabsTrigger>
