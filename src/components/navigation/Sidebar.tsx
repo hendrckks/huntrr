@@ -177,14 +177,13 @@ const Sidebar = () => {
 
   const navItems = [
     { icon: HomeIcon, label: "Home", path: "/", color: "text-blue-400/90" },
-    user?.role === "admin" || user?.role === "landlord_verified" || user?.role === "landlord_unverified"
+    user?.role === "admin" ||
+    user?.role === "landlord_verified" ||
+    user?.role === "landlord_unverified"
       ? {
           icon: User,
           label: "Dashboard",
-          path:
-            user?.role === "admin"
-              ? "/admin-dashboard"
-              : "/dashboard",
+          path: user?.role === "admin" ? "/admin-dashboard" : "/dashboard",
           color: "text-pink-400/70",
         }
       : null,
@@ -249,8 +248,9 @@ const Sidebar = () => {
     {
       icon: HelpCircle,
       label: "Help & support",
-      path: "/spend-groups",
+      path: "/help",
       color: "text-indigo-400/90",
+      cursor: "cursor-help",
     },
   ].filter((item): item is Exclude<typeof item, null> => item !== null);
 
@@ -296,7 +296,7 @@ const Sidebar = () => {
                   isActive
                     ? "bg-black/90 dark:bg-white/90 shadow-xl dark:text-black text-white"
                     : "dark:hover:bg-white/5 hover:bg-black/5 dark:text-white/80 text-[#4b5563]"
-                }`}
+                } ${item.cursor || ""}`}
               >
                 <div className="relative">
                   <Icon

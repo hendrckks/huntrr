@@ -446,6 +446,7 @@ export const sendMessage = async ({
   }
 };
 
+
 // Create a new chat between tenant and landlord if it doesn't exist
 export const createChat = async (userId: string, landlordId: string) => {
   console.log("🔍 createChat - START", { userId, landlordId });
