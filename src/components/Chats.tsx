@@ -721,7 +721,7 @@ const Chats = () => {
                       key={chat.chatId}
                       className={`flex items-center space-x-4 p-3 bg-black/5 dark:bg-white/5 mb-1 rounded-xl cursor-pointer transition-colors ${
                         selectedChat === chat.chatId
-                          ? "bg-black/5 dark:bg-white/5"
+                          ? "bg-black/10 dark:bg-white/10"
                           : "hover:bg-black/10 dark:hover:bg-white/10"
                       }`}
                       onClick={() => handleChatSelection(chat.chatId)}

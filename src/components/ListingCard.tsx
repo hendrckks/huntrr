@@ -326,7 +326,7 @@ const ListingCard = ({
                     <Flag className="h-3 w-3" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="font-inter">
                   <DialogHeader>
                     <DialogTitle>Flag Listing</DialogTitle>
                     <DialogDescription>
