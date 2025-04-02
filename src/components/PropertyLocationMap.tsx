@@ -152,7 +152,7 @@ const PropertyLocationMap: React.FC<PropertyLocationMapProps> = ({
     <div>
       <div
         ref={mapRef}
-        className="h-[500px] max-w-[1120px] w-full rounded-2xl border-t"
+        className="h-[480px] max-w-[1000px] w-full rounded-3xl border-t"
       ></div>
     </div>
   );
