@@ -346,7 +346,7 @@ const Home = () => {
         </h2>
         <ScrollArea className="w-full whitespace-nowrap pb-4">
           <Suspense fallback={
-            <div className="pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+            <div className="pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3">
               {Array.from({ length: 3 }).map((_, index) => (
                 <ListingCardSkeleton key={`suspense-popular-skeleton-${index}`} />
               ))}
