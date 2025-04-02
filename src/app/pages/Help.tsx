@@ -24,7 +24,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "../../hooks/useToast";
 
 const Help = () => {
@@ -394,10 +394,10 @@ const Help = () => {
                     <FileText className="h-4 w-4" />
                     <span>Privacy Policy</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer">
+                  <Link to="/cookie-policy" className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer">
                     <FileText className="h-4 w-4" />
                     <span>Cookie Policy</span>
-                  </div>
+                  </Link>
                   <div className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer">
                     <FileText className="h-4 w-4" />
                     <span>Acceptable Use Policy</span>

@@ -15,6 +15,7 @@ const Components = {
   SignIn: lazy(() => import("../app/auth/SignIn")),
   Chats: lazy(() => import("../components/Chats")),
   Help: lazy(() => import("../app/pages/Help")),
+  CookiePolicy: lazy(() => import("../app/pages/CookiePolicy")),
   ResetPassword: lazy(() => import("../app/auth/ResetPassword")),
   RoleSelectionDialog: lazy(() => import("../components/RoleSelectionDialog")),
   TenantDashboard: lazy(
@@ -97,6 +98,12 @@ export const router = createBrowserRouter([
       {
         path: "help",
         element: createProtectedRoute(<Components.Help />, {
+          requireAuth: false,
+        }),
+      },
+      {
+        path: "cookie-policy",
+        element: createProtectedRoute(<Components.CookiePolicy />, {
           requireAuth: false,
         }),
       },

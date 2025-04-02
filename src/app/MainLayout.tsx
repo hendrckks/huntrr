@@ -8,6 +8,7 @@ import { Moon, Sun } from "lucide-react";
 import FilterModal from "../components/FilterModal";
 import PresenceHandler from "../components/PresenceHandler";
 import { useAuth } from "../contexts/AuthContext";
+import CookieBanner from "../components/CookieBanner";
 
 const MainLayout: React.FC = () => {
   const location = useLocation();
@@ -32,6 +33,7 @@ const MainLayout: React.FC = () => {
 
   return (
     <div className="flex fixed inset-0 tracking-normal word-spacing-sm bg-black/5 dark:bg-[#08090a] font-noto overflow-hidden">
+      <CookieBanner />
       {isAuthenticated && <PresenceHandler />}
       <ScrollToTop />
       {!shouldHideNavbar && <Sidebar />}
