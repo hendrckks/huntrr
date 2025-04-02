@@ -31,7 +31,7 @@ const MainLayout: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <div className="flex fixed inset-0 tracking-normal word-spacing-sm bg-black/5 dark:bg-black/90 font-noto overflow-hidden">
+    <div className="flex fixed inset-0 tracking-normal word-spacing-sm bg-black/5 dark:bg-[#08090a] font-noto overflow-hidden">
       {isAuthenticated && <PresenceHandler />}
       <ScrollToTop />
       {!shouldHideNavbar && <Sidebar />}

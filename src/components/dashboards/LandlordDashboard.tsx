@@ -366,7 +366,7 @@ const LandlordDashboard: React.FC = () => {
 
       <Tabs defaultValue="published" className="w-full">
         <div className="w-full overflow-x-auto pb-4">
-          <TabsList className="bg-black/5 dark:bg-white/5 w-max md:min-w-fit overflow-auto inline-flex p-1 gap-2">
+          <TabsList className="bg-black/5 dark:bg-white/10 w-max md:min-w-fit overflow-auto inline-flex p-1 gap-2">
             <TabsTrigger
               className="flex items-center gap-2 whitespace-nowrap px-4 py-1 [&[data-state=active]_svg]:text-[#8752f3]"
               value="published"
@@ -374,7 +374,7 @@ const LandlordDashboard: React.FC = () => {
               <Upload className="h-4 w-4" />
               Published
               {publishedListings.length > 0 && (
-                <Badge variant="secondary" className="ml-2 dark:bg-white/10">
+                <Badge variant="secondary" className="ml-2 bg-black/45 text-white dark:bg-white/20">
                   {publishedListings.length}
                 </Badge>
               )}
@@ -388,7 +388,7 @@ const LandlordDashboard: React.FC = () => {
               </span>
               Pending Review
               {pendingListings.length > 0 && (
-                <Badge className="ml-2">{pendingListings.length}</Badge>
+                <Badge className="ml-2 bg-black/45 text-white dark:bg-white/20">{pendingListings.length}</Badge>
               )}
             </TabsTrigger>
             <TabsTrigger
@@ -400,7 +400,7 @@ const LandlordDashboard: React.FC = () => {
               </span>
               Drafts
               {draftListings.length > 0 && (
-                <Badge variant="destructive" className="ml-2">
+                <Badge variant="destructive" className="ml-2 bg-black/45 text-white dark:bg-white/20">
                   {draftListings.length}
                 </Badge>
               )}
@@ -423,7 +423,7 @@ const LandlordDashboard: React.FC = () => {
               </span>
               Archived
               {archivedListings.length > 0 && (
-                <Badge variant="secondary" className="ml-2">
+                <Badge variant="secondary" className="ml-2 bg-black/45 text-white dark:bg-white/20">
                   {archivedListings.length}
                 </Badge>
               )}
@@ -479,7 +479,7 @@ const LandlordDashboard: React.FC = () => {
                     Listings waiting for admin approval
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="px-4">
                   <ScrollArea className="h-[500px] pr-2 sm:pr-4">
                     {pendingListings.length === 0 ? (
                       <p className="text-center text-gray-500">
@@ -503,7 +503,7 @@ const LandlordDashboard: React.FC = () => {
                     Saved drafts and rejected listings
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="px-4">
                   <ScrollArea className="h-[500px] -mt-5 pr-2 sm:pr-4">
                     {draftListings.length === 0 ? (
                       <p className="text-center text-gray-500">
@@ -522,7 +522,7 @@ const LandlordDashboard: React.FC = () => {
             <TabsContent value="analytics">
               {isLoading ? (
                 <Card className="w-full">
-                  <CardContent className="p-6">
+                  <CardContent className="px-4">
                     <p className="text-center text-gray-500">
                       Loading analytics...
                     </p>
@@ -544,7 +544,7 @@ const LandlordDashboard: React.FC = () => {
                     Previously published listings that are no longer active
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="px-4">
                   <ScrollArea className="h-[500px] pr-2 sm:pr-4">
                     {archivedListings.length === 0 ? (
                       <p className="text-center text-gray-500">

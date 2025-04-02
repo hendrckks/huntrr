@@ -359,7 +359,7 @@ const Sidebar = () => {
                       {!isAuthenticated && (
                         <DropdownMenuItem
                           onClick={() => navigate("/login")}
-                          className="text-black font-inter"
+                          className="text-black dark:text-white font-inter"
                         >
                           <LogIn className="mr-2 h-4 w-4" />
                           Login
