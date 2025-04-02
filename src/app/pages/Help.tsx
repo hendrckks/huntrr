@@ -45,7 +45,7 @@ const Help = () => {
     }
 
     // Navigate to chats with the admin ID as a parameter
-    navigate(`/chats?adminId=3KUKs6G7MlYCL0g2Pp48dt1pjte2`);
+    navigate(`/chats?landlordId=z3Au7wwm20ZIfgtsjcxaBCRphGn1`);
   };
 
   return (
@@ -76,16 +76,19 @@ const Help = () => {
               <div className="space-y-2">
                 <h3 className="font-semibold">How do I create an account?</h3>
                 <p className="text-sm text-muted-foreground">
-                  Click on the "Sign Up" button on the 3 dot button at the bottom of the
-                  sidebar. You can register using your email or your google account. Follow the prompts to complete your
+                  Click on the "Sign Up" button on the 3 dot button at the
+                  bottom of the sidebar. You can register using your email or
+                  your google account. Follow the prompts to complete your
                   profile information.
                 </p>
               </div>
               <div className="space-y-2">
                 <h3 className="font-semibold">How do I edit my profile?</h3>
                 <p className="text-sm text-muted-foreground">
-                  Once logged in, navigate to the sidebar and click on "Settings & Privacy". Here you can update your personal information,
-                  contact details, update or change your passwords, and preferences.
+                  Once logged in, navigate to the sidebar and click on "Settings
+                  & Privacy". Here you can update your personal information,
+                  contact details, update or change your passwords, and
+                  preferences.
                 </p>
               </div>
               <div className="space-y-2">
@@ -95,8 +98,8 @@ const Help = () => {
                 <p className="text-sm text-muted-foreground">
                   KYC (Know Your Customer) verification helps us confirm your
                   identity for security purposes. This process is required for
-                  landlords to list properties.
-                  It helps create a trusted community on Huntrr.
+                  landlords to list properties. It helps create a trusted
+                  community on Huntrr.
                 </p>
               </div>
               <div className="space-y-2">
@@ -123,10 +126,10 @@ const Help = () => {
                   How do I create a property listing?
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  After completing KYC verification, go to your dashboard or sidebar and
-                  click "Create Listing". Fill out the property details, upload
-                  photos, set your pricing, and specify availability. Review all
-                  information before publishing.
+                  After completing KYC verification, go to your dashboard or
+                  sidebar and click "Create Listing". Fill out the property
+                  details, upload photos, set your pricing, and specify
+                  availability. Review all information before publishing.
                 </p>
               </div>
               <div className="space-y-2">
@@ -177,10 +180,10 @@ const Help = () => {
                   How do I contact a landlord about a property?
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Click the chat with owner button on the property
-                  listing. This will open a chat where you can communicate
-                  directly with the landlord. Be specific about your questions
-                  and interest in the property.
+                  Click the chat with owner button on the property listing. This
+                  will open a chat where you can communicate directly with the
+                  landlord. Be specific about your questions and interest in the
+                  property.
                 </p>
               </div>
               <div className="space-y-2">
@@ -218,10 +221,10 @@ const Help = () => {
                   How does Huntrr ensure user safety?
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  We implement KYC verification for all landlord users, secure messaging
-                  within the platform, property verification processes, and a
-                  flagging system for suspicious activities. We also provide
-                  safety tips for property viewings.
+                  We implement KYC verification for all landlord users, secure
+                  messaging within the platform, property verification
+                  processes, and a flagging system for suspicious activities. We
+                  also provide safety tips for property viewings.
                 </p>
               </div>
               <div className="space-y-2">
@@ -267,9 +270,7 @@ const Help = () => {
                     <p className="text-sm text-muted-foreground">
                       Get a response within 24 hours
                     </p>
-                    <Button className="mt-2">
-                      support@huntrr.com
-                    </Button>
+                    <Button className="mt-2">support@huntrr.com</Button>
                   </div>
                 </Card>
 
@@ -280,9 +281,7 @@ const Help = () => {
                     <p className="text-sm text-muted-foreground">
                       Available Monday-Friday, 9am-5pm
                     </p>
-                    <Button className="mt-2 ">
-                      (555) 123-4567
-                    </Button>
+                    <Button className="mt-2 ">(555) 123-4567</Button>
                   </div>
                 </Card>
               </div>
@@ -294,7 +293,11 @@ const Help = () => {
                   <p className="text-sm text-muted-foreground">
                     Chat with our support team in real-time
                   </p>
-                  <Button className="mt-2 select-none cursor-not-allowed" disabled={true} onClick={handleStartChat}>
+                  <Button
+                    className="mt-2 select-none "
+                    // disabled={true}
+                    onClick={handleStartChat}
+                  >
                     Start Chat
                   </Button>
                 </div>
