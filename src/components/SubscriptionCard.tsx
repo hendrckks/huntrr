@@ -11,6 +11,7 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { RiPulseAiLine } from "@remixicon/react";
+import AffordabilityModal from "./AffordabilityModal";
 
 const SubscriptionCard = () => {
   const { user } = useAuth();
@@ -104,6 +105,9 @@ const SubscriptionCard = () => {
             >
               <Search className="mr-2 h-5 w-5" /> View Properties
             </Button>
+            <div className="block md:hidden w-full">
+              <AffordabilityModal />
+            </div>
           </div>
 
           <div className="flex flex-col space-y-4 border-t border-slate-700 pt-6 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">

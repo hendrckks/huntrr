@@ -281,20 +281,13 @@ const FilterModal = () => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild className="font-inter">
         <Button
+          size="lg"
           variant="outline"
-          size="icon"
-          className="dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 p-4 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl font-medium w-full flex gap-4 justify-between items-center"
-        >
-          <div className="flex items-center gap-2">
-            {/* <Filter className="h-3 w-3 dark:text-muted-foreground text-muted-foreground md:text-black/50" /> */}
-            Filter Listings
-          </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <span className="flex items-center justify-center w-5 h-5 p-3 border dark:border-white/30 border-black/20 rounded">
-              ⌘
-            </span>
-            +<span>I</span>
-          </div>
+          className="inline-flex dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 p-4 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl items-center justify-center whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border hover:text-accent-foreground px-4 sm:px-8 dark:text-white border-black/15 gap-2 md:w-auto w-full">
+          <span>Filter Listings</span>
+          <kbd className="hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+            <span className="text-base">⌘</span>I
+          </kbd>
         </Button>
       </DialogTrigger>
       <DialogContent
@@ -303,7 +296,9 @@ const FilterModal = () => {
         onScroll={handleScroll}
       >
         <DialogHeader>
-          <DialogTitle className="font-medium font-inter">Filter Properties</DialogTitle>
+          <DialogTitle className="font-medium font-inter">
+            Filter Properties
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-3 font-inter dark:bg-[#121212]">
