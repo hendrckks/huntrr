@@ -31,7 +31,12 @@ const AffordabilityModal = () => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
         event.preventDefault();
-        setOpen(true);
+        // Check if this is the only instance of AffordabilityModal that should respond
+        // Use a data attribute on the button to identify this instance
+        const button = document.querySelector('[data-affordability-button="true"]');
+        if (button) {
+          setOpen(true);
+        }
       }
     };
 
@@ -105,6 +110,7 @@ const AffordabilityModal = () => {
         <Button
           size="lg"
           variant="outline"
+          data-affordability-button="true"
           className="inline-flex dark:bg-white/5 md:bg-background/50 bg-white/10 dark:hover:bg-white/10 md:hover:bg-black/5 hover:bg-white/15 transition-colors dark:border-white/10 p-4 md:rounded-lg rounded-md md:shadow-md shadow-md backdrop-blur-6xl items-center justify-center whitespace-nowrap text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border hover:text-accent-foreground px-4 sm:px-8 dark:text-white md:border-black/15 border-white/20 gap-2 md:w-auto w-full"
         >
           <span>Affordability Calculator</span>

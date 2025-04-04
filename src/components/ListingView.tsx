@@ -282,6 +282,9 @@ const ListingView = () => {
           <div className="space-y-6">
             <div className="flex flex-col gap-2">
               <h1 className="text-3xl font-semibold">{listing.title}</h1>
+              <p className="text-gray-500 text-sm">
+                Listed on {listing.createdAt.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
               {listing.status !== "published" && (
                 <Badge
                   variant={
@@ -417,7 +420,9 @@ const ListingView = () => {
 
         {/* Full-width map at the bottom */}
         <div className="mt-8 rounded-lg mx-auto">
-          <p className="text-[22px] font-medium tracking-tight mb-4">Where the house/apartment is</p>
+          <p className="text-[22px] font-medium tracking-tight mb-4">
+            Where the house/apartment is
+          </p>
           <PropertyLocationMap
             coordinates={{
               lat: listing.location.coordinates?.lat ?? 0,
