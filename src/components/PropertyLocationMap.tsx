@@ -1,5 +1,5 @@
 // src/components/PropertyLocationMap.tsx
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { Coordinates } from "../lib/types/Listing";
 import { useConfig } from "../contexts/ConfigContext";
 
@@ -14,7 +14,6 @@ const PropertyLocationMap: React.FC<PropertyLocationMapProps> = ({
 }) => {
   const { googleMapsApiKey } = useConfig();
   const mapRef = useRef<HTMLDivElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // In PropertyLocationMap.tsx
@@ -23,7 +22,6 @@ const PropertyLocationMap: React.FC<PropertyLocationMapProps> = ({
         // If Maps is already loaded, just initialize the map
         if (window.google?.maps) {
           initMap();
-          setIsLoading(false);
           return;
         }
 
@@ -37,7 +35,6 @@ const PropertyLocationMap: React.FC<PropertyLocationMapProps> = ({
         const callbackName = `initGoogleMap_${Date.now()}`;
         windowWithCallbacks[callbackName] = () => {
           initMap();
-          setIsLoading(false);
           delete windowWithCallbacks[callbackName];
         };
 
@@ -52,7 +49,6 @@ const PropertyLocationMap: React.FC<PropertyLocationMapProps> = ({
               if (window.google?.maps) {
                 clearInterval(checkInterval);
                 initMap();
-                setIsLoading(false);
               }
             }, 100);
           }
@@ -71,7 +67,6 @@ const PropertyLocationMap: React.FC<PropertyLocationMapProps> = ({
           "Error loading Google Maps:",
           err instanceof Error ? err.message : "An unknown error occurred"
         );
-        setIsLoading(false); // Set loading to false even on error
       }
     };
 
@@ -155,27 +150,10 @@ const PropertyLocationMap: React.FC<PropertyLocationMapProps> = ({
 
   return (
     <div>
-      {isLoading ? (
-        <div className="h-[480px] max-w-[1000px] w-full rounded-3xl border-t overflow-hidden">
-          <div className="w-full h-full bg-gray-200 animate-pulse rounded-3xl">
-            {/* Map controls skeleton */}
-            <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-              <div className="w-8 h-16 bg-gray-300 rounded-md"></div>
-              <div className="w-8 h-8 bg-gray-300 rounded-md"></div>
-            </div>
-            {/* Center marker skeleton */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
-              <div className="mt-2 w-32 h-4 bg-gray-300 rounded-md mx-auto"></div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div
-          ref={mapRef}
-          className="h-[480px] max-w-[1000px] w-full rounded-3xl border-t"
-        ></div>
-      )}
+      <div
+        ref={mapRef}
+        className="h-[480px] max-w-[1000px] w-full rounded-3xl border-t"
+      ></div>
     </div>
   );
 };
