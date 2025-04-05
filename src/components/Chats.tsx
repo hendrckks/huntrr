@@ -536,7 +536,7 @@ const Chats = () => {
           message.senderId === user?.uid ? "items-end" : "items-start"
         }`}
       >
-        <div className="flex flex-col space-y-1 max-w-[70%] w-fit">
+        <div className="flex flex-col space-y-1 max-w-[80%] w-fit">
           <div
             className={`py-1 md:px-3 px-4 flex items-center ${
               message.senderId === user?.uid

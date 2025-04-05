@@ -252,7 +252,7 @@ const LandlordDashboard: React.FC = () => {
     >
       <CardContent className="pt-6 px-2 sm:px-6">
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-          <div className="space-y-3 w-full sm:w-auto max-w-[70%]">
+          <div className="space-y-3 w-full sm:w-auto max-w-[75%]">
             <div className="flex items-start gap-2 flex-wrap">
               <h3 className="font-semibold break-words text-base">
                 {listing.title}

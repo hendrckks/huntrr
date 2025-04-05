@@ -57,12 +57,14 @@ const Help = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="faq" className="w-full">
-        <TabsList className="md:grid w-full flex gap-2 overflow-x-auto grid-cols-3 mb-8">
-          <TabsTrigger value="faq">Frequently Asked Questions</TabsTrigger>
-          <TabsTrigger value="contact">Contact Support</TabsTrigger>
-          <TabsTrigger value="resources">Resources</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="faq" className="w-full px-2">
+        <div className="w-full md:w-fit overflow-x-auto pb-4">
+          <TabsList className="bg-black/5 dark:bg-white/10 w-max md:min-w-full overflow-scroll inline-flex p-1 gap-2">
+            <TabsTrigger value="faq">Frequently Asked Questions</TabsTrigger>
+            <TabsTrigger value="contact">Contact Support</TabsTrigger>
+            <TabsTrigger value="resources">Resources</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="faq" className="space-y-6">
           <Card>
@@ -394,7 +396,10 @@ const Help = () => {
                     <FileText className="h-4 w-4" />
                     <span>Privacy Policy</span>
                   </div>
-                  <Link to="/cookie-policy" className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer">
+                  <Link
+                    to="/cookie-policy"
+                    className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
+                  >
                     <FileText className="h-4 w-4" />
                     <span>Cookie Policy</span>
                   </Link>
