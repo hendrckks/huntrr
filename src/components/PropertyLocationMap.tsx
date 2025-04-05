@@ -131,7 +131,7 @@ const PropertyLocationMap: React.FC<PropertyLocationMapProps> = ({
         <style>
           .gm-ui-hover-effect { display: none !important; }
         </style>
-        <p style="color: #1A1A1A; font-size: 1.15em;">Exact location provided after booking a house tour.</p>
+        <div style={{ color: '#1A1A1A', fontSize: '1.15em' }}>Exact location provided after booking a house tour.</div>
         <p style="color: #666; font-size: 1.05em;">${address}</p>
       </div>`,
       pixelOffset: new google.maps.Size(0, -10),

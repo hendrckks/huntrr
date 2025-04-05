@@ -544,7 +544,7 @@ const Chats = () => {
                 : "bg-primary dark:bg-white dark:text-black text-white rounded-t-[10px] rounded-br-[10px]"
             }`}
           >
-            <p className="text-sm text-opacity-85 mb-0.5">{message.content}</p>
+            <div className="text-sm text-opacity-85 mb-0.5">{message.content}</div>
             <span className="text-xs text-opacity-80 ml-4">
               {formatMessageTime(message.timestamp)}
             </span>
@@ -685,10 +685,8 @@ const Chats = () => {
                 </div>
               ) : chats.length === 0 && !selectedChatData ? (
                 <div className="flex items-center justify-center h-full text-center text-muted-foreground">
-                  <div>
-                    <p>No conversations yet</p>
-                    <p className="text-sm mt-2">Your chats will appear here</p>
-                  </div>
+                  <div>No conversations yet</div>
+                  <div className="text-sm mt-2">Your chats will appear here</div>
                 </div>
               ) : (
                 <>
@@ -703,9 +701,9 @@ const Chats = () => {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">
+                          <div className="text-sm font-medium">
                             {selectedChatData.displayName}
-                          </p>
+                          </div>
                           <Badge variant="outline" className="text-xs mt-1">
                             {selectedChatData.role === "landlord_verified"
                               ? "Landlord"
@@ -738,7 +736,7 @@ const Chats = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center">
-                          <p className="md:text-base text-[15px] tracking-tight flex items-center font-medium truncate">
+                          <div className="md:text-base text-[15px] tracking-tight flex items-center font-medium truncate">
                             {chat.displayName}
 
                             {chat.role === "landlord_verified" && (
@@ -776,7 +774,7 @@ const Chats = () => {
                                 : "Tenant"}
                             </Badge> */}
                             </div>
-                          </p>
+                          </div>
                           <span className="text-xs text-muted-foreground">
                             {chat.lastMessageTime &&
                               formatMessageTime(chat.lastMessageTime)}
@@ -844,7 +842,7 @@ const Chats = () => {
                           </svg>
                         )}
                       </CardTitle>
-                      <p className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground">
                         {selectedChatData?.status === "online"
                           ? "Online"
                           : selectedChatData?.lastSeen
@@ -852,7 +850,7 @@ const Chats = () => {
                               selectedChatData.lastSeen
                             )}`
                           : "Offline"}
-                      </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -877,10 +875,10 @@ const Chats = () => {
                     ) : messages.length === 0 ? (
                       <div className="flex items-center justify-center h-full">
                         <div className="text-center text-muted-foreground">
-                          <p>No messages yet</p>
-                          <p className="text-sm mt-2">
-                            Send a message to start the conversation
-                          </p>
+                          <div className="text-center">
+                            <div>No messages yet</div>
+                            <div className="text-sm mt-2">Start a conversation to begin messaging</div>
+                          </div>
                         </div>
                       </div>
                     ) : (
