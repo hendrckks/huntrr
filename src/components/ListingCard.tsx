@@ -173,7 +173,7 @@ const ListingCard = ({
         toast({
           title: "Authentication Required",
           description: "Please sign in to bookmark listings",
-          variant: "error",
+          variant: "warning",
         });
         return;
       }

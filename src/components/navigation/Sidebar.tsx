@@ -204,8 +204,8 @@ const Sidebar = () => {
         if (!isAuthenticated) {
           navigate("/login");
           toast({
-            title: "Error",
-            variant: "error",
+            title: "Authentication Required",
+            variant: "warning",
             description: "Please login to chat with the owners",
             duration: 5000,
           });
@@ -220,6 +220,19 @@ const Sidebar = () => {
           label: "List your property",
           path: "/add-listing",
           color: "text-green-400/90",
+          onClick: () => {
+            if (!isAuthenticated) {
+              navigate("/login");
+              toast({
+                title: "Authentication Required",
+                variant: "warning",
+                description: "Please login to list your property",
+                duration: 5000,
+              });
+              return;
+            }
+            return true;
+          },
         }
       : null,
     {
@@ -231,19 +244,57 @@ const Sidebar = () => {
         notifications.filter((n) => !n.read).length > 0 ||
         (user?.role === "admin" &&
           notifications.filter((n) => !n.read).length > 0),
+      onClick: () => {
+        if (!isAuthenticated) {
+          navigate("/login");
+          toast({
+            title: "Authentication Required",
+            variant: "warning",
+            description: "Please login to view your notifications",
+            duration: 5000,
+          });
+          return;
+        }
+        return true;
+      },
     },
     {
       icon: Bookmark,
       label: "Bookmarks",
       path: "/bookmarks",
       color: "text-pink-400/70",
+      onClick: () => {
+        if (!isAuthenticated) {
+          navigate("/login");
+          toast({
+            title: "Authentication Required",
+            variant: "warning",
+            description: "Please login to view your bookmarks",
+            duration: 5000,
+          });
+          return;
+        }
+        return true;
+      },
     },
-
     {
       icon: Settings,
       label: "Settings & privacy",
       path: "/account-settings",
       color: "text-teal-400/90",
+      onClick: () => {
+        if (!isAuthenticated) {
+          navigate("/login");
+          toast({
+            title: "Authentication Required",
+            variant: "warning",
+            description: "Please login to access account settings",
+            duration: 5000,
+          });
+          return;
+        }
+        return true;
+      },
     },
     {
       icon: HelpCircle,
@@ -288,10 +339,20 @@ const Sidebar = () => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
 
+            const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+              if (item.onClick) {
+                const result = item.onClick();
+                if (result !== true) {
+                  e.preventDefault();
+                }
+              }
+            };
+
             return (
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={handleClick}
                 className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors ${
                   isActive
                     ? "bg-black/90 dark:bg-white/90 shadow-xl dark:text-black text-white"
@@ -402,10 +463,20 @@ const Sidebar = () => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
 
+            const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+              if (item.onClick) {
+                const result = item.onClick();
+                if (result !== true) {
+                  e.preventDefault();
+                }
+              }
+            };
+            
             return (
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={handleClick}
                 className={`flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${
                   isActive
                     ? "bg-white border bg-background/50 font-medium dark:hover:bg-white/10 dark:border-white/10 p-3 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl hover:bg-black/5 transition-colors backdrop-blur-6xl w-full flex justify-between items-center dark:bg-white/5 text-black dark:text-white backdrop-blur-6xl"
