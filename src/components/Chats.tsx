@@ -652,8 +652,8 @@ const Chats = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 px-2 md:-mt-4 -mt-6 md:-mb-4 mb-0 max-w-7xl md:h-[calc(100vh-6rem)] h-fit overflow-scroll">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 h-[85vh] md:h-full">
+    <div className="container mx-auto p-4 px-2 md:-mt-4 -mt-6 md:-mb-4 mb-2s max-w-7xl md:h-[calc(100vh-6rem)] h-fit overflow-scroll">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-transparent h-[88vh] md:h-full">
         {(!showMessages || window.innerWidth >= 768) && (
           <Card className="md:col-span-1 h-full flex flex-col">
             <CardHeader>
@@ -799,7 +799,7 @@ const Chats = () => {
         )}
 
         {(showMessages || window.innerWidth >= 768) && (
-          <Card className="md:col-span-2 h-[86vh] md:h-full flex flex-col">
+          <Card className="md:col-span-2 h-[88vh] md:h-full flex flex-col">
             <CardHeader className="border-b p-4">
               {selectedChatData ? (
                 <div className="flex items-center justify-between ">
