@@ -77,12 +77,11 @@ const SubscriptionCard = () => {
           </div>
 
           <h1 className="mb-4 text-4xl font-bold tracking-tight">
-            List Your Properties
+            Find Your Perfect Home Today
           </h1>
 
           <p className="mb-12 tracking-tight max-w-xl text-slate-300 text-lg">
-            Connect with quality tenants faster. Create, manage, and promote
-            your rental properties all in one place with better results.
+            Discover your ideal living space with our exclusive listings. Browse through quality properties and connect with trusted landlords to find the home that perfectly matches your lifestyle.
           </p>
 
           <div className="mb-12 md:mb-16 flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
@@ -91,7 +90,7 @@ const SubscriptionCard = () => {
               size="lg"
               className="bg-white text-slate-900 hover:bg-slate-200 w-full sm:w-auto"
             >
-              <span className="mr-2 text-lg">+</span> Add Your Property
+              <span className="mr-2 text-lg">+</span> List Your Property
             </Button>
             <Button
               size="lg"
@@ -103,7 +102,7 @@ const SubscriptionCard = () => {
               }}
               className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm hover:text-accent-foreground rounded-md px-4 sm:px-8 bg-white/10 hover:bg-white/20 text-white border-white/20 gap-2 w-full sm:w-auto"
             >
-              <Search className="mr-2 h-5 w-5" /> View Properties
+              <Search className="mr-2 h-5 w-5" /> Browse Listings
             </Button>
             <div className="block md:hidden w-full">
               <AffordabilityModal />
