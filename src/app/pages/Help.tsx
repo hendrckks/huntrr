@@ -57,7 +57,7 @@ const Help = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="faq" className="w-full md:px-2">
+      <Tabs defaultValue="faq" className="w-full px-2 md:px-0">
         <div className="w-full md:w-fit overflow-x-auto pb-4">
           <TabsList className="bg-black/5 dark:bg-white/10 w-max md:min-w-full overflow-scroll inline-flex p-1 gap-2">
             <TabsTrigger value="faq">Frequently Asked Questions</TabsTrigger>
