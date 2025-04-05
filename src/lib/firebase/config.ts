@@ -31,9 +31,9 @@ if (!result.success) {
   throw new Error("Invalid Firebase configuration");
 }
 
-// Log successful configuration loading
-console.log("Firebase API Key loaded successfully:", result.data.VITE_FIREBASE_API_KEY ? "[Present]" : "[Missing]");
-console.log("Firebase configuration loaded successfully");
+// // Log successful configuration loading
+// console.log("Firebase API Key loaded successfully:", result.data.VITE_FIREBASE_API_KEY ? "[Present]" : "[Missing]");
+// console.log("Firebase configuration loaded successfully");
 
 const config: FirebaseOptions = {
   apiKey: result.data.VITE_FIREBASE_API_KEY,

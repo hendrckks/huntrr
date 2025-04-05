@@ -131,7 +131,7 @@ export const getListingAnalytics = async (
 export const getMultipleListingsAnalytics = async (
   listingIds: string[]
 ): Promise<ListingAnalytics[]> => {
-  console.log("Getting analytics for listings:", listingIds);
+  // console.log("Getting analytics for listings:", listingIds);
 
   if (listingIds.length === 0) return [];
 
@@ -159,7 +159,7 @@ export const getMultipleListingsAnalytics = async (
   const q = query(analyticsRef, where("listingId", "in", listingIds));
   const querySnapshot = await getDocs(q);
 
-  console.log(`Found ${querySnapshot.size} analytics documents`);
+  // console.log(`Found ${querySnapshot.size} analytics documents`);
 
   querySnapshot.forEach((doc) => {
     const data = doc.data() as ListingAnalytics;
@@ -171,7 +171,7 @@ export const getMultipleListingsAnalytics = async (
   });
 
   // Log the final results
-  console.log("Returning analytics:", analytics);
+  // console.log("Returning analytics:", analytics);
 
   return analytics;
 };

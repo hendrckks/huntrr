@@ -91,15 +91,15 @@ const LandlordDashboard: React.FC = () => {
   const analyticsQuery = useQuery<ListingAnalytics[]>({
     queryKey: ["listings-analytics", listings.map((l) => l.id)],
     queryFn: async () => {
-      console.log(
-        "Fetching analytics for listings:",
-        listings.map((l) => l.id)
-      );
+      // console.log(
+      //   "Fetching analytics for listings:",
+      //   listings.map((l) => l.id)
+      // );
       try {
         const result = await getMultipleListingsAnalytics(
           listings.map((l) => l.id)
         );
-        console.log("Fetched analytics result:", result);
+        // console.log("Fetched analytics result:", result);
         return result;
       } catch (error) {
         console.error("Error fetching analytics:", error);

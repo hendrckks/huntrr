@@ -42,7 +42,7 @@ import {
   UserRole,
 } from "../types/auth";
 import { auth, db } from "./clientApp";
-import { getUserClaims } from "../../utils/authUtils";
+// import { getUserClaims } from "../../utils/authUtils";
 import { updateUserStatus } from "./chat";
 
 // Configuration
@@ -542,8 +542,8 @@ export const login = async (
     const idTokenResult = await user.getIdTokenResult();
     const role = idTokenResult.claims.role as UserRole;
 
-    const claims = await getUserClaims(user);
-    console.log("User role:", claims?.role);
+    // const claims = await getUserClaims(user);
+    // console.log("User role:", claims?.role);
 
     if (role === "admin") {
       await auth.signOut();

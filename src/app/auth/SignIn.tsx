@@ -18,7 +18,7 @@ import { Button } from "../../components/ui/button";
 import { Card, CardHeader, CardContent } from "../../components/ui/card";
 import { Label } from "../../components/ui/label";
 import { Alert, AlertDescription } from "../../components/ui/alert";
-import { getUserClaims } from "../../utils/authUtils";
+// import { getUserClaims } from "../../utils/authUtils";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
@@ -147,8 +147,8 @@ const SignIn = () => {
 
       await user.getIdToken(true);
 
-      const claims = await getUserClaims(user);
-      console.log("User Custom Claims:", claims);
+      // const claims = await getUserClaims(user);
+      // console.log("User Custom Claims:", claims);
 
       if (!user.emailVerified) {
         setShowVerificationMessage(true);
