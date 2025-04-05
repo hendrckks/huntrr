@@ -78,7 +78,7 @@ const Help = () => {
               <div className="space-y-2">
                 <h3 className="font-semibold">How do I create an account?</h3>
                 <p className="text-sm text-muted-foreground">
-                  Click on the "Login" button on the 3 dot button at the
+                  Click on the "Login " button on the 3 dot button at the
                   bottom of the sidebar. You can register using your email or
                   your google account. Follow the prompts to complete your
                   profile information.
