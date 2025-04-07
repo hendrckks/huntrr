@@ -44,6 +44,9 @@ const kycSubmissionSchema = z.object({
     postalCode: z.string().min(1, "Postal code is required"),
     phoneNumber: z.string().min(1, "Phone number is required"),
   }),
+  consentToRetentionPolicy: z.boolean().refine(value => value === true, {
+    message: "You must agree to the data retention policy",
+  }),
 });
 
 type KYCFormData = z.infer<typeof kycSubmissionSchema>;
@@ -103,6 +106,7 @@ const KYCVerification = () => {
         postalCode: "",
         phoneNumber: "",
       },
+      consentToRetentionPolicy: false,
     },
   });
 
@@ -178,6 +182,8 @@ const KYCVerification = () => {
         reviewedAt: null,
         reviewedBy: null,
         rejectionReason: null,
+        retentionConsent: data.consentToRetentionPolicy,
+        scheduledDeletionDate: null, // Will be set when document is approved/rejected
       };
 
       await setDoc(kycRef, kycData);
@@ -456,9 +462,34 @@ const KYCVerification = () => {
               </div>
             </div>
 
-            <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting ? "Submitting..." : "Submit for Verification"}
-            </Button>
+            <div className="space-y-4">
+              <div className="flex items-start space-x-2">
+                <div className="pt-1">
+                  <input
+                    type="checkbox"
+                    id="consentToRetentionPolicy"
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    {...form.register("consentToRetentionPolicy")}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="consentToRetentionPolicy" className="text-sm font-medium">
+                    I understand and agree to the data retention policy
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your KYC documents will be securely stored for verification purposes and automatically deleted after 2 years from approval, or 90 days after rejection. You can request earlier deletion by contacting support.
+                  </p>
+                  {form.formState.errors.consentToRetentionPolicy && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {form.formState.errors.consentToRetentionPolicy.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Button type="submit" disabled={isSubmitting} className="w-full">
+                {isSubmitting ? "Submitting..." : "Submit for Verification"}
+              </Button>
+            </div>
           </form>
         )}
       </CardContent>

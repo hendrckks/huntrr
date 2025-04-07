@@ -65,15 +65,22 @@ export const processKYC = onCall({ enforceAppCheck: true }, async (request) => {
   try {
     const batch = admin.firestore().batch();
     const timestamp = admin.firestore.FieldValue.serverTimestamp();
+    const now = admin.firestore.Timestamp.now();
+    
+    // Calculate scheduled deletion date based on status
+    const status = approved ? "approved" : "rejected";
+    const retentionDays = approved ? 730 : 90; // 2 years for approved, 90 days for rejected
+    const deletionDate = new Date(now.toMillis() + (retentionDays * 24 * 60 * 60 * 1000));
 
     // Update KYC document
     const kycRef = admin.firestore().collection("kyc").doc(userId);
     batch.update(kycRef, {
-      status: approved ? "approved" : "rejected",
+      status: status,
       reviewedAt: timestamp,
       reviewedBy: request.auth.uid,
       rejectionReason: approved ? null : rejectionReason,
       updatedAt: timestamp,
+      scheduledDeletionDate: admin.firestore.Timestamp.fromDate(deletionDate)
     });
 
     // If approved, update user role to landlord_verified

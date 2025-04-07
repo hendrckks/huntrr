@@ -138,6 +138,8 @@ export interface KYCDocument {
   rejectionReason?: string | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  retentionConsent?: boolean;
+  scheduledDeletionDate?: Timestamp | null;
 }
 
 export interface KYCSubmission {

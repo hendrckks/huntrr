@@ -17,6 +17,7 @@ import type {
   ListingDocument,
 } from "./types/types";
 import { onSchedule } from "firebase-functions/scheduler";
+import { cleanupExpiredKYCDocuments, updateKYCRetentionPeriod } from "./kycRetention";
 
 admin.initializeApp();
 const db = getFirestore();
@@ -543,3 +544,6 @@ export const cleanupOldNotifications = onSchedule(
     await batch.commit();
   }
 );
+
+// Export KYC document retention functions
+export { cleanupExpiredKYCDocuments, updateKYCRetentionPeriod };
