@@ -486,7 +486,7 @@ const Sidebar = () => {
                 to={item.path}
                 onClick={handleClick}
                 aria-label={item.label}
-                className={`flex items-center justify-center basis-0 grow px-1 py-2 rounded-lg transition-colors ${
+                className={`flex items-center  justify-center basis-0 grow px-1 py-2 rounded-lg transition-colors ${
                   isActive
                     ? "bg-black/5 dark:bg-white/5 text-black dark:text-white"
                     : "text-black/70 dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/5"
