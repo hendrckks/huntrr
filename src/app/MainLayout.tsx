@@ -33,7 +33,7 @@ const MainLayout: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <div className="flex fixed inset-0 tracking-normal word-spacing-sm bg-black/5 dark:bg-[#08090a] font-noto overflow-hidden">
+    <div className="flex fixed inset-0 tracking-normal word-spacing-sm bg-black/5 dark:bg-black/50 font-noto overflow-hidden">
       <CookieBanner />
       {isAuthenticated && <PresenceHandler />}
       <ScrollToTop />
@@ -48,7 +48,7 @@ const MainLayout: React.FC = () => {
             isHomePage
               ? "shadow-lg"
               : "bg-white/60 dark:bg-[#111111]  shadow-lg backdrop-blur-3xl"
-          } bg-white/60 dark:bg-[#121212] rounded-xl border dark:border-white/10 border-black/10 overflow-y-auto h-[calc(100vh-1rem)] pb-20 md:pb-6`}
+          } bg-white/60 dark:bg-[#121212] rounded-xl border dark:border-white/5 border-black/10 overflow-y-auto h-[calc(100vh-1rem)] pb-20 md:pb-6`}
         >
           {!shouldHideNavbar && (
             <div className="flex mx-auto max-w-7xl justify-between items-center px-2 md:mb-6 gap-4">

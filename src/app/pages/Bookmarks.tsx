@@ -8,7 +8,7 @@ import type {
   BookmarkDocument,
 } from "../../lib/types/Listing";
 import { toggleBookmark } from "../../lib/firebase/firestore";
-import { Bookmark } from "lucide-react";
+// Replaced lucide Bookmark icon with custom SVG in headers
 
 // Query keys for better cache management
 const queryKeys = {
@@ -138,9 +138,9 @@ const BookmarksPage = () => {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-2 md:p-0 p-4">
+      <div className="max-w-7xl mx-auto sm:px-6 lg:px-3 p-4 md:p-0 px-2">
         <div className="flex items-center gap-2 mb-6">
-          <Bookmark className="h-6 w-6" />
+          <img src="/icons/book-open.svg" alt="" className="h-6 w-6" />
           <h1 className="text-xl font-medium">Your Bookmarks</h1>
         </div>{" "}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -153,9 +153,9 @@ const BookmarksPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 md:p-0 p-4">
+    <div className="max-w-7xl mx-auto sm:px-6 lg:px-3 p-4 md:p-0">
       <div className="flex items-center gap-2 mb-6">
-        <Bookmark className="h-6 w-6" />
+        <img src="/icons/book-open.svg" alt="" className="h-6 w-6" />
         <h1 className="text-xl font-medium">Your Bookmarks</h1>
       </div>
       {!listings.length ? (

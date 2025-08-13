@@ -25,6 +25,12 @@ import {
 import { Badge } from "../../components/ui/badge";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../../components/ui/tooltip";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -34,19 +40,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog";
-import {
-  Archive,
-  Eye,
-  Pencil,
-  Trash2,
-  Plus,
-  FileText,
-  Upload,
-  File,
-  ArchiveIcon,
-  User,
-} from "lucide-react";
-import { BarChart } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import AnalyticsTab from "./AnalyticsTab";
 import type { ListingDocument, ListingStatus } from "../../lib/types/Listing";
 import { getMultipleListingsAnalytics } from "../../lib/firebase/analytics";
@@ -224,6 +218,7 @@ const LandlordDashboard: React.FC = () => {
 
     return (
       <Badge
+        className="bg-black/10 dark:bg-white/10 ml-2 border border-black/10 dark:border-white/10"
         variant={
           variants[status] as
             | "secondary"
@@ -248,7 +243,7 @@ const LandlordDashboard: React.FC = () => {
   const ListingCard: React.FC<ListingCardProps> = ({ listing }) => (
     <Card
       key={listing.id}
-      className="mb-4 w-full hover:shadow-lg transition-shadow duration-200"
+      className="mb-4 w-full hover:shadow-md dark:bg-white/5 bg-black/5 border-black/5 border dark:border-white/5 cursor-pointer transition-shadow duration-200"
     >
       <CardContent className="pt-6 px-2 sm:px-6">
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
@@ -259,7 +254,7 @@ const LandlordDashboard: React.FC = () => {
               </h3>
               {getStatusBadge(listing.status)}
             </div>
-            <p className="text-sm text-gray-500 break-words">
+            <p className="text-sm dark:text-white/50 text-black/50 break-words">
               {listing.location.area}, {listing.location.city}
             </p>
             <p className="text-sm break-words">
@@ -276,49 +271,90 @@ const LandlordDashboard: React.FC = () => {
             )}
           </div>
           <div className="flex gap-2 w-full sm:w-auto justify-end items-center">
-            <Button
-              variant="outline"
-              size="icon"
-              className="hover:bg-gray-100"
-              onClick={() => navigate(`/listings/${listing.id}`)}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="hover:bg-gray-100"
-              onClick={() => navigate(`/edit-listing/${listing.id}`)}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="hover:bg-gray-100"
-              onClick={() =>
-                listing.status === "archived"
-                  ? handleUnarchive(listing.id)
-                  : handleArchive(listing.id)
-              }
-            >
-              {listing.status === "archived" ? (
-                <Upload className="h-4 w-4" />
-              ) : (
-                <Archive className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant="destructive"
-              size="icon"
-              className="hover:bg-red-600"
-              onClick={() => {
-                setSelectedListing(listing.id);
-                setIsDeleteDialogOpen(true);
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {/* View */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="hover:bg-gray-100"
+                    onClick={() => navigate(`/listings/${listing.id}`)}
+                  >
+                    <img src="/icons/eye.svg" alt="" className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="font-inter">View</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            {/* Edit */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="hover:bg-gray-100"
+                    onClick={() => navigate(`/edit-listing/${listing.id}`)}
+                  >
+                    <img src="/icons/pen.svg" alt="" className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="font-inter">Edit</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            {/* Archive/Unarchive */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="hover:bg-gray-100"
+                    onClick={() =>
+                      listing.status === "archived"
+                        ? handleUnarchive(listing.id)
+                        : handleArchive(listing.id)
+                    }
+                  >
+                    <img src="/icons/inbox.svg" alt="" className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="font-inter">
+                    {listing.status === "archived" ? "Unarchive" : "Archive"}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            {/* Delete */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="hover:bg-red-500 bg-red-600"
+                    onClick={() => {
+                      setSelectedListing(listing.id);
+                      setIsDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Delete</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </CardContent>
@@ -326,10 +362,10 @@ const LandlordDashboard: React.FC = () => {
   );
 
   return (
-    <div className="container mx-auto max-w-7xl px-2 space-y-4 md:mt-0 mt-4">
+    <div className="container mx-auto max-w-7xl sm:px-6 lg:px-3 p-4 md:p-0 space-y-4 md:mt-0 mt-4">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-2">
-          <User className="h-6 w-6" />
+          <img src="/icons/user.svg" alt="" className="h-6 w-6" />
           <h1 className="text-xl font-medium">Landlord Dashboard</h1>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -351,7 +387,7 @@ const LandlordDashboard: React.FC = () => {
             }}
             className="flex bg-black/90 hover:bg-black/80 hover:text-white dark:bg-white/90 text-white dark:text-black items-center gap-2 shadow-md w-full sm:w-auto justify-center"
           >
-            <Plus className="h-4 w-4" />
+            <img src="/icons/duplicate-plus.svg" alt="" className="h-5 w-5" />
             Add Listing
           </Button>
           <Button
@@ -366,64 +402,75 @@ const LandlordDashboard: React.FC = () => {
 
       <Tabs defaultValue="published" className="w-full">
         <div className="w-full overflow-x-auto pb-4">
-          <TabsList className="bg-black/5 dark:bg-white/10 w-max md:min-w-fit overflow-auto inline-flex p-1 gap-2">
+          <TabsList className="bg-black/5 border border-black/5 dark:border-white/5 dark:bg-white/10 w-max md:min-w-fit overflow-auto inline-flex p-1 gap-2">
             <TabsTrigger
-              className="flex items-center gap-2 whitespace-nowrap px-4 py-1 [&[data-state=active]_svg]:text-[#8752f3]"
+              className="flex items-center gap-2 whitespace-nowrap px-4 py-1 data-[state=active]:bg-black/80 dark:data-[state=active]:bg-[#fafafa] dark:data-[state=active]:text-black data-[state=active]:text-white [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
               value="published"
             >
-              <Upload className="h-4 w-4" />
+              <img src="/icons/tasks.svg" alt="" className="h-5 w-5" />
               Published
               {publishedListings.length > 0 && (
-                <Badge variant="secondary" className="ml-2 bg-black/45 text-white dark:bg-white/20">
+                <Badge
+                  variant="secondary"
+                  className="ml-2 bg-white/80 text-black dark:bg-black/90 dark:text-white"
+                >
                   {publishedListings.length}
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger
               value="pending"
-              className="flex items-center gap-2 whitespace-nowrap [&[data-state=active]_svg]:text-[#8752f3]"
+              className="flex items-center gap-2 whitespace-nowrap px-4 py-1 data-[state=active]:bg-black/80 dark:data-[state=active]:bg-[#fafafa] data-[state=active]:text-white dark:data-[state=active]:text-black [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
             >
               <span>
-                <FileText className="h-4 w-4" />
+                <img src="/icons/tab-close.svg" alt="" className="h-5 w-5" />
               </span>
               Pending Review
               {pendingListings.length > 0 && (
-                <Badge className="ml-2 bg-black/45 text-white dark:bg-white/20">{pendingListings.length}</Badge>
+                <Badge className="ml-2 bg-white/70 text-black dark:bg-black/70 dark:text-white">
+                  {pendingListings.length}
+                </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger
               value="drafts"
-              className="flex items-center gap-2 whitespace-nowrap [&[data-state=active]_svg]:text-[#8752f3]"
+              className="flex items-center gap-2 whitespace-nowrap px-4 py-1 data-[state=active]:bg-black/80 dark:data-[state=active]:bg-[#fafafa] data-[state=active]:text-white dark:data-[state=active]:text-black [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
             >
               <span>
-                <File className="h-4 w-4" />
+                <img src="/icons/folder.svg" alt="" className="h-5 w-5" />
               </span>
               Drafts
               {draftListings.length > 0 && (
-                <Badge variant="destructive" className="ml-2 bg-black/45 text-white dark:bg-white/20">
+                <Badge
+                  variant="destructive"
+                  className="ml-2 bg-white/70 text-black dark:bg-black/70 dark:text-white"
+                >
                   {draftListings.length}
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger
               value="analytics"
-              className="flex items-center gap-2 whitespace-nowrap [&[data-state=active]_svg]:text-[#8752f3]"
+              className="flex items-center gap-2 whitespace-nowrap px-4 py-1 data-[state=active]:bg-black/80 dark:data-[state=active]:bg-[#fafafa] data-[state=active]:text-white dark:data-[state=active]:text-black [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
             >
               <span>
-                <BarChart className="h-4 w-4" />
+                <img src="/icons/code-editor.svg" alt="" className="h-5 w-5" />
               </span>
               Analytics
             </TabsTrigger>
             <TabsTrigger
               value="archived"
-              className="flex items-center gap-2 whitespace-nowrap [&[data-state=active]_svg]:text-[#8752f3]"
+              className="flex items-center gap-2 whitespace-nowrap px-4 py-1 data-[state=active]:bg-black/80 dark:data-[state=active]:bg-[#fafafa] data-[state=active]:text-white dark:data-[state=active]:text-black [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
             >
               <span>
-                <ArchiveIcon className="h-4 w-4" />
+                <img src="/icons/inbox.svg" alt="" className="h-5 w-5" />
               </span>
               Archived
               {archivedListings.length > 0 && (
-                <Badge variant="secondary" className="ml-2 bg-black/45 text-white dark:bg-white/20">
+                <Badge
+                  variant="secondary"
+                  className="ml-2 bg-white/70 text-black dark:bg-black/70 dark:text-white"
+                >
                   {archivedListings.length}
                 </Badge>
               )}
@@ -448,7 +495,7 @@ const LandlordDashboard: React.FC = () => {
             <TabsContent value="published">
               <Card className="w-full">
                 <CardHeader className="p-6">
-                  <CardTitle>Published Listings</CardTitle>
+                  <CardTitle className="text-xl">Published Listings</CardTitle>
                   <CardDescription>
                     Your active listings that are visible to tenants
                   </CardDescription>
@@ -474,7 +521,7 @@ const LandlordDashboard: React.FC = () => {
             <TabsContent value="pending">
               <Card className="w-full">
                 <CardHeader className="p-6">
-                  <CardTitle>Pending Review</CardTitle>
+                  <CardTitle className="text-xl">Pending Review</CardTitle>
                   <CardDescription>
                     Listings waiting for admin approval
                   </CardDescription>
@@ -498,7 +545,7 @@ const LandlordDashboard: React.FC = () => {
             <TabsContent value="drafts">
               <Card className="w-full">
                 <CardHeader className="p-6">
-                  <CardTitle>Drafts</CardTitle>
+                  <CardTitle className="text-xl">Drafts</CardTitle>
                   <CardDescription>
                     Saved drafts and rejected listings
                   </CardDescription>
@@ -539,7 +586,7 @@ const LandlordDashboard: React.FC = () => {
             <TabsContent value="archived">
               <Card className="w-full">
                 <CardHeader className="p-6">
-                  <CardTitle>Archived Listings</CardTitle>
+                  <CardTitle className="text-xl">Archived Listings</CardTitle>
                   <CardDescription>
                     Previously published listings that are no longer active
                   </CardDescription>

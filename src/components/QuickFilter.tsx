@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Home, Hotel, Building2, Bath, Bed, CreditCard } from "lucide-react";
+import { Home, Hotel, Building2, Bath, Bed } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -40,21 +40,21 @@ const QuickFilter = () => {
       label: "< 20K",
       min: 0,
       max: 20000,
-      icon: <CreditCard className="mr-1 h-3 w-3" />,
+      icon: <img src="/icons/credit-cards.svg" className="mr-1 h-4 w-4" alt="" />,
     },
     {
       id: "price_50000",
       label: "< 50K",
       min: 0,
       max: 50000,
-      icon: <CreditCard className="mr-1 h-3 w-3" />,
+      icon: <img src="/icons/credit-cards.svg" className="mr-1 h-4 w-4" alt="" />,
     },
     {
       id: "price_80000",
       label: "< 80K",
       min: 0,
       max: 80000,
-      icon: <CreditCard className="mr-1 h-3 w-3" />,
+      icon: <img src="/icons/credit-cards.svg" className="mr-1 h-4 w-4" alt="" />,
     },
   ];
 

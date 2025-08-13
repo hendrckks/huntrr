@@ -336,7 +336,7 @@ const Home = () => {
 
       {/* Popular Listings Section */}
       <div className="mb-8 mt-5">
-        <h2 className="md:text-lg text-xl flex flex-col font-medium mb-4">
+        <h2 className="text-xl flex flex-col font-medium mb-4">
           Popular Properties
           {hasFilters && (
             <span className="text-sm font-normal text-muted-foreground">
@@ -360,7 +360,7 @@ const Home = () => {
         </ScrollArea>
       </div>
 
-      <h2 id="available-properties" className="md:text-lg text-xl mb-4 font-medium">Available Properties</h2>
+      <h2 id="available-properties" className="text-xl mb-4 font-medium">Available Properties</h2>
 
       {hasFilters && (
         <div className="mb-4 text-sm text-muted-foreground">

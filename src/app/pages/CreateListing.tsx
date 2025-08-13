@@ -34,7 +34,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { AlertCircle, CheckCircle2, HousePlus } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
 import Container from "../../components/Container";
 import {
@@ -303,7 +303,7 @@ export default function CreateListingForm() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2 ">
-                <HousePlus className="h-6 w-6" />
+                <img src="/icons/duplicate-plus.svg" alt="" className="h-6 w-6" />
                 <CardTitle className="text-xl">Create New Listing</CardTitle>
               </div>
             </CardHeader>

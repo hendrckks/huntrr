@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Card, CardContent } from "./ui/card";
-import { Bell, CheckCheck, Clock, Trash2 } from "lucide-react";
+import { CheckCheck, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -300,13 +300,13 @@ const NotificationsPage = () => {
       case "kyc_approved":
         return <CheckCheck className="h-5 w-5 text-green-500" />;
       case "kyc_rejected":
-        return <Bell className="h-5 w-5 text-red-500" />;
+        return <img src="/icons/bell.svg" alt="" className="h-6 w-6" />;
       case "new_tenant_application":
-        return <Bell className="h-5 w-5 text-blue-500" />;
+        return <img src="/icons/bell.svg" alt="" className="h-6 w-6" />;
       case "application_status_update":
-        return <Bell className="h-5 w-5 text-yellow-500" />;
+        return <img src="/icons/bell.svg" alt="" className="h-6 w-6" />;
       default:
-        return <Bell className="h-5 w-5 text-blue-500" />;
+        return <img src="/icons/bell.svg" alt="" className="h-6 w-6" />;
     }
   };
 
@@ -331,7 +331,7 @@ const NotificationsPage = () => {
       <div className="container max-w-4xl mx-auto p-4 pt-8">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-8 text-center text-red-500">
-            <Bell className="h-12 w-12 mb-4" />
+            <img src="/icons/bell.svg" alt="" className="h-12 w-12 mb-4" />
             <p>{error}</p>
             <button
               onClick={fetchUserNotifications}
@@ -346,10 +346,10 @@ const NotificationsPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto sm:px-6 lg:px-4 p-4 md:p-0 font-noto">
+    <div className="max-w-7xl mx-auto sm:px-6 lg:px-3 p-4 md:p-0 font-noto">
       <div className="flex items-center gap-2 mb-4">
         <div className="relative">
-          <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
+          <img src="/icons/bell.svg" alt="" className="h-5 w-5 sm:h-6 sm:w-6" />
         </div>
         <h1 className="text-xl font-medium">Notifications</h1>
       </div>
@@ -361,37 +361,37 @@ const NotificationsPage = () => {
       )}
 
       <Tabs defaultValue="unread" className="w-full">
-        <TabsList className="mb-4 bg-black/5 dark:bg-white/5 w-max md:min-w-fit">
+        <TabsList className="mb-4 bg-black/5 border dark:border-white/5 border-black/5 dark:bg-white/5 w-max md:min-w-fit">
           <TabsTrigger
             value="unread"
-            className="flex items-center gap-2 text-sm"
+            className="flex items-center gap-2 text-sm px-4 py-1 data-[state=active]:bg-black/80 data-[state=active]:text-white dark:data-[state=active]:bg-[#fafafa] dark:data-[state=active]:text-black [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
           >
-            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+            <img src="/icons/eye-slash.svg" alt="" className="h-3 w-3 sm:h-4 sm:w-4" />
             Unread ({unreadNotifications.length})
           </TabsTrigger>
-          <TabsTrigger value="read" className="flex items-center gap-2 text-sm">
-            <CheckCheck className="h-3 w-3 sm:h-4 sm:w-4" />
+          <TabsTrigger value="read" className="flex items-center gap-2 text-sm px-4 py-1 data-[state=active]:bg-black/80 data-[state=active]:text-white dark:data-[state=active]:bg-[#fafafa] dark:data-[state=active]:text-black [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black">
+            <img src="/icons/eye.svg" alt="" className="h-3 w-3 sm:h-4 sm:w-4" />
             Read ({readNotifications.length})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="unread">
           {unreadNotifications.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-6 sm:py-8 text-center text-muted-foreground">
-                <Bell className="h-8 w-8 sm:h-12 sm:w-12" />
-                <p className="text-sm">No unread notifications</p>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-6 sm:py-8 text-center text-muted-foreground">
+                  <img src="/icons/bell.svg" alt="" className="h-8 w-8 sm:h-12 sm:w-12" />
+                  <p className="text-sm">No unread notifications</p>
+                </CardContent>
+              </Card>
           ) : (
             <>
-              <div className="flex justify-end mb-4">
+              <div className="flex justify-end cursor-pointer mb-4">
                 <Button
                   onClick={markAllAsRead}
                   disabled={isMarkingAll}
-                  className="flex items-center gap-2 text-sm bg-black/90 hover:bg-black/80 dark:bg-white/90 dark:hover:bg-white/80 text-white dark:text-black rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 text-sm bg-black/85 hover:bg-black/75 dark:bg-white/90 dark:hover:bg-white/80 text-white dark:text-black rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <CheckCheck className="h-4 w-4" />
+                  {/* <img src="/icons/eye.svg" alt="" className="h-5 w-5" /> */}
                   {isMarkingAll ? "Marking..." : "Mark All as Read"}
                 </Button>
               </div>
@@ -428,9 +428,9 @@ const NotificationsPage = () => {
                           )}
                         <button
                           onClick={(e) => markAsRead(notification.id, e)}
-                          className="flex-1 sm:flex-initial px-2 sm:px-3 py-2 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
+                          className="flex-1 sm:flex-initial flex border border-black/5 dark:border-white/5 shadow-md backdrop-blur-3xl items-center gap-2 justify-center px-2 sm:px-3 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-primary/20 text-primary rounded-md transition-colors"
                         >
-                          Mark as read
+                          <span>Mark as read</span>
                         </button>
                         <Button
                           variant="destructive"
@@ -440,7 +440,7 @@ const NotificationsPage = () => {
                             setSelectedNotification(notification.id);
                             setIsDeleteDialogOpen(true);
                           }}
-                          className="hover:bg-red-600"
+                          className="hover:bg-red-600 shadow-md"
                         >
                           <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>

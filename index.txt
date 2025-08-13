@@ -1,0 +1,1123 @@
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import {
+  onDocumentCreated,
+  onDocumentUpdated,
+} from "firebase-functions/v2/firestore";
+import * as admin from "firebase-admin";
+import {
+  CustomError,
+  ValidationError,
+  NotFoundError,
+  PermissionError,
+} from "../../shared/CustomErrors";
+import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
+import type {
+  KYCDocument,
+  AdminNotificationDocument,
+  ListingDocument,
+} from "./types/types";
+import { onSchedule } from "firebase-functions/scheduler";
+import { logger } from "firebase-functions";
+import { getStorage } from "firebase-admin/storage";
+
+admin.initializeApp();
+const db = getFirestore();
+const storage = getStorage();
+
+interface SetCustomClaimsRequest {
+  uid: string;
+  role: string;
+}
+
+interface Listing {
+  id: string;
+  title: string;
+  flagCount: number;
+  status: string;
+  landlordId: string;
+}
+
+// Constants for roles
+const Roles = {
+  ADMIN: "admin",
+  LANDLORD_VERIFIED: "landlord_verified",
+} as const;
+
+// Rate limiting helper
+const rateLimiter = new Map<string, { count: number; lastReset: number }>();
+const RATE_LIMIT = 10; // Max 10 requests
+const RATE_LIMIT_WINDOW = 60000; // per minute (in milliseconds)
+const APPROVED_RETENTION_DAYS = 730; // 2 years for approved documents
+const REJECTED_RETENTION_DAYS = 90; // 90 days for rejected documents
+
+function checkRateLimit(uid: string): boolean {
+  const now = Date.now();
+  const userRateLimit = rateLimiter.get(uid) || { count: 0, lastReset: now };
+
+  if (now - userRateLimit.lastReset > RATE_LIMIT_WINDOW) {
+    userRateLimit.count = 1;
+    userRateLimit.lastReset = now;
+  } else {
+    userRateLimit.count++;
+  }
+
+  rateLimiter.set(uid, userRateLimit);
+  return userRateLimit.count <= RATE_LIMIT;
+}
+
+const BATCH_SIZE = 450; // Keep under Firestore's 500 limit
+
+/**
+ * Helper function to extract the storage path from a download URL and delete the file
+ */
+async function deleteFileFromUrl(downloadUrl: string): Promise<void> {
+  try {
+    // Extract the path from the download URL
+    const url = new URL(downloadUrl);
+    const pathMatch = url.pathname.match(/\/o\/(.+)\?/);
+    
+    if (!pathMatch || !pathMatch[1]) {
+      logger.error(`Could not extract path from URL: ${downloadUrl}`);
+      return;
+    }
+    
+    const path = decodeURIComponent(pathMatch[1]);
+    const fileRef = storage.bucket().file(path);
+    
+    // Check if file exists before attempting to delete
+    const [exists] = await fileRef.exists();
+    if (exists) {
+      await fileRef.delete();
+      logger.log(`Successfully deleted file: ${path}`);
+    } else {
+      logger.log(`File does not exist, skipping deletion: ${path}`);
+    }
+  } catch (error) {
+    logger.error(`Error deleting file from URL ${downloadUrl}:`, error);
+    // Log the failed deletion to a separate collection for potential retry
+    await logFailedDeletion(downloadUrl, error);
+  }
+}
+
+/**
+ * Log failed storage deletions for later retry
+ */
+async function logFailedDeletion(fileUrl: string, error: any): Promise<void> {
+  try {
+    await db.collection("failedDeletions").add({
+      fileUrl,
+      errorMessage: error.message || "Unknown error",
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      retryCount: 0,
+    });
+    logger.log(`Logged failed deletion for ${fileUrl} for later retry`);
+  } catch (logError) {
+    logger.error("Error logging failed deletion:", logError);
+  }
+}
+
+/**
+ * Process a batch of expired KYC documents
+ */
+async function processExpiredDocumentsBatch(
+  documents: FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData>[],
+  batchNumber: number,
+  totalBatches: number,
+  lastProcessedDocId?: string
+): Promise<string | undefined> {
+  logger.log(`Processing batch ${batchNumber} of ${totalBatches}`);
+  
+  // Storage deletion promises collection
+  const storageDeletePromises: Promise<void>[] = [];
+  
+  // Create a Firestore batch for document operations
+  const batch = db.batch();
+  
+  let lastDocId: string | undefined;
+  
+  for (const doc of documents) {
+    // Skip documents until we find the last processed one (for resuming after timeout)
+    if (lastProcessedDocId && doc.id !== lastProcessedDocId) {
+      continue;
+    } else if (lastProcessedDocId && doc.id === lastProcessedDocId) {
+      // Found the last processed document, now start processing from the next one
+      lastProcessedDocId = undefined;
+      continue;
+    }
+    
+    const kycData = doc.data() as KYCDocument;
+    lastDocId = doc.id;
+    
+    // Queue storage deletions (executed outside transaction)
+    if (kycData.frontDocumentUrl) {
+      storageDeletePromises.push(deleteFileFromUrl(kycData.frontDocumentUrl));
+    }
+    if (kycData.backDocumentUrl) {
+      storageDeletePromises.push(deleteFileFromUrl(kycData.backDocumentUrl));
+    }
+    if (kycData.selfieUrl) {
+      storageDeletePromises.push(deleteFileFromUrl(kycData.selfieUrl));
+    }
+    
+    // Delete the KYC document
+    batch.delete(doc.ref);
+    
+    // Create audit log entry
+    const auditLogRef = db.collection("kycDeletionLogs").doc();
+    batch.set(auditLogRef, {
+      kycId: kycData.id,
+      userId: kycData.userId,
+      documentType: kycData.documentType,
+      status: kycData.status,
+      submittedAt: kycData.submittedAt,
+      reviewedAt: kycData.reviewedAt,
+      deletedAt: admin.firestore.Timestamp.now(),
+      reason: "retention_period_expired"
+    });
+  }
+  
+  try {
+    // Execute storage deletions first, concurrently
+    if (storageDeletePromises.length > 0) {
+      await Promise.all(storageDeletePromises);
+    }
+    
+    // Execute Firestore batch operations
+    await batch.commit();
+    
+    logger.log(`Successfully processed batch ${batchNumber} of ${totalBatches}`);
+    
+    // Return the last processed document ID for potential continuation
+    return lastDocId;
+  } catch (error: unknown) {
+    logger.error(`Error processing batch ${batchNumber}:`, error);
+    
+    // Log the batch processing failure
+    await db.collection("cleanupFailures").add({
+      batchNumber,
+      error: error instanceof Error ? error.message : "Unknown error",
+      timestamp: admin.firestore.Timestamp.now(),
+      lastProcessedDocId: lastDocId,
+    });
+    
+    throw error;
+  }
+}
+
+/**
+ * Calculates scheduled deletion date based on status
+ */
+function calculateDeletionDate(status: string): admin.firestore.Timestamp | null {
+  if (status !== "approved" && status !== "rejected") {
+    return null;
+  }
+  
+  const now = Date.now();
+  const retentionDays = status === "approved" ? APPROVED_RETENTION_DAYS : REJECTED_RETENTION_DAYS;
+  const deletionDate = new Date(now + (retentionDays * 24 * 60 * 60 * 1000));
+  
+  return admin.firestore.Timestamp.fromDate(deletionDate);
+}
+
+/**
+ * Scheduled function to clean up expired KYC documents
+ */
+export const cleanupExpiredKYCDocuments = onSchedule(
+  
+  {
+    schedule: "every 24 hours",
+    timeoutSeconds: 540, // 9 minutes max runtime (just under the 10-minute limit)
+  },
+  
+  async () => {
+    logger.log("Starting scheduled KYC document cleanup");
+    
+    try {
+      const now = admin.firestore.Timestamp.now();
+      
+      // Check for any previous failed runs that need to be resumed
+      const failedRunsSnapshot = await db
+        .collection("cleanupFailures")
+        .orderBy("timestamp", "desc")
+        .limit(1)
+        .get();
+      
+      let lastProcessedDocId: string | undefined;
+      if (!failedRunsSnapshot.empty) {
+        lastProcessedDocId = failedRunsSnapshot.docs[0].data().lastProcessedDocId;
+        logger.log(`Resuming from last processed document: ${lastProcessedDocId}`);
+      }
+      
+      // Get all KYC documents that have a scheduledDeletionDate in the past
+      const expiredDocsSnapshot = await db
+        .collection("kyc")
+        .where("scheduledDeletionDate", "<=", now)
+        .orderBy("scheduledDeletionDate") // Order to ensure consistent pagination
+        .limit(5000) // Practical limit for a single run
+        .get();
+      
+      if (expiredDocsSnapshot.empty) {
+        logger.log("No expired KYC documents found");
+        return;
+      }
+      
+      logger.log(`Found ${expiredDocsSnapshot.size} expired KYC documents to delete`);
+      
+      // Process documents in batches
+      const documents = expiredDocsSnapshot.docs;
+      const totalBatches = Math.ceil(documents.length / BATCH_SIZE);
+      
+      // Track progress in case we need to resume
+      let processedBatches = 0;
+      let progressMarker: string | undefined;
+      
+      // Store processing start metadata
+      const processRunRef = db.collection("kycCleanupRuns").doc();
+      await processRunRef.set({
+        startTime: now,
+        totalDocuments: documents.length,
+        status: "in_progress",
+        lastProcessedDocId,
+      });
+      
+      // Process batches
+      for (let i = 0; i < documents.length; i += BATCH_SIZE) {
+        const batch = documents.slice(i, i + BATCH_SIZE);
+        processedBatches++;
+        
+        try {
+          progressMarker = await processExpiredDocumentsBatch(
+            batch,
+            processedBatches,
+            totalBatches,
+            lastProcessedDocId
+          );
+          
+          // Clear lastProcessedDocId after first batch when resuming
+          if (lastProcessedDocId) {
+            lastProcessedDocId = undefined;
+          }
+          
+          // Update run status
+          await processRunRef.update({
+            processedBatches,
+            processedDocuments: Math.min(processedBatches * BATCH_SIZE, documents.length),
+            lastProcessedDocId: progressMarker,
+            lastUpdateTime: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          const functionStartTime = Date.now();
+          // Check if we're approaching the time limit and should stop
+          if (Date.now() - functionStartTime > 500000) { // 500 seconds (~8.3 minutes)
+            logger.warn("Approaching time limit, will resume in next run");
+            
+            await processRunRef.update({
+              status: "paused",
+              message: "Function approaching timeout, will resume in next run",
+              lastUpdateTime: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            
+            // Record continuation point for next run
+            await db.collection("cleanupContinuationPoints").add({
+              timestamp: admin.firestore.FieldValue.serverTimestamp(),
+              lastProcessedDocId: progressMarker,
+              remainingBatches: totalBatches - processedBatches,
+              runId: processRunRef.id,
+            });
+            
+            return;
+          }
+        } catch (error: unknown) {
+          logger.error(`Error processing batch: ${error}`);
+          
+          await processRunRef.update({
+            status: "error",
+            error: error instanceof Error ? error.message : "Unknown error",
+            processedBatches,
+            lastProcessedDocId: progressMarker,
+            lastUpdateTime: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          
+          throw error;
+        }
+      }
+      
+      // Clean up any stale continuation points as we've completed successfully
+      const stalePointsSnapshot = await db
+        .collection("cleanupContinuationPoints")
+        .orderBy("timestamp", "desc")
+        .limit(5)
+        .get();
+      
+      const stalePointsBatch = db.batch();
+      stalePointsSnapshot.docs.forEach(doc => {
+        stalePointsBatch.delete(doc.ref);
+      });
+      await stalePointsBatch.commit();
+      
+      // Complete the run
+      await processRunRef.update({
+        status: "completed",
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        processedBatches,
+        totalBatches,
+      });
+      
+      logger.log(`Successfully completed cleanup of ${expiredDocsSnapshot.size} expired KYC documents`);
+      
+      // Now attempt to retry any previously failed deletions
+      await retryFailedDeletions();
+    } catch (error) {
+      logger.error("Error cleaning up expired KYC documents:", error);
+    }
+  }
+);
+
+/**
+ * Retry previously failed storage deletions
+ */
+async function retryFailedDeletions(): Promise<void> {
+  try {
+    // Get files that failed deletion, with limited retries
+    const failedDeletionsSnapshot = await db
+      .collection("failedDeletions")
+      .where("retryCount", "<", 5) // Limit retry attempts
+      .orderBy("retryCount")
+      .limit(50) // Process a reasonable number
+      .get();
+    
+    if (failedDeletionsSnapshot.empty) {
+      return;
+    }
+    
+    logger.log(`Attempting to retry ${failedDeletionsSnapshot.size} failed deletions`);
+    
+    for (const doc of failedDeletionsSnapshot.docs) {
+      const data = doc.data();
+      
+      try {
+        await deleteFileFromUrl(data.fileUrl);
+        // If successful, delete the tracking document
+        await doc.ref.delete();
+        logger.log(`Successfully retried deletion for ${data.fileUrl}`);
+      } catch (error) {
+        // Update retry count
+        await doc.ref.update({
+          retryCount: FieldValue.increment(1),
+          lastRetryTime: admin.firestore.FieldValue.serverTimestamp(),
+          lastErrorMessage: error instanceof Error ? error.message : "Unknown error",
+        });
+        logger.error(`Retry failed for ${data.fileUrl}: ${error}`);
+      }
+    }
+  } catch (error) {
+    logger.error("Error retrying failed deletions:", error);
+  }
+}
+
+/**
+ * Unified function to update KYC document retention periods
+ */
+export const setKYCRetentionPeriod = async (
+  kycId: string, 
+  status: string, 
+  userId: string
+): Promise<void> => {
+  try {
+    const kycRef = db.collection("kyc").doc(kycId);
+    const now = admin.firestore.Timestamp.now();
+    
+    // Calculate deletion date based on status
+    const scheduledDeletionDate = calculateDeletionDate(status);
+    
+    if (!scheduledDeletionDate) {
+      logger.log(`Status ${status} does not trigger retention period update`);
+      return;
+    }
+    
+    // Update the document with scheduled deletion date
+    await kycRef.update({
+      scheduledDeletionDate,
+      updatedAt: now
+    });
+    
+    // Create audit log entry
+    await db.collection("kycAuditLogs").add({
+      kycId,
+      userId,
+      action: "retention_period_set",
+      status,
+      retentionDays: status === "approved" ? APPROVED_RETENTION_DAYS : REJECTED_RETENTION_DAYS,
+      scheduledDeletionDate,
+      timestamp: now
+    });
+    
+    logger.log(`Updated KYC document ${kycId} with scheduled deletion date: ${scheduledDeletionDate.toDate()}`);
+  } catch (error) {
+    logger.error(`Error setting retention period for KYC document ${kycId}:`, error);
+    
+    // Log the failure
+    await db.collection("retentionUpdateFailures").add({
+      kycId,
+      status,
+      timestamp: admin.firestore.Timestamp.now(),
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+};
+
+/**
+ * Handle KYC status changes and update retention period
+ */
+export const onKYCStatusChange = onDocumentUpdated(
+  "kyc/{docId}",
+  async (event) => {
+    const beforeData = event.data?.before.data() as KYCDocument;
+    const afterData = event.data?.after.data() as KYCDocument;
+
+    if (!beforeData || !afterData || beforeData.status === afterData.status) {
+      return;
+    }
+
+    // Only process status changes to approved or rejected
+    if (afterData.status === "approved" || afterData.status === "rejected") {
+      await setKYCRetentionPeriod(afterData.id, afterData.status, afterData.userId);
+    }
+  }
+);
+
+// Schedule daily job to retry cleanup tasks that might have failed or timed out
+export const retryKYCCleanupTasks = onSchedule(
+  "every 12 hours",
+  async () => {
+    logger.log("Starting scheduled retry of KYC cleanup tasks");
+    
+    try {
+      // Check for continuation points that need to be processed
+      const continuationPointsSnapshot = await db
+        .collection("cleanupContinuationPoints")
+        .orderBy("timestamp")
+        .limit(1)
+        .get();
+      
+      if (continuationPointsSnapshot.empty) {
+        logger.log("No cleanup continuation points found");
+        return;
+      }
+      
+      const continuationPoint = continuationPointsSnapshot.docs[0].data();
+      logger.log(`Found continuation point from previous run: ${continuationPoint.lastProcessedDocId}`);
+      
+      // Mark that we're processing this continuation point
+      await continuationPointsSnapshot.docs[0].ref.update({
+        retryStarted: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      // Get all KYC documents that need processing, starting from the last processed document
+      const kycQuery = db.collection("kyc")
+        .where("scheduledDeletionDate", "<=", admin.firestore.Timestamp.now());
+      
+      let docsSnapshot;
+      if (continuationPoint.lastProcessedDocId) {
+        // Get the last processed document as a starting point
+        const lastDocSnapshot = await db.collection("kyc").doc(continuationPoint.lastProcessedDocId).get();
+        
+        if (lastDocSnapshot.exists) {
+          const lastDoc = lastDocSnapshot.data() as KYCDocument;
+          
+          // Start after this document
+          docsSnapshot = await kycQuery
+            .orderBy("scheduledDeletionDate")
+            .startAfter(lastDoc.scheduledDeletionDate)
+            .limit(1000)
+            .get();
+        } else {
+          // Last document no longer exists, just get next batch
+          docsSnapshot = await kycQuery
+            .orderBy("scheduledDeletionDate")
+            .limit(1000)
+            .get();
+        }
+      } else {
+        // No specific starting point
+        docsSnapshot = await kycQuery
+          .orderBy("scheduledDeletionDate")
+          .limit(1000)
+          .get();
+      }
+      
+      if (docsSnapshot.empty) {
+        logger.log("No documents found for cleanup retry");
+        // Remove the continuation point as there's nothing to process
+        await continuationPointsSnapshot.docs[0].ref.delete();
+        return;
+      }
+      
+      logger.log(`Found ${docsSnapshot.size} documents to process in cleanup retry`);
+      
+      // Process in batches
+      const documents = docsSnapshot.docs;
+      const totalBatches = Math.ceil(documents.length / BATCH_SIZE);
+      
+      for (let i = 0; i < documents.length; i += BATCH_SIZE) {
+        const batch = documents.slice(i, i + BATCH_SIZE);
+        await processExpiredDocumentsBatch(
+          batch,
+          i/BATCH_SIZE + 1,
+          totalBatches,
+          undefined // No need to skip any documents here
+        );
+      }
+      
+      // Delete the continuation point as we've completed processing
+      await continuationPointsSnapshot.docs[0].ref.delete();
+      
+      logger.log("Successfully completed retry of KYC cleanup tasks");
+    } catch (error) {
+      logger.error("Error retrying KYC cleanup tasks:", error);
+    }
+  }
+);
+
+// Listen for user role changes and update custom claims
+export const onUserRoleUpdate = onDocumentUpdated(
+  "users/{userId}",
+  async (event) => {
+    const newValue = event.data?.after.data();
+    const previousValue = event.data?.before.data();
+
+    if (newValue?.role !== previousValue?.role) {
+      try {
+        // Force token revocation
+        await admin.auth().revokeRefreshTokens(event.params.userId);
+
+        // Update custom claims
+        await admin.auth().setCustomUserClaims(event.params.userId, {
+          role: newValue?.role,
+        });
+
+        // Update user document with claims update metadata
+        await event.data?.after.ref.update({
+          lastClaimsUpdate: admin.firestore.FieldValue.serverTimestamp(),
+          requiresReauth: true,
+        });
+
+        await createAdminNotification({
+          type: "role_update",
+          title: "User Role Updated",
+          message: `User ${event.params.userId} role updated from ${previousValue?.role} to ${newValue?.role}`,
+          relatedUserId: event.params.userId,
+          createdAt: admin.firestore.Timestamp.now(),
+        });
+
+        console.log(
+          `Updated custom claims for user ${event.params.userId} to role: ${newValue?.role}`
+        );
+      } catch (error) {
+        console.error("Error updating custom claims:", error);
+      }
+    }
+  }
+);
+
+export const revokeUserTokens = onCall(async (request) => {
+  if (!request.auth || request.auth.token.role !== "admin") {
+    throw new HttpsError("permission-denied", "Not authorized");
+  }
+
+  const { userId } = request.data;
+  await admin.auth().revokeRefreshTokens(userId);
+  return { success: true };
+});
+
+// Type definitions for request data
+
+// Function to set custom claims for a user
+export const setCustomClaims = onCall<SetCustomClaimsRequest>(
+  { enforceAppCheck: false },
+  async (request) => {
+    try {
+      if (!request.auth) {
+        throw new PermissionError(
+          "The function must be called while authenticated."
+        );
+      }
+
+      if (!checkRateLimit(request.auth.uid)) {
+        throw new HttpsError(
+          "resource-exhausted",
+          "Rate limit exceeded. Please try again later."
+        );
+      }
+
+      const { uid, role } = request.data;
+
+      if (!uid || typeof uid !== "string") {
+        throw new ValidationError("Invalid UID provided.");
+      }
+      if (!role || typeof role !== "string") {
+        throw new ValidationError("Invalid role provided.");
+      }
+
+      if (request.auth.uid !== uid) {
+        throw new PermissionError(
+          "The function must be called by the user themselves."
+        );
+      }
+
+      // Check if the user has permission to set this role
+      const currentUserRecord = await admin.auth().getUser(request.auth.uid);
+      const currentUserClaims = currentUserRecord.customClaims || {};
+      if (role === "admin" && currentUserClaims.role !== "admin") {
+        throw new PermissionError("Only admins can set admin role.");
+      }
+
+      const currentClaims =
+        (await admin.auth().getUser(uid)).customClaims || {};
+      await admin.auth().setCustomUserClaims(uid, { ...currentClaims, role });
+
+      return {
+        message: "Custom claims set successfully. Please refresh the page.",
+      };
+    } catch (error) {
+      console.error("Error in setCustomClaims:", error);
+      if (error instanceof CustomError) {
+        throw new HttpsError(error.code as any, error.message);
+      }
+      throw new HttpsError("internal", "An unexpected error occurred.");
+    }
+  }
+);
+
+export const verifyLandlord = onCall(
+  { enforceAppCheck: true },
+  async (request) => {
+    try {
+      if (!request.auth) {
+        throw new PermissionError("User must be logged in.");
+      }
+
+      // Verify admin role from custom claims
+      const callerRole = request.auth.token.role;
+      if (callerRole !== Roles.ADMIN) {
+        throw new PermissionError("Only admins can verify landlords.");
+      }
+
+      const { uid } = request.data;
+      if (!uid || typeof uid !== "string") {
+        throw new ValidationError("Invalid UID provided.");
+      }
+
+      // Run everything in a transaction to ensure consistency
+      await admin.firestore().runTransaction(async (transaction) => {
+        const userRef = admin.firestore().collection("users").doc(uid);
+        const userDoc = await transaction.get(userRef);
+
+        if (!userDoc.exists) {
+          throw new NotFoundError("User document not found.");
+        }
+
+        // Update user document with new role and verification timestamp
+        transaction.update(userRef, {
+          role: Roles.LANDLORD_VERIFIED,
+          verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // Add admin notification about landlord verification
+        await createAdminNotification({
+          type: "role_update",
+          title: "Landlord Verified",
+          message: `Landlord ${uid} has been verified`,
+          relatedUserId: uid,
+          createdAt: admin.firestore.Timestamp.now(),
+        });
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error in verifyLandlord:", error);
+      if (error instanceof CustomError) {
+        throw new HttpsError(error.code as any, error.message);
+      }
+      throw new HttpsError("internal", "An unexpected error occurred.");
+    }
+  }
+);
+
+export const onListingVerified = onDocumentUpdated(
+  "listings/{listingId}",
+  async (event) => {
+    try {
+      const newValue = event.data?.after.data();
+      const previousValue = event.data?.before.data();
+
+      if (!newValue || !previousValue) {
+        throw new ValidationError("No data associated with the event");
+      }
+
+      if (
+        newValue.status === "published" &&
+        previousValue.status === "awaiting_verification"
+      ) {
+        const landlordId = newValue.landlord.uid;
+        const landlordRef = admin
+          .firestore()
+          .collection("users")
+          .doc(landlordId);
+        const landlordDoc = await landlordRef.get();
+
+        if (!landlordDoc.exists) {
+          throw new NotFoundError("Landlord document not found");
+        }
+        // Add notification to the notifications collection
+        await admin
+          .firestore()
+          .collection("notifications")
+          .add({
+            listingId: event.params.listingId,
+            landlordId: landlordId,
+            message: `Your listing "${newValue.title}" has been verified and is now published.`,
+            type: "verification",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            read: false,
+          });
+
+        await createAdminNotification({
+          type: "listing_verification",
+          title: "Listing Verified",
+          message: `Listing ${event.params.listingId} has been verified and published`,
+          relatedListingId: event.params.listingId,
+          relatedUserId: landlordId,
+          createdAt: admin.firestore.Timestamp.now(),
+        });
+      }
+
+      console.log(`Successfully recalled listing ${event.params.listingId}`);
+    } catch (error) {
+      console.error("Error in onListingVerified:", error);
+      // Since this is a background function, we can't return an error to the client
+      // But we can log it for monitoring purposes
+    }
+  }
+);
+
+export const onListingFlagged = onDocumentUpdated(
+  "listings/{listingId}",
+  async (event) => {
+    const newData = event.data?.after?.data() as Listing | undefined;
+    const previousData = event.data?.before?.data() as Listing | undefined;
+
+    if (!newData || !previousData) {
+      console.log("No data available");
+      return;
+    }
+
+    // Check if listing should be recalled based on flag count, regardless of increment
+    if (newData.flagCount >= 5 && newData.status !== "recalled") {
+      const listingRef = event.data?.after?.ref;
+
+      if (!listingRef) {
+        console.error("Listing reference is undefined");
+        return;
+      }
+
+      try {
+        await listingRef.update({
+          status: "recalled",
+          archivedAt: Timestamp.now(),
+        });
+
+        // Create admin notification
+        await createAdminNotification({
+          type: "flag_threshold_reached",
+          title: "Listing Auto-Recalled",
+          message: `Listing "${newData.title}" has been auto-recalled due to reaching the flag threshold`,
+          relatedListingId: event.params.listingId,
+          createdAt: admin.firestore.Timestamp.now(),
+        });
+
+        // Create user notification
+        await admin.firestore().collection("notifications").add({
+          listingId: event.params.listingId,
+          landlordId: newData.landlordId,
+          message: `Your listing "${newData.title}" has been recalled due to receiving multiple flags from users. Please review our content guidelines or contact support for more information.`,
+          type: "listing_recalled",
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          read: false,
+        });
+
+        console.log(`Successfully recalled listing ${event.params.listingId} and created notifications`);
+      } catch (error) {
+        console.error("Error updating listing status:", error);
+        throw error;
+      }
+    }
+  }
+);
+
+export const onKYCSubmission = onDocumentCreated(
+  "kyc/{docId}",
+  async (event) => {
+    const kycDoc = event.data?.data() as KYCDocument | undefined;
+
+    if (!kycDoc) {
+      console.log("No data available");
+      return;
+    }
+
+    try {
+      // Use transaction to ensure atomic updates
+      await db.runTransaction(async (transaction) => {
+        const notificationRef = db.collection("adminNotifications").doc();
+
+        const notification: AdminNotificationDocument = {
+          id: notificationRef.id,
+          type: "kyc_submission",
+          title: "New KYC Submission",
+          message: `New KYC document submitted for review. Document type: ${kycDoc.documentType}`,
+          relatedUserId: kycDoc.userId,
+          createdAt: admin.firestore.Timestamp.now(),
+          read: false,
+        };
+
+        transaction.set(notificationRef, notification);
+      });
+
+      console.log(
+        `Successfully created KYC submission notification for user ${kycDoc.userId}`
+      );
+    } catch (error) {
+      console.error("Error in onKYCSubmission:", error);
+      throw error;
+    }
+  }
+);
+
+// Handle KYC status changes and update retention period
+// export const onKYCStatusChange = onDocumentUpdated(
+//   "kyc/{docId}",
+//   async (event) => {
+//     const beforeData = event.data?.before.data() as KYCDocument;
+//     const afterData = event.data?.after.data() as KYCDocument;
+
+//     if (!beforeData || !afterData || beforeData.status === afterData.status) {
+//       return;
+//     }
+
+//     try {
+//       await db.runTransaction(async (transaction) => {
+//         const kycRef = event.data!.after.ref;
+//         const now = admin.firestore.Timestamp.now();
+
+//         // Calculate retention period based on status
+//         let retentionDays;
+//         if (afterData.status === "approved") {
+//           retentionDays = APPROVED_RETENTION_DAYS;
+//         } else if (afterData.status === "rejected") {
+//           retentionDays = REJECTED_RETENTION_DAYS;
+//         } else {
+//           return; // No retention period update needed for other statuses
+//         }
+
+//         // Calculate deletion date
+//         const deletionDate = new Date(now.toMillis() + (retentionDays * 24 * 60 * 60 * 1000));
+
+//         // Update document with retention period
+//         transaction.update(kycRef, {
+//           scheduledDeletionDate: admin.firestore.Timestamp.fromDate(deletionDate),
+//           updatedAt: now
+//         });
+
+//         // Create audit log
+//         const auditLogRef = db.collection("kycAuditLogs").doc();
+//         transaction.set(auditLogRef, {
+//           kycId: afterData.id,
+//           userId: afterData.userId,
+//           action: "status_change",
+//           previousStatus: beforeData.status,
+//           newStatus: afterData.status,
+//           retentionDays,
+//           scheduledDeletionDate: admin.firestore.Timestamp.fromDate(deletionDate),
+//           timestamp: now
+//         });
+//       });
+
+//       console.log(`Updated retention period for KYC document ${event.params.docId}`);
+//     } catch (error) {
+//       console.error("Error updating KYC retention period:", error);
+//       throw error;
+//     }
+//   }
+// );
+
+const createAdminNotification = async (
+  notification: Omit<AdminNotificationDocument, "id" | "read" | "readAt">
+): Promise<string> => {
+  const notificationRef = db.collection("adminNotifications").doc();
+  const notificationData: AdminNotificationDocument = {
+    ...notification,
+    id: notificationRef.id,
+    read: false,
+    createdAt: admin.firestore.Timestamp.now(),
+  };
+
+  await notificationRef.set(notificationData);
+  return notificationRef.id;
+};
+
+// Trigger when a new listing is created
+export const onNewListing = onDocumentCreated(
+  "listings/{listingId}",
+  async (event) => {
+    const listing = event.data?.data() as ListingDocument | undefined;
+    const listingId = event.data?.id;
+
+    if (!listing || !listingId) {
+      console.log("No data available");
+      return;
+    }
+
+    try {
+      // Use transaction to ensure atomic updates
+      await db.runTransaction(async (transaction) => {
+        const notificationRef = db.collection("adminNotifications").doc();
+
+        const notification: AdminNotificationDocument = {
+          id: notificationRef.id,
+          type: "new_listing",
+          title: "New Listing Requires Review",
+          message: `New listing "${listing.title}" needs review`,
+          relatedListingId: listingId,
+          relatedUserId: listing.landlordId, // Add this if available in your ListingDocument
+          createdAt: admin.firestore.Timestamp.now(),
+          read: false,
+        };
+
+        transaction.set(notificationRef, notification);
+      });
+
+      console.log(
+        `Successfully created new listing notification for listing ${listingId}`
+      );
+    } catch (error) {
+      console.error("Error in onNewListing:", error);
+      throw error;
+    }
+  }
+);
+
+// Trigger when a listing's flag count changes
+export const onListingFlaggedUser = onDocumentUpdated(
+  "listings/{listingId}",
+  async (event) => {
+    const beforeData = event.data?.before.data() as ListingDocument | undefined;
+    const afterData = event.data?.after.data() as ListingDocument | undefined;
+
+    if (!beforeData || !afterData) return;
+
+    // Only proceed if flag count has increased AND exactly hits threshold
+    if (
+      afterData.flagCount !== afterData.FLAG_THRESHOLD ||
+      beforeData.flagCount >= afterData.FLAG_THRESHOLD
+    )
+      return;
+
+    // Use transaction to ensure atomic updates
+    await db.runTransaction(async (transaction) => {
+      // Verify the condition is still true
+      const freshDoc = await transaction.get(event.data!.after.ref);
+      const freshData = freshDoc.data() as ListingDocument;
+
+      if (freshData.flagCount !== freshData.FLAG_THRESHOLD) return;
+
+      // Update listing status
+      transaction.update(event.data!.after.ref, {
+        status: "recalled",
+        archivedAt: admin.firestore.Timestamp.now(),
+      });
+
+      // Create notification
+      const notificationRef = db.collection("notifications").doc();
+      const notification: AdminNotificationDocument = {
+        id: notificationRef.id,
+        type: "flag_threshold_reached",
+        title: "Listing Auto-Recalled",
+        message: `Listing "${afterData.title}" has been auto-recalled due to reaching the flag threshold`,
+        relatedListingId: event.params.listingId,
+        createdAt: admin.firestore.Timestamp.now(),
+        read: false,
+      };
+
+      transaction.set(notificationRef, notification);
+    });
+  }
+);
+
+// Trigger when a listing is updated
+export const onListingUpdate = onDocumentUpdated(
+  "listings/{listingId}",
+  async (event) => {
+    const before = event.data?.before.data() as ListingDocument | undefined;
+    const after = event.data?.after.data() as ListingDocument | undefined;
+    const listingId = event.params.listingId;
+
+    if (!before || !after) {
+      console.log("No data available");
+      return;
+    }
+
+    // Only proceed if status changes from draft to pending_review
+    if ((before.status === "draft" || before.status === "published") && after.status === "pending_review") {
+      try {
+        // Use transaction to ensure atomic updates
+        await db.runTransaction(async (transaction) => {
+          const notificationRef = db.collection("adminNotifications").doc();
+
+          const notification: AdminNotificationDocument = {
+            id: notificationRef.id,
+            type: "listing_updated",
+            title: "Listing Submitted for Review",
+            message: `Listing "${after.title}" has been submitted for review`,
+            relatedListingId: listingId,
+            relatedUserId: after.landlordId, // Add this if available in your ListingDocument
+            createdAt: admin.firestore.Timestamp.now(),
+            read: false,
+          };
+
+          transaction.set(notificationRef, notification);
+        });
+
+        console.log(
+          `Successfully created listing update notification for listing ${listingId}`
+        );
+      } catch (error) {
+        console.error("Error in onListingUpdate:", error);
+        throw error;
+      }
+    }
+  }
+);
+// Cleanup old notifications
+export const cleanupOldNotifications = onSchedule(
+  "every 24 hours",
+  async () => {
+    const cutoffDate = admin.firestore.Timestamp.fromDate(
+      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30 days ago
+    );
+
+    const snapshot = await db
+      .collection("adminNotifications")
+      .where("read", "==", true)
+      .where("createdAt", "<=", cutoffDate)
+      .get();
+
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+  }
+);
+
+
+

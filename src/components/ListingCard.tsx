@@ -49,7 +49,9 @@ const ListingCard = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks();
-  const [localBookmarkState, setLocalBookmarkState] = useState<boolean | undefined>(undefined);
+  const [localBookmarkState, setLocalBookmarkState] = useState<
+    boolean | undefined
+  >(undefined);
   const [isDissolving, setIsDissolving] = useState(false);
   const dissolveAnimRef = useRef<SVGAnimateElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,7 +95,9 @@ const ListingCard = ({
       const remainingMinutes = getRemainingCooldownMinutes(user.uid);
       toast({
         title: "Cooldown Period",
-        description: `Please wait ${remainingMinutes} minute${remainingMinutes === 1 ? '' : 's'} before flagging another listing.`,
+        description: `Please wait ${remainingMinutes} minute${
+          remainingMinutes === 1 ? "" : "s"
+        } before flagging another listing.`,
         variant: "warning",
       });
       setDialogOpen(false);
@@ -127,7 +131,8 @@ const ListingCard = ({
 
       if (error instanceof Error) {
         if (error.message.includes("Missing or insufficient permissions")) {
-          errorMessage = "You don't have permission to flag this listing. Please contact support if you think this is an error.";
+          errorMessage =
+            "You don't have permission to flag this listing. Please contact support if you think this is an error.";
         }
       }
 
@@ -261,17 +266,82 @@ const ListingCard = ({
   const defaultImage = "https://via.placeholder.com/300x200?text=No+Image";
 
   return (
-    <div>
+    <div className="p-1.5 dark:bg-white/5 shadow-sm bg-black/5 border border-black/5 dark:border-white/5 rounded-xl  ">
       <Link
         to={`/listings/${listing.id}`}
         className="block rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 relative"
         onMouseEnter={handleMouseEnter}
       >
+        <div className="absolute right-12 text-gray-600 z-10">
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 z-10 p-2 border-black/20 rounded-full bg-white/80 backdrop-blur-3xl border hover:bg-white transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (!user) {
+                    toast({
+                      title: "Authentication Required",
+                      description: "Please sign in to flag listings",
+                      variant: "error",
+                    });
+                    return;
+                  }
+                  setDialogOpen(true);
+                }}
+              >
+                <Flag className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="font-inter">
+              <DialogHeader>
+                <DialogTitle>Flag Listing</DialogTitle>
+                <DialogDescription>
+                  Please select a reason for flagging this listing.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <Select
+                  onValueChange={(value) => setFlagReason(value as FlagReason)}
+                  value={flagReason}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="scam">Scam</SelectItem>
+                    <SelectItem value="inappropriate">Inappropriate</SelectItem>
+                    <SelectItem value="misleading">Misleading</SelectItem>
+                    <SelectItem value="wrong_information">
+                      Wrong Information
+                    </SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Textarea
+                  placeholder="Additional details about your flag (optional)"
+                  value={flagDescription}
+                  onChange={(e) => setFlagDescription(e.target.value)}
+                />
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={handleFlag}
+                  disabled={!flagReason || isSubmitting}
+                >
+                  {isSubmitting ? "Submitting..." : "Submit Flag"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
         {showBookmark && (
           <>
             <button
               onClick={handleBookmarkClick}
-              className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
+              className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 backdrop-blur-3xl border border-black/20 hover:bg-white transition-colors"
               style={{
                 filter: isDissolving
                   ? `url(#dissolve-filter-${listing?.id})`
@@ -288,7 +358,7 @@ const ListingCard = ({
             </button>
           </>
         )}
-        <div className="relative w-full pb-[75%] overflow-hidden rounded-lg">
+        <div className="relative border border-black/5 dark:border-white/5 w-full pb-[75%] overflow-hidden rounded-lg">
           <img
             src={primaryPhoto?.url || defaultImage}
             alt={listing.title}
@@ -297,19 +367,19 @@ const ListingCard = ({
         </div>
       </Link>
 
-      <div className="mt-2">
+      <div className="mt-4 px-2">
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <div className="flex justify-between items-center">
-              <h3 className="font-medium text-[15px] text-gray-900 dark:text-white max-w-[300px] truncate">
+              <h3 className="font-medium text-gray-900 dark:text-white max-w-[300px] truncate">
                 {listing.title}
               </h3>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              {/* <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 bg-white/10"
+                    className="h-7 w-7 bg-black/10 dark:bg-white/10 rounded-full p-4 border border-black/10 dark:border-white/10 backdrop-blur-3xl"
                     onClick={(e) => {
                       e.preventDefault();
                       if (!user) {
@@ -323,7 +393,7 @@ const ListingCard = ({
                       setDialogOpen(true);
                     }}
                   >
-                    <Flag className="h-3 w-3" />
+                    <Flag className="h-2.5 w-2.5" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="font-inter">
@@ -370,7 +440,7 @@ const ListingCard = ({
                     </Button>
                   </DialogFooter>
                 </DialogContent>
-              </Dialog>
+              </Dialog> */}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-300 truncate mt-1">
               {listing.location.neighborhood}, {listing.location.city}
@@ -384,7 +454,7 @@ const ListingCard = ({
           <span>•</span>
           <span>{listing.squareFootage} sqft</span>
         </div>
-        <p className="dark:text-white text-black font-medium mt-2 mb-4 text-[15px]">
+        <p className="dark:text-white text-black font-semibold mt-2 mb-4 text-[15px]">
           KSh {listing.price.toLocaleString()}
           <span className="font-normal"> month</span>
         </p>

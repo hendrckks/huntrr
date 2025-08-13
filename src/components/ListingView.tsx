@@ -8,7 +8,7 @@ import { incrementAnalyticMetric } from "../lib/firebase/analytics";
 import ImageModal from "./ImageModal";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { MessageSquare, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import PropertyLocationMap from "./PropertyLocationMap";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "../hooks/useToast";
@@ -269,7 +269,7 @@ const ListingView = () => {
                       className="w-full sm:w-auto"
                       variant="default"
                     >
-                      <MessageSquare className="h-4 w-4 mr-2" />
+                      <img src="/icons/msgs.svg" alt="" className="h-5 w-5 mr-2" />
                       Chat with Owner
                     </Button>
                   )}

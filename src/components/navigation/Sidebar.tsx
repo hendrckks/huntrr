@@ -1,20 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  Moon,
-  Sun,
-  HomeIcon,
-  Bell,
-  Bookmark,
-  Settings,
-  User,
-  LogOut,
-  MoreHorizontal,
-  HousePlus,
-  HelpCircle,
-  FileCheck,
-  MessageCircle,
-  LogIn,
-} from "lucide-react";
+import { LogOut, MoreHorizontal, FileCheck, LogIn } from "lucide-react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../lib/firebase/clientApp";
 import { normalizeNotificationDate } from "../../lib/utils/NotificationUtils";
@@ -35,6 +20,7 @@ import { useToast } from "../../hooks/useToast";
 import { signOut } from "../../lib/firebase/auth";
 import { useEffect, useState } from "react";
 import type { BaseNotification } from "../../lib/utils/NotificationUtils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 // type NavItem = {
 //   icon: LucideIcon;
 //   label: string;
@@ -175,13 +161,23 @@ const Sidebar = () => {
     }
   };
 
-  const navItems = [
-    { icon: HomeIcon, label: "Home", path: "/", color: "text-blue-400/90" },
+  type NavItem = {
+    icon: React.ComponentType<{ className?: string }> | string;
+    label: string;
+    path: string;
+    color?: string;
+    badge?: boolean;
+    onClick?: () => true | void;
+    cursor?: string;
+  };
+
+  const navItems: NavItem[] = [
+    { icon: "/icons/house.svg", label: "Home", path: "/", color: "text-blue-400/90" },
     user?.role === "admin" ||
     user?.role === "landlord_verified" ||
     user?.role === "landlord_unverified"
       ? {
-          icon: User,
+          icon: "/icons/user.svg",
           label: "Dashboard",
           path: user?.role === "admin" ? "/admin-dashboard" : "/dashboard",
           color: "text-pink-400/70",
@@ -196,7 +192,7 @@ const Sidebar = () => {
         }
       : null,
     {
-      icon: MessageCircle,
+      icon: "/icons/msgs.svg",
       label: "Chats",
       path: "/chats",
       color: "text-violet-400/90",
@@ -216,7 +212,7 @@ const Sidebar = () => {
     },
     user?.role === "admin" || user?.role === "landlord_verified"
       ? {
-          icon: HousePlus,
+          icon: "/icons/duplicate-plus.svg",
           label: "List your property",
           path: "/add-listing",
           color: "text-green-400/90",
@@ -236,7 +232,7 @@ const Sidebar = () => {
         }
       : null,
     {
-      icon: Bell,
+      icon: "/icons/bell.svg",
       label: "Notifications",
       path: "/notifications",
       color: "text-yellow-400/90",
@@ -259,7 +255,7 @@ const Sidebar = () => {
       },
     },
     {
-      icon: Bookmark,
+      icon: "/icons/book-open.svg",
       label: "Bookmarks",
       path: "/bookmarks",
       color: "text-pink-400/70",
@@ -278,7 +274,7 @@ const Sidebar = () => {
       },
     },
     {
-      icon: Settings,
+      icon: "/icons/nut.svg",
       label: "Settings & privacy",
       path: "/account-settings",
       color: "text-teal-400/90",
@@ -297,7 +293,7 @@ const Sidebar = () => {
       },
     },
     {
-      icon: HelpCircle,
+      icon: "/icons/circle-question.svg",
       label: "Help & support",
       path: "/help",
       color: "text-indigo-400/90",
@@ -336,7 +332,6 @@ const Sidebar = () => {
         <p className="py-4 text-sm font-medium dark:text-white/70">General</p>
         <nav className="flex-1 space-y-3">
           {navItems.map((item) => {
-            const Icon = item.icon;
             const isActive = location.pathname === item.path;
 
             const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -355,23 +350,32 @@ const Sidebar = () => {
                 onClick={handleClick}
                 className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-colors ${
                   isActive
-                    ? "bg-black/90 dark:bg-white/90 shadow-xl dark:text-black text-white"
+                    ? "bg-black/80 dark:bg-[#fafafa] shadow-xl dark:text-black text-white"
                     : "dark:hover:bg-white/5 hover:bg-black/5 dark:text-white/80 text-[#4b5563]"
                 } ${item.cursor || ""}`}
               >
                 <div className="relative">
-                  <Icon
-                    className={`w-5 h-5 ${
-                      isActive
-                        ? "text-[#8752f3]/80 dark:text-[#8752f3]"
-                        : `${item.color}`
-                    }`}
-                  />
+                  {typeof item.icon === "string" ? (
+                    <img src={item.icon} alt="" className="w-6 h-6" />
+                  ) : (
+                    (() => {
+                      const IconComp = item.icon as React.ComponentType<{ className?: string }>;
+                      return (
+                        <IconComp
+                          className={`w-6 h-6 ${
+                            isActive
+                              ? "text-[#8752f3]/80 dark:text-[#8752f3]"
+                              : `${item.color}`
+                          }`}
+                        />
+                      );
+                    })()
+                  )}
                   {item.badge && (
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </div>
-                <span className="font-medium tracking-normal">
+                <span className="font-medium text-[15.5px] tracking-normal">
                   {item.label}
                 </span>
               </Link>
@@ -406,9 +410,18 @@ const Sidebar = () => {
                     <h3 className="font-medium text-base">
                       {user?.displayName || "User Name"}
                     </h3>
-                    <p className="text-sm text-muted-foreground truncate max-w-[150px]">
-                      {user?.email || "user@email.com"}
-                    </p>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <p className="text-sm text-muted-foreground md:mt-1  cursor-pointer  backdrop-blur-3xl rounded-md truncate max-w-[150px]">
+                            {user?.email || "user@email.com"}
+                          </p>
+                        </TooltipTrigger>
+                        <TooltipContent className="font-inter">
+                          {user?.email || "user@email.com"}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -446,11 +459,7 @@ const Sidebar = () => {
               <span className="text-sm">
                 {theme === "dark" ? "Dark Mode" : "Light Mode"}
               </span>
-              {theme === "dark" ? (
-                <Sun className="w-5 h-5" />
-              ) : (
-                <Moon className="w-5 h-5" />
-              )}
+              <img src="/icons/brightness-increase.svg" alt="" className="w-6 h-6" />
             </button>
           </div>
         </div>
@@ -460,7 +469,7 @@ const Sidebar = () => {
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#121212] backdrop-blur-lg border-t dark:border-white/10 border-black/10 p-2 z-50 overflow-x-auto">
         <nav className="flex items-center justify-between space-x-2 px-2 min-w-max">
           {navItems.map((item) => {
-            const Icon = item.icon;
+            // const Icon = item.icon;
             const isActive = location.pathname === item.path;
 
             const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -484,13 +493,22 @@ const Sidebar = () => {
                 }`}
               >
                 <div className="relative z-10">
-                  <Icon
-                    className={`w-5 h-5 ${
-                      isActive
-                        ? "text-[#8752f3]"
-                        : `${item.color} dark:${item.color}`
-                    }`}
-                  />
+                  {typeof item.icon === "string" ? (
+                    <img src={item.icon} alt="" className="w-6 h-6" />
+                  ) : (
+                    (() => {
+                      const IconComp = item.icon as React.ComponentType<{ className?: string }>;
+                      return (
+                        <IconComp
+                          className={`w-6 h-6 ${
+                            isActive
+                              ? "text-[#8752f3]"
+                              : `${item.color} dark:${item.color}`
+                          }`}
+                        />
+                      );
+                    })()
+                  )}
                   {item.badge && (
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}

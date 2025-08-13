@@ -2,13 +2,7 @@
 
 import React from "react";
 import * as ToastPrimitives from "@radix-ui/react-toast";
-import {
-  RiCheckboxCircleFill,
-  RiCloseCircleFill,
-  RiErrorWarningFill,
-  RiInformationFill,
-  RiLoader2Fill,
-} from "@remixicon/react";
+import { RiCloseCircleFill, RiInformationFill, RiLoader2Fill } from "@remixicon/react";
 
 import { cx } from "../../lib/utils";
 
@@ -68,16 +62,20 @@ const Toast = React.forwardRef<
     switch (variant) {
       case "success":
         Icon = (
-          <RiCheckboxCircleFill
-            className="size-5 shrink-0 text-primary dark:text-white"
+          <img
+            src="/icons/thumbs-up.svg"
+            alt=""
+            className="w-6 h-6 shrink-0"
             aria-hidden="true"
           />
         );
         break;
       case "warning":
         Icon = (
-          <RiErrorWarningFill
-            className="size-5 shrink-0 text-amber-500 dark:text-amber-500"
+          <img
+            src="/icons/triangle-warning.svg"
+            alt=""
+            className="w-6 h-6 shrink-0"
             aria-hidden="true"
           />
         );
@@ -113,11 +111,11 @@ const Toast = React.forwardRef<
         ref={forwardedRef}
         className={cx(
           // base
-          "flex h-fit min-h-16 w-full overflow-hidden rounded-md border shadow-lg shadow-black/5",
+          "flex h-fit min-h-16 w-full overflow-hidden rounded-xl border shadow-xl shadow-black/5",
           // background color
-          "bg-background dark:bg-background",
+          "bg-black/90 dark:bg-[#fafafa]",
           // border color
-          "border-textBlack/80 dark:border-textBlack/80",
+          "border-white/50 dark:border-white/50",
           // swipe
           "data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none",
           // transition
@@ -140,12 +138,12 @@ const Toast = React.forwardRef<
           {Icon}
           <div className="flex flex-col gap-1">
             {title && (
-              <ToastPrimitives.Title className="text-sm font-semibold text-gray-900 dark:text-white">
+              <ToastPrimitives.Title className="text-sm font-semibold dark:text-gray-900 text-white">
                 {title}
               </ToastPrimitives.Title>
             )}
             {description && (
-              <ToastPrimitives.Description className="text-sm text-gray-600 dark:text-primary">
+              <ToastPrimitives.Description className="text-sm dark:text-gray-600 text-white/70">
                 {description}
               </ToastPrimitives.Description>
             )}
@@ -184,11 +182,11 @@ const Toast = React.forwardRef<
             <ToastPrimitives.Close
               className={cx(
                 // base
-                "flex flex-1 items-center justify-center px-6 text-sm transition-colors",
+                "flex flex-1 items-center justify-center px-6 text-sm font-medium transition-colors",
                 // text color
-                "text-textBlack dark:text-textBlack",
+                "dark:text-gray-600 text-white/90",
                 // hover
-                "hover:bg-gray-50 hover:dark:bg-primary/40",
+                "hover:bg-white/5 hover:dark:bg-primary/40",
                 // active
                 "active:bg-gray-100",
                 action ? "h-1/2" : "h-full"

@@ -21,40 +21,57 @@ const formatPathLabel = (path: string): string => {
     .join(" ");
 };
 
-const getBreadcrumbs = (
-  pathname: string,
-  history: BreadcrumbItem[]
-): BreadcrumbItem[] => {
+const getIconForPath = (path: string): string | null => {
+  const iconMap: Record<string, string> = {
+    "/": "/icons/house.svg",
+    "/home": "/icons/house.svg",
+    "/dashboard": "/icons/user.svg",
+    "/admin-dashboard": "/icons/user.svg",
+    "/admin": "/icons/user.svg",
+    "/chats": "/icons/msgs.svg",
+    "/add-listing": "/icons/duplicate-plus.svg",
+    "/bookmarks": "/icons/book-open.svg",
+    "/notifications": "/icons/bell.svg",
+    "/account-settings": "/icons/nut.svg",
+    "/help": "/icons/circle-question.svg",
+    "/cookie-policy": "/icons/book-open.svg",
+    "/login": "/icons/user.svg",
+    "/signup": "/icons/user.svg",
+    "/signup-dialog": "/icons/user.svg",
+    "/reset-password": "/icons/triangle-warning.svg",
+    "/unauthorized": "/icons/triangle-warning.svg",
+    "/verify-documents": "/icons/thumbs-up.svg",
+    "/profile": "/icons/user.svg",
+    "/listings": "/icons/eye.svg",
+    "/edit-listing": "/icons/pen.svg",
+  };
+
+  if (iconMap[path]) return iconMap[path];
+
+  // Fallback: match by known prefixes for dynamic routes
+  const knownPrefixes = [
+    "/listings",
+    "/edit-listing",
+    "/admin-dashboard",
+    "/account-settings",
+  ];
+  for (const prefix of knownPrefixes) {
+    if (path.startsWith(prefix)) return iconMap[prefix];
+  }
+
+  return null;
+};
+
+const getBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
   const paths = pathname.split("/").filter(Boolean);
   if (paths.length === 0) return [{ label: "Home", path: "/" }];
 
   // Start with home
-  let breadcrumbs: BreadcrumbItem[] = [{ label: "Home", path: "/" }];
+  const breadcrumbs: BreadcrumbItem[] = [{ label: "Home", path: "/" }];
 
-  // Find the index where the current path diverges from history
-  let divergeIndex = -1;
-  for (let i = 0; i < history.length; i++) {
-    if (history[i].path === pathname) {
-      return history.slice(0, i + 1);
-    }
-    if (pathname.startsWith(history[i].path)) {
-      divergeIndex = i;
-    }
-  }
-
-  // If we found a diverging point, keep the history up to that point
-  if (divergeIndex >= 0) {
-    breadcrumbs = history.slice(0, divergeIndex + 1);
-  }
-
-  // Add any new path segments
-  let currentPath = breadcrumbs[breadcrumbs.length - 1]?.path || "";
-  const remainingPaths = pathname
-    .slice(currentPath.length)
-    .split("/")
-    .filter(Boolean);
-
-  remainingPaths.forEach((path) => {
+  // Build breadcrumbs from the current pathname
+  let currentPath = "";
+  paths.forEach((path) => {
     currentPath += `/${path}`;
     breadcrumbs.push({
       label: formatPathLabel(path),
@@ -79,12 +96,12 @@ export default function BreadcrumbNav() {
   }, []);
 
   useEffect(() => {
-    const newBreadcrumbs = getBreadcrumbs(location.pathname, history);
+    const newBreadcrumbs = getBreadcrumbs(location.pathname);
     if (JSON.stringify(newBreadcrumbs) !== JSON.stringify(history)) {
       setHistory(newBreadcrumbs);
       localStorage.setItem("breadcrumbHistory", JSON.stringify(newBreadcrumbs));
     }
-  }, [location.pathname, history]);
+  }, [location.pathname]);
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -111,18 +128,38 @@ export default function BreadcrumbNav() {
 
       {/* Desktop Breadcrumb */}
       <div className="hidden md:block">
-        <Breadcrumb className="dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 p-4 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl w-fit px-4 py-2 dark:shadow-lg border border-black/5 font-medium text-sm">
+        <Breadcrumb className="dark:bg-white/5 bg-background/50 dark:hover:bg-white/10 hover:bg-black/5 transition-colors dark:border-white/10 p-4 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl w-fit px-4 py-2 dark:shadow-lg border border-black/10 font-medium text-sm">
           <BreadcrumbList>
             {history.map((breadcrumb, index) => (
               <BreadcrumbItem key={breadcrumb.path} className="text-sm font-medium">
                 {index === history.length - 1 ? (
-                  <BreadcrumbPage className="font-medium px-2">{breadcrumb.label}</BreadcrumbPage>
+                  <BreadcrumbPage className="font-medium">
+                    <span className="inline-flex items-center">
+                      {getIconForPath(breadcrumb.path) && (
+                        <img
+                          src={getIconForPath(breadcrumb.path) as string}
+                          alt=""
+                          className="w-4 h-4 mr-2"
+                        />
+                      )}
+                      {breadcrumb.label}
+                    </span>
+                  </BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink
                     onClick={() => handleNavigation(breadcrumb.path)}
                     className="cursor-pointer font-medium text-sm"
                   >
-                    {breadcrumb.label}
+                    <span className="inline-flex items-center">
+                      {getIconForPath(breadcrumb.path) && (
+                        <img
+                          src={getIconForPath(breadcrumb.path) as string}
+                          alt=""
+                          className="w-4 h-4 mr-2"
+                        />
+                      )}
+                      {breadcrumb.label}
+                    </span>
                   </BreadcrumbLink>
                 )}
                 {index < history.length - 1 && <BreadcrumbSeparator />}

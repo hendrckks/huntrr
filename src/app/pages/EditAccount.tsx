@@ -22,7 +22,7 @@ import {
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Settings, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { updateProfileInAllChats } from "../../lib/firebase/chat";
 
 // Default placeholder image path
@@ -274,7 +274,7 @@ const EditAccount: React.FC = () => {
     <div className="container mx-auto px-2 mb-10 md:mt-0 mt-5">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
-          <Settings className="h-6 w-6" />
+          <img src="/icons/nut.svg" alt="" className="h-6 w-6" />
           <h1 className="text-xl font-medium">Account Settings</h1>
         </div>{" "}
         <Button variant="outline" onClick={() => navigate(-1)}>

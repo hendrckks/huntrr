@@ -59,10 +59,10 @@ const Help = () => {
 
       <Tabs defaultValue="faq" className="w-full px-2 md:px-0">
         <div className="w-full md:w-fit overflow-x-auto pb-4">
-          <TabsList className="bg-black/5 dark:bg-white/10 w-max md:min-w-full overflow-scroll inline-flex p-1 gap-2">
-            <TabsTrigger value="faq">Frequently Asked Questions</TabsTrigger>
-            <TabsTrigger value="contact">Contact Support</TabsTrigger>
-            <TabsTrigger value="resources">Resources</TabsTrigger>
+          <TabsList className="bg-black/5 dark:border border-white/5 dark:bg-white/10 w-max md:min-w-full overflow-scroll inline-flex p-1 gap-2">
+            <TabsTrigger value="faq" className="px-4 py-1 data-[state=active]:bg-black/80 data-[state=active]:text-white dark:data-[state=active]:bg-[#fafafa] dark:data-[state=active]:text-black">Frequently Asked Questions</TabsTrigger>
+            <TabsTrigger value="contact" className="px-4 py-1 data-[state=active]:bg-black/80 data-[state=active]:text-white dark:data-[state=active]:bg-[#fafafa] dark:data-[state=active]:text-black">Contact Support</TabsTrigger>
+            <TabsTrigger value="resources" className="px-4 py-1 data-[state=active]:bg-black/80 data-[state=active]:text-white dark:data-[state=active]:bg-[#fafafa] dark:data-[state=active]:text-black">Resources</TabsTrigger>
           </TabsList>
         </div>
 

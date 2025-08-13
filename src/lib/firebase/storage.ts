@@ -19,6 +19,12 @@ export const uploadImage = async (
     throw new Error("File size must be under 5MB");
   }
 
+  // Set custom metadata for long-lived URLs
+  const metadata = {
+    cacheControl: 'public,max-age=31536000',
+    contentType: file.type
+  };
+
   // Generate filename with timestamp and random string
   const fileExtension = file.name.split(".").pop();
   const fileName = `${Date.now()}_${Math.random()
@@ -44,7 +50,7 @@ export const uploadImage = async (
 
   try {
     const storageRef = ref(storage, fullPath);
-    await uploadBytes(storageRef, file);
+    await uploadBytes(storageRef, file, metadata);
     return getDownloadURL(storageRef);
   } catch (error) {
     console.error("Error uploading image:", error);

@@ -170,7 +170,12 @@ export const router = createBrowserRouter([
         path: "chats",
         element: createProtectedRoute(<Components.Chats />, {
           requireAuth: true,
-          allowedRoles: ["user", "landlord_verified", "landlord_unverified", "admin"]
+          allowedRoles: [
+            "user",
+            "landlord_verified",
+            "landlord_unverified",
+            "admin",
+          ],
         }),
       },
 

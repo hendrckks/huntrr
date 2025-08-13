@@ -1,6 +1,6 @@
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Building, Search, Stars } from "lucide-react";
+import { Building } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../hooks/useToast";
@@ -55,13 +55,13 @@ const SubscriptionCard = () => {
         <div className="relative z-10 p-8 text-white h-full">
           <div className="mb-6 flex gap-3">
             <Badge className="bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary hover:bg-secondary/80 bg-gradient-to-r from-blue-500 to-indigo-500 border-0">
-              <Stars className="mr-1 h-4 w-4" /> Exclusive Listings
+              <img src="/icons/sparkle.svg" alt="" className="mr-2 h-4 w-4" /> Exclusive Listings
             </Badge>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Badge
                   variant="outline"
-                  className="border-slate-400 py-1 inline-flex items-center justify-center whitespace-nowrap text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm rounded-md px-2 bg-white/10 hover:bg-white/20 text-white border-white/20 gap-2 cursor-pointer"
+                  className="border-slate-400 py-1 inline-flex items-center justify-center whitespace-nowrap text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm rounded-md px-2 bg-white/10 hover:bg-white/20 text-white border-white/20 cursor-pointer"
                 >
                   Pro enabled
                 </Badge>
@@ -80,7 +80,7 @@ const SubscriptionCard = () => {
             Find Your Perfect Home Today
           </h1>
 
-          <p className="mb-12 tracking-tight max-w-xl text-slate-300 text-lg">
+          <p className="mb-8 tracking-tight max-w-xl text-slate-300 text-base">
             Discover your ideal living space with our exclusive listings. Browse through quality properties and connect with trusted landlords to find the home that perfectly matches your lifestyle.
           </p>
 
@@ -90,7 +90,8 @@ const SubscriptionCard = () => {
               size="lg"
               className="bg-white text-slate-900 hover:bg-slate-200 w-full sm:w-auto"
             >
-              <span className="mr-2 text-lg">+</span> List Your Property
+              <img src="/icons/duplicate-plus.svg" alt="" className="mr-2 h-5 w-5" />
+              List Your Property
             </Button>
             <Button
               size="lg"
@@ -100,9 +101,10 @@ const SubscriptionCard = () => {
                   .getElementById("available-properties")
                   ?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm hover:text-accent-foreground rounded-md px-4 sm:px-8 bg-white/10 hover:bg-white/20 text-white border-white/20 gap-2 w-full sm:w-auto"
+              className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border shadow-sm rounded-md px-4 sm:px-8 bg-white/10 hover:bg-white/20 text-white  border-white/20 gap-2 w-full sm:w-auto"
             >
-              <Search className="mr-2 h-5 w-5" /> Browse Listings
+              <img src="/icons/magnifier.svg" alt="" className="mr-2 h-5 w-5" />
+              Browse Listings
             </Button>
             <div className="block md:hidden w-full">
               <AffordabilityModal />
