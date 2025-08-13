@@ -466,10 +466,9 @@ const Sidebar = () => {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#121212] backdrop-blur-lg border-t dark:border-white/10 border-black/10 p-2 z-50 overflow-x-auto">
-        <nav className="flex items-center justify-between space-x-2 px-2 min-w-max">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#121212] backdrop-blur-lg border-t dark:border-white/10 border-black/10 p-2 z-50">
+        <nav className="flex items-center gap-3 justify-around px-1">
           {navItems.map((item) => {
-            // const Icon = item.icon;
             const isActive = location.pathname === item.path;
 
             const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -480,19 +479,20 @@ const Sidebar = () => {
                 }
               }
             };
-            
+
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={handleClick}
-                className={`flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${
+                aria-label={item.label}
+                className={`flex items-center justify-center basis-0 grow px-1 py-2 rounded-lg transition-colors ${
                   isActive
-                    ? "bg-white border bg-background/50 font-medium dark:hover:bg-white/10 dark:border-white/10 p-3 rounded-lg md:shadow-lg shadow-md backdrop-blur-6xl hover:bg-black/5 transition-colors backdrop-blur-6xl w-full flex justify-between items-center dark:bg-white/5 text-black dark:text-white backdrop-blur-6xl"
-                    : "hover:bg-gray-100 dark:hover:bg-white/5 text-black/80 dark:text-white/80"
+                    ? "bg-black/5 dark:bg-white/5 text-black dark:text-white"
+                    : "text-black/70 dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/5"
                 }`}
               >
-                <div className="relative z-10">
+                <div className="relative">
                   {typeof item.icon === "string" ? (
                     <img src={item.icon} alt="" className="w-6 h-6" />
                   ) : (
@@ -503,7 +503,7 @@ const Sidebar = () => {
                           className={`w-6 h-6 ${
                             isActive
                               ? "text-[#8752f3]"
-                              : `${item.color} dark:${item.color}`
+                              : `${item.color}`
                           }`}
                         />
                       );
@@ -513,9 +513,6 @@ const Sidebar = () => {
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </div>
-                <span className="text-[15px] tracking-tight whitespace-nowrap z-10">
-                  {item.label}
-                </span>
               </Link>
             );
           })}
