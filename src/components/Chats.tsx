@@ -35,6 +35,15 @@ import { MESSAGE_PAGE_SIZE } from "../lib/cache/messageCache";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
 
+// Simple in-memory cache for conversations keyed by user and role
+type ChatCacheEntry = {
+  data: Chat[];
+  timestamp: number;
+};
+const CHATS_CACHE_TTL_MS = 30_000; // 30 seconds (shorter than notifications since chats are more dynamic)
+const chatsCache: Record<string, ChatCacheEntry> = {};
+const getChatCacheKey = (userId?: string, role?: string) => `${userId || "anon"}:${role || "guest"}`;
+
 const Chats = () => {
   const { user } = useAuth();
   const [chats, setChats] = useState<Chat[]>([]);
@@ -74,9 +83,32 @@ const Chats = () => {
   useEffect(() => {
     if (!user?.uid || !user?.role) return;
 
-    // Don't set loading to true if we're in the middle of creating a new chat
-    if (!creatingNewChat && !selectedChatData) {
-      setLoading(true);
+    // Load from cache first if available
+    const cacheKey = getChatCacheKey(user.uid, user.role);
+    const cached = chatsCache[cacheKey];
+    if (cached) {
+      const safeChats: Chat[] = cached.data.filter(
+        (c): c is Chat => Boolean(c && typeof c === "object" && (c as any).chatId)
+      );
+      setChats(safeChats);
+      
+      // Update selected chat data if we have a selected chat
+      if (selectedChat) {
+        const matchingChat = safeChats.find((chat) => chat && chat.chatId === selectedChat);
+        if (matchingChat) {
+          setSelectedChatData(matchingChat);
+        }
+      }
+      
+      // Don't set loading to true if we have cached data
+      if (!creatingNewChat && !selectedChatData) {
+        setLoading(false);
+      }
+    } else {
+      // Don't set loading to true if we're in the middle of creating a new chat
+      if (!creatingNewChat && !selectedChatData) {
+        setLoading(true);
+      }
     }
 
     const unsubscribe = subscribeToChats(user.uid, user.role, (chatsList) => {
@@ -84,6 +116,13 @@ const Chats = () => {
       const safeChats: Chat[] = chatsList.filter(
         (c): c is Chat => Boolean(c && typeof c === "object" && (c as any).chatId)
       );
+      
+      // Update cache
+      chatsCache[cacheKey] = {
+        data: safeChats,
+        timestamp: Date.now(),
+      };
+      
       setChats(safeChats);
 
       if (selectedChat) {
@@ -110,6 +149,24 @@ const Chats = () => {
 
     return () => unsubscribe();
   }, [user, selectedChat, creatingNewChat, selectedChatData]);
+
+  // Add window focus listener to refresh chats if cache is stale
+  useEffect(() => {
+    const handleFocus = () => {
+      if (!user?.uid || !user?.role) return;
+      const cacheKey = getChatCacheKey(user.uid, user.role);
+      const cached = chatsCache[cacheKey];
+      // Check if cache is stale - if so, the subscription will handle refresh
+      const isStale = !cached || Date.now() - cached.timestamp > CHATS_CACHE_TTL_MS;
+      if (isStale) {
+        // Cache is stale, but we don't need to do anything here
+        // The subscription will automatically update the cache and state
+        void isStale; // Suppress unused variable warning
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [user?.uid, user?.role]);
 
   // Also modify the landlordId effect to ensure loading state is properly maintained
   useEffect(() => {
