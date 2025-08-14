@@ -56,7 +56,7 @@ interface ListingCardProps {
 const LandlordDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [selectedListing, setSelectedListing] = React.useState<string | null>(
     null
   );
@@ -131,7 +131,10 @@ const LandlordDashboard: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
+      localStorage.removeItem("user");
+      sessionStorage.clear();
       await signOut();
+      setUser(null);
       navigate("/");
       toast({
         title: "Success",
