@@ -39,11 +39,11 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, growth, storageKe
           {title}
         </div>
         <div className="flex items-center gap-8">
-          <div className="text-3xl font-bold font-sans text-gray-900 dark:text-white">
+          <div className="text-2xl font-bold font-sans text-gray-900 dark:text-white">
             <NumberFlow value={value} />
           </div>
           {show24h ? (
-            <div className="flex items-center text-[10px] font-medium rounded-lg px-3 py-1 text-black bg-black/5 dark:bg-white/5 backdrop-blur-3xl border dark:border-white/5 border-black/5  dark:text-white">
+            <div className="flex items-center text-xs shadow-sm font-medium rounded-lg px-2.5 py-0.5 text-black/80 bg-black/5 dark:bg-white/5 backdrop-blur-3xl border dark:border-white/5 border-black/5  dark:text-white">
               <span className="whitespace-nowrap font-semibold">
                 <NumberFlow value={last24h as number} className='text-xs'/> {last24hLabel || 'in the last 24 hours'}
               </span>

@@ -242,7 +242,7 @@ const LandlordDashboard: React.FC = () => {
 
     return (
       <Badge
-        className="bg-black/10 dark:bg-white/10 ml-2 border border-black/10 dark:border-white/10"
+        className="bg-black/10 dark:bg-white/10 ml-2 py-0.5 shadow-md border border-black/10 dark:border-white/10"
         variant={
           variants[status] as
             | "secondary"
@@ -519,7 +519,10 @@ const LandlordDashboard: React.FC = () => {
             <TabsContent value="published">
               <Card className="w-full">
                 <CardHeader className="p-6">
-                  <CardTitle className="text-xl">Published Listings</CardTitle>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <img src="/icons/tasks.svg" alt="" className="h-5 w-5" />
+                    Published Listings
+                  </CardTitle>
                   <CardDescription>
                     Your active listings that are visible to tenants
                   </CardDescription>
@@ -545,7 +548,10 @@ const LandlordDashboard: React.FC = () => {
             <TabsContent value="pending">
               <Card className="w-full">
                 <CardHeader className="p-6">
-                  <CardTitle className="text-xl">Pending Review</CardTitle>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <img src="/icons/tab-close.svg" alt="" className="h-5 w-5" />
+                    Pending Review
+                  </CardTitle>
                   <CardDescription>
                     Listings waiting for admin approval
                   </CardDescription>
@@ -569,7 +575,10 @@ const LandlordDashboard: React.FC = () => {
             <TabsContent value="drafts">
               <Card className="w-full">
                 <CardHeader className="p-6">
-                  <CardTitle className="text-xl">Drafts</CardTitle>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <img src="/icons/folder.svg" alt="" className="h-5 w-5" />
+                    Drafts
+                  </CardTitle>
                   <CardDescription>
                     Saved drafts and rejected listings
                   </CardDescription>
@@ -610,7 +619,10 @@ const LandlordDashboard: React.FC = () => {
             <TabsContent value="archived">
               <Card className="w-full">
                 <CardHeader className="p-6">
-                  <CardTitle className="text-xl">Archived Listings</CardTitle>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <img src="/icons/inbox.svg" alt="" className="h-5 w-5" />
+                    Archived Listings
+                  </CardTitle>
                   <CardDescription>
                     Previously published listings that are no longer active
                   </CardDescription>

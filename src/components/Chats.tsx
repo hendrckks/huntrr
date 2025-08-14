@@ -802,7 +802,7 @@ const Chats = () => {
         )}
 
         {(showMessages || window.innerWidth >= 768) && (
-          <Card className="md:col-span-2 h-[88vh] md:h-full flex flex-col">
+          <Card className="md:col-span-2 max-h-[88vh] md:h-full flex flex-col">
             <CardHeader className="border-b p-4">
               {selectedChatData ? (
                 <div className="flex items-center justify-between ">
@@ -868,12 +868,12 @@ const Chats = () => {
                 </div>
               )}
             </CardHeader>
-            <CardContent className="p-0 flex-1 flex flex-col">
+            <CardContent className="p-0 flex-1 flex flex-col relative">
               {selectedChatData ? (
-                <div className="flex-1 overflow-y-auto p-4 h-full md:h-[450px]">
+                <div className="flex-1 overflow-y-auto h-full md:h-[450px] relative">
                   <div
                     ref={messageContainerRef}
-                    className="md:h-[450px] h-[calc(100dvh-16rem)] overflow-y-auto space-y-4 p-4 scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent transition-all duration-200"
+                    className="md:max-h-[70vh] h-full overflow-y-auto space-y-4 px-4 pt-4 pb-20 transition-all duration-200 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                     onScroll={handleScroll}
                   >
                     {loading ? (
@@ -942,52 +942,57 @@ const Chats = () => {
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  <form
-                    onSubmit={handleSendMessage}
-                    className="flex items-center space-x-2 p-4 border-t mt-auto"
-                  >
-                    <Input
-                      placeholder="Type a message..."
-                      value={newMessage}
-                      onChange={handleInputChange}
-                      className="flex-1"
-                      disabled={!selectedChatData}
-                    />
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          className="h-9 w-9 rounded-full"
-                          disabled={!selectedChatData}
-                        >
-                          <Smile className="h-full w-full text-muted-foreground" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-full p-0 border-none shadow-lg"
-                        align="end"
-                        side="top"
-                      >
-                        <EmojiPicker
-                          onEmojiClick={handleEmojiClick}
-                          searchDisabled
-                          skinTonesDisabled
-                          width={300}
-                          height={350}
-                          previewConfig={{ showPreview: false }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <Button
-                      type="submit"
-                      size="icon"
-                      disabled={!newMessage.trim()}
+                  
+                  {/* Floating message input form */}
+                  <div className="absolute bottom-0 rounded-xl left-0 right-0 p-2 bg-gradient-to-t from-background via-background/95 to-transparent">
+                    <form
+                      onSubmit={handleSendMessage}
+                      className="flex items-center space-x-3 p-2.5 bg-background/80 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-2xl shadow-xl"
                     >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </form>
+                      <Input
+                        placeholder="Type a message..."
+                        value={newMessage}
+                        onChange={handleInputChange}
+                        className="flex-1 border bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60"
+                        disabled={!selectedChatData}
+                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 rounded-full hover:bg-muted/50"
+                            disabled={!selectedChatData}
+                          >
+                            <Smile className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-full p-0 border-none shadow-lg"
+                          align="end"
+                          side="top"
+                        >
+                          <EmojiPicker
+                            onEmojiClick={handleEmojiClick}
+                            searchDisabled
+                            skinTonesDisabled
+                            width={300}
+                            height={350}
+                            previewConfig={{ showPreview: false }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <Button
+                        type="submit"
+                        size="icon"
+                        disabled={!newMessage.trim()}
+                        className="h-8 w-8 rounded-full bg-primary hover:bg-primary/90 shadow-sm"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </form>
+                  </div>
                 </div>
               ) : (
                 <div className="h-full md:h-[400px] flex items-center justify-center text-muted-foreground">
