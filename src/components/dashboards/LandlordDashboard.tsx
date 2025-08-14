@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   getLandlordListings,
@@ -61,6 +61,30 @@ const LandlordDashboard: React.FC = () => {
     null
   );
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = React.useState<string>(() =>
+    searchParams.get("tab") ||
+    localStorage.getItem("landlordDashboardTab") ||
+    "published"
+  );
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("landlordDashboardTab", activeTab);
+    } catch (e) {
+      void e;
+    }
+    const params = Object.fromEntries(searchParams.entries());
+    params.tab = activeTab;
+    setSearchParams(params, { replace: true });
+  }, [activeTab]);
+
+  React.useEffect(() => {
+    const urlTab = searchParams.get("tab");
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams]);
 
   // Fetch all listings for the landlord
   const {
@@ -400,7 +424,7 @@ const LandlordDashboard: React.FC = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="published" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="w-full overflow-x-auto pb-4">
           <TabsList className="bg-black/5 border border-black/5 dark:border-white/5 dark:bg-white/10 w-max md:min-w-fit overflow-auto inline-flex p-1 gap-2">
             <TabsTrigger

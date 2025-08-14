@@ -248,6 +248,19 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasAny(['viewCount', 'bookmarkCount', 'flagCount', 'lastUpdated']);
         
       allow write: if true;
+
+      // Daily rollups subcollection for rolling-window analytics
+      match /analytics_daily/{date} {
+        // Keep parity with top-level analytics – publicly readable and writable from client
+        // so unauthenticated views can still increment rollups.
+        allow read: if true;
+        allow write: if true;
+      }
+      // Hourly rollups subcollection for last-24h metrics
+      match /analytics_hourly/{hour} {
+        allow read: if true;
+        allow write: if true;
+      }
     }
 
     // Audit logs collection

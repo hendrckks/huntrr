@@ -371,7 +371,7 @@ const ListingCard = ({
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <div className="flex justify-between items-center">
-              <h3 className="font-medium text-gray-900 dark:text-white max-w-[300px] truncate">
+              <h3 className="font-medium text-[15.5px] text-gray-900 dark:text-white max-w-[300px] truncate">
                 {listing.title}
               </h3>
               {/* <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -447,14 +447,14 @@ const ListingCard = ({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300 mt-1">
-          <span>{listing.bedrooms} beds</span>
+        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 mt-3">
+          <span className="font-medium rounded-lg px-3 shadow-sm py-0.5 text-xs text-black bg-black/5 dark:bg-white/5 backdrop-blur-3xl border dark:border-white/5 border-black/5  dark:text-white">{listing.bedrooms} beds</span>
           <span>•</span>
-          <span>{listing.bathrooms} baths</span>
+          <span className="font-medium rounded-lg px-3 py-0.5 shadow-sm text-xs text-black bg-black/5 dark:bg-white/5 backdrop-blur-3xl border dark:border-white/5 border-black/5  dark:text-white">{listing.bathrooms} baths</span>
           <span>•</span>
-          <span>{listing.squareFootage} sqft</span>
+          <span className="font-medium rounded-lg px-3 py-0.5 shadow-sm text-xs text-black bg-black/5 dark:bg-white/5 backdrop-blur-3xl border dark:border-white/5 border-black/5  dark:text-white">{listing.squareFootage} sqft</span>
         </div>
-        <p className="dark:text-white text-black font-semibold mt-2 mb-4 text-[15px]">
+        <p className="dark:text-white text-black font-semibold mt-4 mb-4 text-[15px]">
           KSh {listing.price.toLocaleString()}
           <span className="font-normal"> month</span>
         </p>

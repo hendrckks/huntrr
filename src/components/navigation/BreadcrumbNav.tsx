@@ -48,6 +48,9 @@ const getIconForPath = (path: string): string | null => {
 
   if (iconMap[path]) return iconMap[path];
 
+  // For listing detail pages like /listings/<slug>, do not show the eye icon
+  if (path.startsWith("/listings/")) return null;
+
   // Fallback: match by known prefixes for dynamic routes
   const knownPrefixes = [
     "/listings",

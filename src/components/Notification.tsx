@@ -389,7 +389,7 @@ const NotificationsPage = () => {
                 <Button
                   onClick={markAllAsRead}
                   disabled={isMarkingAll}
-                  className="flex items-center gap-2 text-sm bg-black/85 hover:bg-black/75 dark:bg-white/90 dark:hover:bg-white/80 text-white dark:text-black rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 text-sm bg-black/80 hover:bg-black/75 dark:bg-white/90 dark:hover:bg-white/80 text-white dark:text-black rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {/* <img src="/icons/eye.svg" alt="" className="h-5 w-5" /> */}
                   {isMarkingAll ? "Marking..." : "Mark All as Read"}
@@ -464,7 +464,7 @@ const NotificationsPage = () => {
           ) : (
             <div className="space-y-3 sm:space-y-4">
               {readNotifications.map((notification) => (
-                <Card key={notification.id} className="opacity-75">
+                <Card key={notification.id} className="">
                   <CardContent className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 p-3 sm:p-4">
                     <div className="hidden sm:block">
                       {getNotificationIcon(notification.type)}
@@ -488,7 +488,7 @@ const NotificationsPage = () => {
                         setSelectedNotification(notification.id);
                         setIsDeleteDialogOpen(true);
                       }}
-                      className="hover:bg-red-600"
+                      className="bg-red-600 hover:bg-red-500"
                     >
                       <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>

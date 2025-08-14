@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { signOut } from "../../lib/firebase/auth";
 import { useToast } from "../../hooks/useToast";
 import { useQuery } from "@tanstack/react-query";
@@ -30,17 +30,7 @@ import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 import type { KYCDocument } from "../../lib/types/kyc";
 import { refreshUserClaims } from "../../lib/firebase/tokenRefresh";
-import {
-  BellDot,
-  User2Icon,
-  FileText,
-  Check,
-  X,
-  Eye,
-  User,
-  Trash2,
-  WrenchIcon,
-} from "lucide-react";
+import { Check, X, Eye, Trash2 } from "lucide-react";
 import type { ListingDocument } from "../../lib/types/Listing";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import {
@@ -62,7 +52,30 @@ const AdminDashboard = () => {
   const [deletingNotificationId, setDeletingNotificationId] = useState<
     string | null
   >(null);
-  const [activeTab, setActiveTab] = useState("kyc");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(
+    () => searchParams.get("tab") || localStorage.getItem("adminDashboardTab") || "kyc"
+  );
+  
+  // Sync active tab to URL and localStorage
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("adminDashboardTab", activeTab);
+    } catch (e) {
+      void e;
+    }
+    const params = Object.fromEntries(searchParams.entries());
+    params.tab = activeTab;
+    setSearchParams(params, { replace: true });
+  }, [activeTab]);
+  
+  // If URL changes (e.g. back/forward), update state
+  React.useEffect(() => {
+    const urlTab = searchParams.get("tab");
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams]);
   const [isMigrating, setIsMigrating] = useState(false);
 
   const handleMigrateListings = async () => {
@@ -551,81 +564,79 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto 2">
-      <div className="flex justify-between items-center mb-4">
+    <div className="container mx-auto max-w-7xl sm:px-6 lg:px-3 p-4 md:p-0 space-y-4 md:mt-0 mt-4">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-2">
-          <User className="h-6 w-6" />
+          <img src="/icons/user.svg" alt="" className="h-6 w-6" />
           <h1 className="text-xl font-medium">Admin Dashboard</h1>
-        </div>{" "}
-        <Button variant="outline" onClick={handleSignOut}>
-          Sign Out
-        </Button>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            onClick={handleSignOut}
+            className="shadow-md w-full sm:w-auto justify-center"
+          >
+            Sign Out
+          </Button>
+        </div>
       </div>
 
-      <Tabs
-        value={activeTab}
-        onValueChange={handleTabChange}
-        className="space-y-4 text-black dark:text-white"
-      >
-        <TabsList>
-          <TabsTrigger value="kyc" className="flex items-center gap-2">
-            <span>
-              <User2Icon className="h-4 w-4" />
-            </span>
-            KYC Verifications
-            {kycSubmissions?.length ? (
-              <Badge variant="default" className="ml-2">
-                <NumberFlow value={kycSubmissions.length} />
-              </Badge>
-            ) : null}
-          </TabsTrigger>
-          <TabsTrigger value="listings" className="flex items-center gap-2">
-            <span>
-              <FileText className="h-4 w-4" />
-            </span>
-            Pendings and Recalls
-            {pendingListings?.length ? (
-              <Badge variant="default" className="ml-2">
-                <NumberFlow value={pendingListings.length} />
-              </Badge>
-            ) : null}
-          </TabsTrigger>
-
-          {/* <TabsTrigger
-            value="listings"
-            className="text-white flex items-center gap-2"
-          >
-            <span>
-              <FileText className="h-4 w-4" />
-            </span>
-            Pending Listings
-            {pendingListings?.length ? (
-              <Badge variant="destructive" className="ml-2">
-                {pendingListings.length}
-              </Badge>
-            ) : null}
-          </TabsTrigger> */}
-          <TabsTrigger
-            value="notifications"
-            className="flex items-center gap-2"
-          >
-            <span>
-              <BellDot className="h-4 w-4" />
-            </span>
-            Notifications
-            {notifications?.length ? (
-              <Badge variant="destructive" className="ml-2">
-                <NumberFlow value={notifications.length} />
-              </Badge>
-            ) : null}
-          </TabsTrigger>
-          <TabsTrigger value="maintenance" className="flex items-center gap-2">
-            <span>
-              <WrenchIcon className="h-4 w-4" />
-            </span>
-            Maintenance
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <div className="w-full overflow-x-auto pb-4">
+          <TabsList className="bg-black/5 border border-black/5 dark:border-white/5 dark:bg-white/10 w-max md:min-w-fit overflow-auto inline-flex p-1 gap-2">
+            <TabsTrigger
+              value="kyc"
+              className="flex items-center gap-2 whitespace-nowrap px-4 py-1 data-[state=active]:bg-black/80 dark:data-[state=active]:bg-[#fafafa] dark:data-[state=active]:text-black data-[state=active]:text-white [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
+            >
+              <span>
+                <img src="/icons/user.svg" alt="" className="h-5 w-5" />
+              </span>
+              KYC Verifications
+              {kycSubmissions?.length ? (
+                <Badge className="ml-2 bg-white/80 text-black dark:bg-black/90 dark:text-white">
+                  <NumberFlow value={kycSubmissions.length} />
+                </Badge>
+              ) : null}
+            </TabsTrigger>
+            <TabsTrigger
+              value="listings"
+              className="flex items-center gap-2 whitespace-nowrap px-4 py-1 data-[state=active]:bg-black/80 dark:data-[state=active]:bg-[#fafafa] dark:data-[state=active]:text-black data-[state=active]:text-white [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
+            >
+              <span>
+                <img src="/icons/folder.svg" alt="" className="h-5 w-5" />
+              </span>
+              Pendings and Recalls
+              {pendingListings?.length ? (
+                <Badge className="ml-2 bg-white/70 text-black dark:bg-black/70 dark:text-white">
+                  <NumberFlow value={pendingListings.length} />
+                </Badge>
+              ) : null}
+            </TabsTrigger>
+            <TabsTrigger
+              value="notifications"
+              className="flex items-center gap-2 whitespace-nowrap px-4 py-1 data-[state=active]:bg-black/80 dark:data-[state=active]:bg-[#fafafa] dark:data-[state=active]:text-black data-[state=active]:text-white [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
+            >
+              <span>
+                <img src="/icons/bell.svg" alt="" className="h-5 w-5" />
+              </span>
+              Notifications
+              {notifications?.length ? (
+                <Badge className="ml-2 bg-white/70 text-black dark:bg-black/70 dark:text-white">
+                  <NumberFlow value={notifications.length} />
+                </Badge>
+              ) : null}
+            </TabsTrigger>
+            <TabsTrigger
+              value="maintenance"
+              className="flex items-center gap-2 whitespace-nowrap px-4 py-1 data-[state=active]:bg-black/80 dark:data-[state=active]:bg-[#fafafa] dark:data-[state=active]:text-black data-[state=active]:text-white [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
+            >
+              <span>
+                <img src="/icons/nut.svg" alt="" className="h-5 w-5" />
+              </span>
+              Maintenance
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="listings" className="space-y-4">
           <Card>
