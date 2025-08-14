@@ -170,7 +170,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         {/* Performance Chart */}
         <Card>
           <CardHeader className="border-b">
-            <CardTitle>Performance Overview</CardTitle>
+            <CardTitle className="text-xl">Performance Overview</CardTitle>
           </CardHeader>
           <CardContent className="pt-6 px-4">
             <div className="text-xs text-white/70 mb-2">Totals per listing • 24h activity shown in cards above</div>
@@ -269,7 +269,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         {/* Listing Details */}
         <Card>
           <CardHeader className="border-b">
-            <CardTitle>Listing Details</CardTitle>
+            <CardTitle className="text-xl">Listing Details</CardTitle>
           </CardHeader>
           <CardContent className="p-6">
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">

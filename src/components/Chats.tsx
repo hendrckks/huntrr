@@ -471,8 +471,8 @@ const Chats = () => {
           <div
             className={`py-2 md:px-4 px-4 flex items-center ${
               message.senderId === user?.uid
-                ? "bg-black/20 dark:bg-white/20 dark:text-white text-black rounded-t-full rounded-bl-full"
-                : "bg-black/80 dark:bg-white dark:text-black text-white rounded-t-full rounded-br-full"
+                ? "bg-black/20 dark:bg-white/20 dark:text-white text-black border-black/10 shadow-sm border dark:border-white/10 rounded-t-full rounded-bl-full"
+                : "bg-black/80 dark:bg-white border-white/10 border dark:border-black/10 dark:text-black shadow-sm text-white rounded-t-full rounded-br-full"
             }`}
           >
             {message.senderId !== user?.uid && (

@@ -316,9 +316,9 @@ const Sidebar = () => {
         {/* Logo Section */}
         <Link to="/" className="flex items-center h-10 w-10 mb-6 gap-2 ">
           <img
-            src={theme === "dark" ? "/hlogo.png" : "/hlogo.png"}
+            src={theme === "dark" ? "/h logo.png" : "/h logo.png"}
             alt="Huntrr Logo"
-            className="w-fit h-full -p-8 rounded-lg border bg-black/2 border-black/30 dark:border-white/20 backdrop-blur-3xl shadow-md"
+            className="w-fit h-full -p-8 rounded-lg border object-cover scale-110 bg-black/2 border-black/30 dark:border-white/20 backdrop-blur-3xl shadow-md"
           />
           <span className="text-lg font-medium tracking-tight">
             Huntrr
@@ -452,7 +452,7 @@ const Sidebar = () => {
               )}
             </div>
             <button
-              className="flex items-center justify-between bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center justify-between border border-black/5 dark:border-white/5 shadow-md backdrop-blur-3xl bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 px-4 py-2 rounded-lg transition-colors"
               onClick={toggleTheme}
               aria-label="Toggle theme"
             >
