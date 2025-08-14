@@ -4,17 +4,18 @@ import { ScrollArea } from "../ui/scroll-area";
 import type { ListingDocument } from "../../lib/types/Listing";
 import type { ListingAnalytics } from "../../lib/types/Analytics";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "../ui/chart";
-import { Bar, BarChart, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from "recharts";
 import { UseQueryResult } from "@tanstack/react-query";
 import NumberFlow from "@number-flow/react";
 import MetricCard from "../MetricCard";
+import { getLast24hMetricsForListings } from "../../lib/firebase/analytics";
 
 interface AnalyticsTabProps {
   listings: ListingDocument[];
   analyticsQuery: UseQueryResult<ListingAnalytics[], Error>;
 }
 
-const STORAGE_KEY = 'previous_analytics_stats';
+// Removed legacy localStorage key for growth snapshot; now using rolling 30-day metrics
 
 const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   listings,
@@ -22,10 +23,8 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 }) => {
   const analytics = analyticsQuery.data || [];
   const publishedListings = listings.filter((l) => l.status === "published");
-  const [previousStats, setPreviousStats] = useState(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : { views: 0, bookmarks: 0, flags: 0, timestamp: 0 };
-  });
+  const [isSmallScreen, setIsSmallScreen] = useState<boolean>(false);
+  const [last24h, setLast24h] = useState({ views: 0, bookmarks: 0, flags: 0 });
 
   const getAnalytics = (listingId: string) => {
     const analyticsData = analytics.find((a) => a.listingId === listingId);
@@ -59,20 +58,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     { views: 0, bookmarks: 0, flags: 0 }
   );
 
-  // Calculate growth percentages
-  const calculateGrowth = (current: number, previous: number) => {
-    if (previous === 0) {
-      // If previous is 0 and current is greater than 0, return 100% growth
-      return current > 0 ? 100 : 0;
-    }
-    return ((current - previous) / previous) * 100;
-  };
-
-  const growthStats = {
-    views: calculateGrowth(totalStats.views, previousStats.views),
-    bookmarks: calculateGrowth(totalStats.bookmarks, previousStats.bookmarks),
-    flags: calculateGrowth(totalStats.flags, previousStats.flags),
-  };
+  // Growth percentage removed in favor of last 24 hours chips
 
   // Transform analytics data for the chart
   const chartData = publishedListings.map((listing) => {
@@ -85,24 +71,27 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     };
   });
 
-  // Initialize previous stats on first load and update periodically
-  useEffect(() => {
-    const now = Date.now();
-    const ONE_HOUR = 3600000; // 1 hour in milliseconds
+  // Removed rolling 30-day growth fetching; we show last 24h chips instead
 
-    // If there's no previous data or it's been more than an hour, update the stored stats
-    if (!previousStats.timestamp || now - previousStats.timestamp > ONE_HOUR) {
-      // Only store new stats if we have actual data to store
-      if (Object.values(totalStats).some(val => val > 0)) {
-        const newPreviousStats = {
-          ...totalStats,
-          timestamp: now,
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newPreviousStats));
-        setPreviousStats(newPreviousStats);
+  // Fetch last 24h totals; refresh every 15 minutes
+  useEffect(() => {
+    let cancelled = false;
+    const fetch24h = async () => {
+      try {
+        const ids = publishedListings.map((l) => l.id);
+        const totals = await getLast24hMetricsForListings(ids);
+        if (!cancelled) setLast24h(totals);
+      } catch (e) {
+        console.error("Failed to fetch last 24h metrics", e);
       }
-    }
-  }, [totalStats, previousStats.timestamp]);
+    };
+    fetch24h();
+    const interval = setInterval(fetch24h, 15 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [listings.length]);
 
   // Refetch analytics data when needed
   useEffect(() => {
@@ -114,6 +103,21 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       return () => clearInterval(refetchInterval);
     }
   }, [analyticsQuery]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
+      setIsSmallScreen((e as MediaQueryList).matches ?? (e as MediaQueryListEvent).matches);
+    };
+    handler(mq);
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', handler as (e: MediaQueryListEvent) => void);
+      return () => mq.removeEventListener('change', handler as (e: MediaQueryListEvent) => void);
+    } else {
+      mq.addListener(handler as (this: MediaQueryList, ev: MediaQueryListEvent) => void);
+      return () => mq.removeListener(handler as (this: MediaQueryList, ev: MediaQueryListEvent) => void);
+    }
+  }, []);
 
   if (publishedListings.length === 0) {
     return (
@@ -132,6 +136,8 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     );
   }
 
+  
+
   return (
     <ScrollArea className="h-[calc(100vh-6rem)]">
       <div className="space-y-6">
@@ -141,19 +147,22 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           <MetricCard 
             title="Total Views" 
             value={totalStats.views} 
-            growth={growthStats.views}
+            last24h={last24h.views}
+            last24hLabel="in the last 24 hours"
             storageKey="analytics_views"
           />
           <MetricCard 
             title="Total Bookmarks" 
             value={totalStats.bookmarks} 
-            growth={growthStats.bookmarks}
+            last24h={last24h.bookmarks}
+            last24hLabel="in the last 24 hours"
             storageKey="analytics_bookmarks"
           />
           <MetricCard 
             title="Total Flags" 
             value={totalStats.flags} 
-            growth={growthStats.flags}
+            last24h={last24h.flags}
+            last24hLabel="in the last 24 hours"
             storageKey="analytics_flags"
           />
         </div>
@@ -163,87 +172,93 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           <CardHeader className="border-b">
             <CardTitle>Performance Overview</CardTitle>
           </CardHeader>
-          <CardContent className="pt-6 px-6 md:block hidden">
-            <div className="w-full h-[400px] md:h-[500px] lg:h-[600px]">
+          <CardContent className="pt-6 px-4">
+            <div className="text-xs text-white/70 mb-2">Totals per listing • 24h activity shown in cards above</div>
+            <div className="w-full h-[260px] sm:h-[340px] md:h-[420px] lg:h-[520px]">
               <ChartContainer
+                className="w-full h-full aspect-auto"
                 config={{
                   views: {
                     label: "Views",
                     theme: {
-                      light: "#8752f3",
-                      dark: "#8752f3",
+                      light: "#1f2937",
+                      dark: "#ffffff",
                     },
                   },
                   bookmarks: {
                     label: "Bookmarks",
                     theme: {
-                      light: "#8752f3",
-                      dark: "#8752f3",
+                      light: "#6b7280",
+                      dark: "#ffffff",
                     },
                   },
                   flags: {
                     label: "Flags",
                     theme: {
-                      light: "#8752f3",
-                      dark: "#8752f3",
+                      light: "#9ca3af",
+                      dark: "#ffffff",
                     },
                   },
                 }}
               >
                 <BarChart
                   data={chartData}
-                  margin={{ top: 30, right: 40, left: 40, bottom: 90 }}
-                  barGap={8}
-                  barCategoryGap={20}
+                  margin={isSmallScreen ? { top: 16, right: 12, left: 12, bottom: 24 } : { top: 24, right: 24, left: 24, bottom: 56 }}
+                  barGap={6}
+                  barCategoryGap={isSmallScreen ? 24 : 20}
                 >
+                  <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
                   <XAxis
                     dataKey="name"
-                    fontSize={12}
+                    tick={false}
                     tickLine={false}
                     axisLine={true}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                    stroke="#888888"
+                    height={12}
+                    stroke="#9ca3af"
                   />
                   <YAxis
-                    fontSize={12}
+                    fontSize={isSmallScreen ? 10 : 12}
                     tickLine={false}
                     axisLine={true}
-                    stroke="#888888"
+                    stroke="#9ca3af"
                     tickFormatter={(value) => `${value}`}
-                    width={40}
+                    width={isSmallScreen ? 28 : 36}
                   />
                   <Bar
                     dataKey="views"
                     radius={[4, 4, 0, 0]}
-                    maxBarSize={40}
-                    fill="#8752f3"
+                    maxBarSize={isSmallScreen ? 28 : 36}
+                    fill="var(--color-views)"
                   />
                   <Bar
                     dataKey="bookmarks"
                     radius={[4, 4, 0, 0]}
-                    maxBarSize={40}
-                    fill="#8752f3"
-                    fillOpacity={0.8}
+                    maxBarSize={isSmallScreen ? 28 : 36}
+                    fill="var(--color-bookmarks)"
+                    fillOpacity={0.9}
                   />
                   <Bar
                     dataKey="flags"
                     radius={[4, 4, 0, 0]}
-                    maxBarSize={40}
-                    fill="#8752f3"
-                    fillOpacity={0.6}
+                    maxBarSize={isSmallScreen ? 28 : 36}
+                    fill="var(--color-flags)"
+                    fillOpacity={0.85}
                   />
                   <ChartTooltip
-                    content={({ active, payload }) => (
-                      <ChartTooltipContent
-                        active={active}
-                        payload={payload}
-                        labelKey="name"
-                      />
-                      
-                    )}
-                    
+                    content={({ active, payload }) => {
+                      if (!active || !payload || payload.length === 0) return null;
+                      const name = (payload[0]?.payload as { name?: string })?.name || '';
+                      return (
+                        <div className="rounded-lg border-black/10 dark:border-white/10 border bg-white/95 dark:bg-black/50 px-3 py-2 shadow-sm">
+                          <div className="text-xs font-medium text-gray-900 dark:text-gray-100 mb-1">{name}</div>
+                          <ChartTooltipContent
+                            active={active}
+                            payload={payload}
+                            labelKey="name"
+                          />
+                        </div>
+                      );
+                    }}
                   />
                 </BarChart>
               </ChartContainer>
@@ -276,7 +291,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           <dt className="text-sm text-muted-foreground font-medium text-gray-600 dark:text-white">
                             Views
                           </dt>
-                          <dd className="text-2xl font-semibold text-gray-900 dark:text-white/80">
+                          <dd className="text-2xl font-sans font-semibold text-gray-900 dark:text-white/80">
                             <NumberFlow value={stats.viewCount} />
                           </dd>
                         </div>
@@ -284,7 +299,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           <dt className="text-sm text-muted-foreground font-medium text-gray-600 dark:text-white">
                             Bookmarks
                           </dt>
-                          <dd className="text-2xl font-semibold text-gray-900 dark:text-white/80">
+                          <dd className="text-2xl font-sans font-semibold text-gray-900 dark:text-white/80">
                             <NumberFlow value={stats.bookmarkCount} />
                           </dd>
                         </div>
@@ -292,7 +307,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           <dt className="text-sm text-muted-foreground font-medium text-gray-600 dark:text-white">
                             Flags
                           </dt>
-                          <dd className="text-2xl font-semibold text-gray-900 dark:text-white/80">
+                          <dd className="text-2xl font-sans font-semibold text-gray-900 dark:text-white/80">
                             <NumberFlow value={stats.flagCount} />
                           </dd>
                         </div>
