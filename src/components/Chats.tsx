@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
@@ -26,21 +26,13 @@ import {
   sendMessage,
   createChat,
   markMessagesAsRead,
-  setTypingStatus,
   loadOlderMessages,
   type Message,
   type Chat,
-  createTypingHandler,
+  checkForExistingChat,
 } from "../lib/firebase/chat";
 import { MESSAGE_PAGE_SIZE } from "../lib/cache/messageCache";
-import {
-  doc,
-  getDoc,
-  getDocs,
-  collection,
-  query,
-  where,
-} from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
 
 const Chats = () => {
@@ -50,9 +42,7 @@ const Chats = () => {
   const [selectedChatData, setSelectedChatData] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isTypingRef = useRef(false);
+  // typing feature removed
   const [loading, setLoading] = useState(true);
   const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
@@ -77,35 +67,7 @@ const Chats = () => {
   // Add a ref to track if we just sent a message
   const justSentMessageRef = useRef(false);
 
-  // Check for existing chat directly using Firebase query
-  const checkForExistingChat = async (userId: string, landlordId: string) => {
-    try {
-      // First check in 'chats' collection where current user is a participant
-      const userChatsQuery = query(
-        collection(db, "chats"),
-        where("participants", "array-contains", userId)
-      );
-
-      const querySnapshot = await getDocs(userChatsQuery);
-
-      // Filter the chats to find one with the landlord as the other participant
-      for (const doc of querySnapshot.docs) {
-        const chatData = doc.data();
-        // Check if the landlord is a participant in this chat
-        if (
-          chatData.participants &&
-          chatData.participants.includes(landlordId)
-        ) {
-          return doc.id; // Return the chat ID if found
-        }
-      }
-
-      return null; // No existing chat found
-    } catch (error) {
-      console.error("Error checking for existing chat:", error);
-      return null;
-    }
-  };
+  // use shared helper from firebase/chat
 
   // In the Chats component, modify the useEffect for chat subscription
 
@@ -118,25 +80,14 @@ const Chats = () => {
     }
 
     const unsubscribe = subscribeToChats(user.uid, user.role, (chatsList) => {
-      // Add a timestamp parameter to each photoURL to prevent caching
-      const updatedChats = chatsList
-        .filter((chat) => chat && typeof chat === "object") // Filter out undefined/null chats
-        .map((chat) => ({
-          ...chat,
-          // Add cache-busting parameter using both timestamp and random number
-          photoURL: chat.photoURL
-            ? `${
-                chat.photoURL.split("?")[0]
-              }?t=${Date.now()}&r=${Math.random()}`
-            : "",
-        }));
-
-      setChats(updatedChats);
+      // Keep original photoURL intact (signed URLs require their full query string)
+      const safeChats: Chat[] = chatsList.filter(
+        (c): c is Chat => Boolean(c && typeof c === "object" && (c as any).chatId)
+      );
+      setChats(safeChats);
 
       if (selectedChat) {
-        const matchingChat = updatedChats.find(
-          (chat) => chat && chat.chatId === selectedChat
-        );
+        const matchingChat = safeChats.find((chat) => chat && chat.chatId === selectedChat);
 
         if (matchingChat) {
           setSelectedChatData(matchingChat);
@@ -253,10 +204,15 @@ const Chats = () => {
       setHasMoreMessages(messagesList.length >= MESSAGE_PAGE_SIZE);
 
       // Get the latest message if there are any messages
-      const latestMessage = messagesList.length > 0 ? messagesList[messagesList.length - 1] : null;
+      const latestMessage =
+        messagesList.length > 0 ? messagesList[messagesList.length - 1] : null;
 
       // Update unread count in real-time when new message arrives
-      if (latestMessage && latestMessage.senderId !== user.uid && !latestMessage.read) {
+      if (
+        latestMessage &&
+        latestMessage.senderId !== user.uid &&
+        !latestMessage.read
+      ) {
         setChats((prevChats) =>
           prevChats.map((chat) => {
             // For the chat where the message was received
@@ -289,7 +245,9 @@ const Chats = () => {
         // Reset unread count for the selected chat
         setChats((prevChats) =>
           prevChats.map((chat) =>
-            chat && chat.chatId === selectedChat ? { ...chat, unreadCount: 0 } : chat
+            chat && chat.chatId === selectedChat
+              ? { ...chat, unreadCount: 0 }
+              : chat
           )
         );
 
@@ -387,49 +345,22 @@ const Chats = () => {
     }
   }, [selectedChat]);
 
-  useEffect(() => {
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-
-      if (selectedChat && user?.uid && isTypingRef.current) {
-        setTypingStatus(selectedChat, user.uid, false);
-      }
-    };
-  }, [selectedChat, user?.uid]);
-
-  const typingHandlerRef = useRef<{
-    handleTyping: () => void;
-    cleanup: () => void;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!selectedChat || !user?.uid) return;
-
-    const handler = createTypingHandler(selectedChat, user.uid);
-    typingHandlerRef.current = handler;
-
-    return () => {
-      handler.cleanup();
-      typingHandlerRef.current = null;
-    };
-  }, [selectedChat, user?.uid]);
+  // typing effect removed
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setNewMessage(newValue);
 
-    if (typingHandlerRef.current && newValue.trim().length > 0) {
-      typingHandlerRef.current.handleTyping();
-    }
+    // typing feature removed
   };
 
   // Memoize chat selection function
   const handleChatSelection = useCallback(
     (chatId: string) => {
       setSelectedChat(chatId);
-      const chat = chats.find((c) => c && typeof c === 'object' && c.chatId === chatId);
+      const chat = chats.find(
+        (c) => c && typeof c === "object" && c.chatId === chatId
+      );
       if (chat) {
         setSelectedChatData(chat);
         // Reset unread count when selecting a chat
@@ -461,7 +392,7 @@ const Chats = () => {
   const sortedChats = useMemo(() => {
     // Filter out any undefined or null chat objects before sorting
     return [...chats]
-      .filter(chat => chat && typeof chat === 'object' && chat.chatId)
+      .filter((chat) => chat && typeof chat === "object" && chat.chatId)
       .sort((a, b) => {
         if (!a.lastMessageTime) return 1;
         if (!b.lastMessageTime) return -1;
@@ -487,7 +418,7 @@ const Chats = () => {
       // Reset scroll flags when sending a new message
       userIsScrollingRef.current = false;
       justSentMessageRef.current = true;
-      setIsTyping(true);
+      // typing feature removed
 
       try {
         const success = await sendMessage({
@@ -508,7 +439,7 @@ const Chats = () => {
       } catch (error) {
         console.error("Error sending message:", error);
       } finally {
-        setIsTyping(false);
+        // typing feature removed
       }
     },
     [newMessage, selectedChat, user, selectedChatData]
@@ -538,28 +469,23 @@ const Chats = () => {
       >
         <div className="flex flex-col space-y-1 max-w-[80%] w-fit">
           <div
-            className={`py-1 md:px-3 px-4 flex items-center ${
+            className={`py-2 md:px-4 px-4 flex items-center ${
               message.senderId === user?.uid
-                ? "bg-[#8752f3] text-primary-foreground rounded-t-[10px] rounded-bl-[10px]"
-                : "bg-primary dark:bg-white dark:text-black text-white rounded-t-[10px] rounded-br-[10px]"
+                ? "bg-black/20 dark:bg-white/20 dark:text-white text-black rounded-t-full rounded-bl-full"
+                : "bg-black/80 dark:bg-white dark:text-black text-white rounded-t-full rounded-br-full"
             }`}
           >
-            <div className="text-sm text-opacity-85 mb-0.5">{message.content}</div>
-            <span className="text-xs text-opacity-80 ml-4">
-              {formatMessageTime(message.timestamp)}
-            </span>
-            {/* Only show check marks for messages sent by the current user */}
+            {message.senderId !== user?.uid && (
+              <span className="text-[10px] text-opacity-80 mr-4">
+                {formatMessageTime(message.timestamp)}
+              </span>
+            )}
+            <div className="text-sm text-opacity-85 mb-0.5">
+              {message.content}
+            </div>
             {message.senderId === user?.uid && (
-              <span className="ml-1">
-                {message.read ? (
-                  <div className="flex items-center gap-2">
-                    <CheckCheck className="h-4 w-4" />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4" />
-                  </div>
-                )}
+              <span className="text-[10px] text-opacity-80 ml-4">
+                {formatMessageTime(message.timestamp)}
               </span>
             )}
           </div>
@@ -582,6 +508,20 @@ const Chats = () => {
               )}
             </span>
           )}
+          {/* Only show check marks for messages sent by the current user */}
+          {message.senderId === user?.uid && (
+            <span className="ml-1">
+              {message.read ? (
+                <div className="flex items-center gap-2">
+                  <CheckCheck className="h-4 w-4" />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4" />
+                </div>
+              )}
+            </span>
+          )} 
         </div>
       </div>
     ));
@@ -660,14 +600,14 @@ const Chats = () => {
               <CardTitle className="flex items-center justify-between">
                 <Button
                   onClick={() => navigate(-1)}
-                  className="text-xs py-2 px-3 shadow-lg backdrop-blur-lg rounded-lg"
+                  className="text-xs py-2 px-3 shadow-lg bg-black/90 dark:bg-white/90 backdrop-blur-2xl rounded-lg"
                 >
                   <ArrowLeft size={18} />
                 </Button>
                 <span>Conversations</span>
                 <Badge
                   variant="secondary"
-                  className="ml-2 py-2 px-4 shadow-lg backdrop-blur-lg rounded-lg"
+                  className="ml-2 py-2 px-4 dark:bg-white dark:text-black shadow-lg backdrop-blur-xl rounded-lg"
                 >
                   {chats.length}
                 </Badge>
@@ -684,9 +624,11 @@ const Chats = () => {
                   </span>
                 </div>
               ) : chats.length === 0 && !selectedChatData ? (
-                <div className="flex items-center justify-center h-full text-center text-muted-foreground">
-                  <div>No conversations yet</div>
-                  <div className="text-sm mt-2">Your chats will appear here</div>
+                <div className="flex flex-col items-center -mt-4 justify-center h-full text-center text-muted-foreground">
+                  <div className="text-xl dark:text-white text-black font-medium">No conversations yet</div>
+                  <div className="text-sm mt-2">
+                    Your chats will appear here
+                  </div>
                 </div>
               ) : (
                 <>
@@ -694,6 +636,9 @@ const Chats = () => {
                     <div className="p-3 rounded-lg bg-secondary">
                       <div className="flex items-center gap-4">
                         <Avatar className="h-12 w-12">
+                          {selectedChatData.photoURL ? (
+                            <AvatarImage src={selectedChatData.photoURL} alt={selectedChatData.displayName || "User"} />
+                          ) : null}
                           <AvatarFallback>
                             {selectedChatData.displayName
                               ?.charAt(0)
@@ -717,7 +662,7 @@ const Chats = () => {
                   {sortedChats.map((chat) => (
                     <div
                       key={chat.chatId}
-                      className={`flex items-center space-x-4 p-3 bg-black/5 dark:bg-white/5 mb-1 rounded-xl cursor-pointer transition-colors ${
+                      className={`flex items-center space-x-4 p-3 bg-black/5 dark:bg-white/5 mb-3 border border-black/5 dark:border-white/5 shadow-sm backdrop-blur-3xl rounded-xl cursor-pointer transition-colors ${
                         selectedChat === chat.chatId
                           ? "bg-black/10 dark:bg-white/10"
                           : "hover:bg-black/10 dark:hover:bg-white/10"
@@ -726,6 +671,9 @@ const Chats = () => {
                     >
                       <div className="relative">
                         <Avatar className="h-14 w-14 border border-black/20 dark:border-white/20">
+                          {chat.photoURL ? (
+                            <AvatarImage src={chat.photoURL} alt={chat.displayName || "User"} />
+                          ) : null}
                           <AvatarFallback>
                             {chat.displayName?.charAt(0).toUpperCase()}
                           </AvatarFallback>
@@ -810,7 +758,10 @@ const Chats = () => {
                     >
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <Avatar className="h-12 w-12">
+                    <Avatar className="h-12 w-12 border border-black/20 dark:border-white/20">
+                      {selectedChatData?.photoURL ? (
+                        <AvatarImage src={selectedChatData.photoURL} alt={selectedChatData.displayName || "User"} />
+                      ) : null}
                       <AvatarFallback>
                         {selectedChatData?.displayName?.charAt(0).toUpperCase()}
                       </AvatarFallback>
@@ -877,7 +828,9 @@ const Chats = () => {
                         <div className="text-center text-muted-foreground">
                           <div className="text-center">
                             <div>No messages yet</div>
-                            <div className="text-sm mt-2">Start a conversation to begin messaging</div>
+                            <div className="text-sm mt-2">
+                              Start a conversation to begin messaging
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -941,7 +894,7 @@ const Chats = () => {
                       value={newMessage}
                       onChange={handleInputChange}
                       className="flex-1"
-                      disabled={isTyping || !selectedChatData}
+                      disabled={!selectedChatData}
                     />
                     <Popover>
                       <PopoverTrigger asChild>
@@ -950,7 +903,7 @@ const Chats = () => {
                           size="icon"
                           variant="ghost"
                           className="h-9 w-9 rounded-full"
-                          disabled={isTyping || !selectedChatData}
+                          disabled={!selectedChatData}
                         >
                           <Smile className="h-full w-full text-muted-foreground" />
                         </Button>
@@ -973,7 +926,7 @@ const Chats = () => {
                     <Button
                       type="submit"
                       size="icon"
-                      disabled={isTyping || !newMessage.trim()}
+                      disabled={!newMessage.trim()}
                     >
                       <Send className="h-4 w-4" />
                     </Button>
@@ -981,8 +934,8 @@ const Chats = () => {
                 </div>
               ) : (
                 <div className="h-full md:h-[400px] flex items-center justify-center text-muted-foreground">
-                  <div className="text-center flex flex-col items-center w-1/2 justify-center gap-3 p-8 bg-black/5 dark:bg-white/5 rounded-2xl">
-                    <p className="text-base text-[#121212] dark:text-[#fafafa]">
+                  <div className="text-center flex flex-col items-center w-1/2 justify-center gap-3 p-8 backdrop-blur-3xl bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5 shadow-md">
+                    <p className="text-base text-black/90 font-medium dark:text-[#fafafa]">
                       {loading
                         ? creatingNewChat
                           ? "Creating new conversation..."

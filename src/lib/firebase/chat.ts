@@ -188,7 +188,7 @@ export const subscribeToChats = (
           chatId,
           userId: otherUserId,
           displayName: userData.displayName || "User",
-          photoURL: "", // Always empty to force fallback
+          photoURL: userData.photoURL || "",
           lastMessage: data.lastMessage,
           lastMessageTime: data.lastMessageTime,
           timestamp: data.timestamp,
@@ -258,15 +258,8 @@ export const subscribeToChats = (
       return b.lastMessageTime.seconds - a.lastMessageTime.seconds;
     });
 
-    const updatedChats = chatsList.map((chat) => ({
-      ...chat,
-      // Add cache-busting parameter using both timestamp and random number
-      photoURL: chat.photoURL
-        ? `${chat.photoURL.split("?")[0]}?t=${Date.now()}&r=${Math.random()}`
-        : "",
-    }));
-
-    callback(updatedChats);
+    // Preserve original photoURL (do not strip query params like token)
+    callback(chatsList);
   });
 };
 
@@ -645,84 +638,7 @@ export const markMessagesAsRead = async (
   }
 };
 
-// Typing indicator methods
-export const setTypingStatus = (
-  chatId: string,
-  userId: string,
-  isTyping: boolean
-) => {
-  const typingRef = ref(rtdb, `typing/${chatId}/${userId}`);
-  return set(typingRef, {
-    isTyping,
-    timestamp: Date.now(),
-  });
-};
-
-// More efficient debounced typing handler
-export const createTypingHandler = (chatId: string, userId: string) => {
-  let typingTimeout: NodeJS.Timeout | null = null;
-  let isCurrentlyTyping = false;
-  let lastUpdateTime = 0;
-
-  // Setup cleanup handler
-  const typingRef = ref(rtdb, `typing/${chatId}/${userId}`);
-  onDisconnect(typingRef).remove();
-
-  return {
-    handleTyping: () => {
-      const now = Date.now();
-      // Only update if not currently typing or if last update was > 2 seconds ago
-      if (!isCurrentlyTyping || now - lastUpdateTime > 2000) {
-        isCurrentlyTyping = true;
-        lastUpdateTime = now;
-        set(typingRef, { isTyping: true, timestamp: now });
-      }
-
-      // Clear existing timeout
-      if (typingTimeout) {
-        clearTimeout(typingTimeout);
-      }
-
-      // Set a new timeout to stop typing status
-      typingTimeout = setTimeout(() => {
-        isCurrentlyTyping = false;
-        set(typingRef, { isTyping: false, timestamp: Date.now() });
-      }, 2000);
-    },
-    cleanup: () => {
-      if (typingTimeout) {
-        clearTimeout(typingTimeout);
-      }
-      set(typingRef, { isTyping: false, timestamp: Date.now() });
-    },
-  };
-};
-
-export const setupTypingStatusCleanup = (chatId: string, userId: string) => {
-  const typingRef = ref(rtdb, `typing/${chatId}/${userId}`);
-  onDisconnect(typingRef).remove();
-};
-
-export const subscribeToTypingStatus = (
-  chatId: string,
-  otherUserId: string,
-  callback: (isTyping: boolean) => void
-) => {
-  const typingRef = ref(rtdb, `typing/${chatId}/${otherUserId}`);
-
-  return onValue(typingRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data && data.isTyping) {
-      // Check if typing event is recent (within last 3 seconds)
-      const now = Date.now();
-      if (now - data.timestamp < 3000) {
-        callback(true);
-        return;
-      }
-    }
-    callback(false);
-  });
-};
+// Typing feature removed
 
 // Optimized user status tracking
 export const setupOnlineStatusTracking = (userId: string) => {
