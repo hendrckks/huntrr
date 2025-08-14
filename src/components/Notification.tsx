@@ -32,9 +32,18 @@ import {
   type BaseNotification,
 } from "../lib/utils/NotificationUtils";
 import SpinningLoader from "./SpinningLoader";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Button } from "./ui/button";
+
+// Simple in-memory cache keyed by user and role
+type NotificationCacheEntry = {
+  data: BaseNotification[];
+  timestamp: number;
+};
+const NOTIFICATIONS_CACHE_TTL_MS = 60_000; // 1 minute
+const notificationsCache: Record<string, NotificationCacheEntry> = {};
+const getCacheKey = (userId?: string, role?: string) => `${userId || "anon"}:${role || "guest"}`;
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState<BaseNotification[]>([]);
@@ -47,12 +56,56 @@ const NotificationsPage = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<string>(
+    () => searchParams.get("tab") || localStorage.getItem("notificationsTab") || "unread"
+  );
 
   useEffect(() => {
-    if (user?.uid) {
-      fetchUserNotifications();
+    try {
+      localStorage.setItem("notificationsTab", activeTab);
+    } catch (e) {
+      void e;
+    }
+    const params = Object.fromEntries(searchParams.entries());
+    params.tab = activeTab;
+    setSearchParams(params, { replace: true });
+  }, [activeTab]);
+
+  useEffect(() => {
+    const urlTab = searchParams.get("tab");
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const cacheKey = getCacheKey(user.uid, user.role);
+    const cached = notificationsCache[cacheKey];
+    if (cached) {
+      setNotifications(cached.data);
+      setLoading(false);
+    }
+    const isStale = !cached || Date.now() - cached.timestamp > NOTIFICATIONS_CACHE_TTL_MS;
+    if (isStale) {
+      fetchUserNotifications({ silent: !!cached });
     }
   }, [user?.uid]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (!user?.uid) return;
+      const cacheKey = getCacheKey(user.uid, user.role);
+      const cached = notificationsCache[cacheKey];
+      const isStale = !cached || Date.now() - cached.timestamp > NOTIFICATIONS_CACHE_TTL_MS;
+      if (isStale) {
+        fetchUserNotifications({ silent: true });
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [user?.uid, user?.role]);
 
   useEffect(() => {
     if (operationError) {
@@ -101,10 +154,13 @@ const NotificationsPage = () => {
     }
   };
 
-  const fetchUserNotifications = async () => {
+  const fetchUserNotifications = async (options?: { silent?: boolean }) => {
     if (!user?.uid) return;
+    const { silent } = options || {};
 
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -173,6 +229,11 @@ const NotificationsPage = () => {
       }
 
       setNotifications(validNotifs);
+      const cacheKey = getCacheKey(user.uid, user.role);
+      notificationsCache[cacheKey] = {
+        data: validNotifs,
+        timestamp: Date.now(),
+      };
     } catch (error: any) {
       console.error("Raw error:", error);
       if (
@@ -185,9 +246,15 @@ const NotificationsPage = () => {
       } else {
         setError("Unable to load notifications at this time.");
       }
-      setNotifications([]);
+      const cacheKey = user ? getCacheKey(user.uid, user.role) : getCacheKey();
+      const cached = notificationsCache[cacheKey];
+      if (!cached) {
+        setNotifications([]);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -209,9 +276,12 @@ const NotificationsPage = () => {
       const notificationRef = doc(db, collectionName, selectedNotification);
       await deleteDoc(notificationRef);
 
-      setNotifications((prev) =>
-        prev.filter((n) => n.id !== selectedNotification)
-      );
+      setNotifications((prev) => {
+        const next = prev.filter((n) => n.id !== selectedNotification);
+        const cacheKey = getCacheKey(user?.uid, user?.role);
+        notificationsCache[cacheKey] = { data: next, timestamp: Date.now() };
+        return next;
+      });
       setIsDeleteDialogOpen(false);
       setSelectedNotification(null);
     } catch (error) {
@@ -237,13 +307,16 @@ const NotificationsPage = () => {
         readAt: Timestamp.now(),
       });
 
-      setNotifications((prev) =>
-        prev.map((notification) =>
+      setNotifications((prev) => {
+        const next = prev.map((notification) =>
           notification.id === notificationId
             ? { ...notification, read: true, readAt: Timestamp.now() }
             : notification
-        )
-      );
+        );
+        const cacheKey = getCacheKey(user?.uid, user?.role);
+        notificationsCache[cacheKey] = { data: next, timestamp: Date.now() };
+        return next;
+      });
     } catch (error) {
       console.error("Error marking notification as read:", error);
       setOperationError(
@@ -277,14 +350,17 @@ const NotificationsPage = () => {
 
       await Promise.all(updatePromises);
 
-      // Update local state
-      setNotifications((prev) =>
-        prev.map((notification) => ({
+      // Update local state and cache
+      setNotifications((prev) => {
+        const next = prev.map((notification) => ({
           ...notification,
           read: true,
           readAt: Timestamp.now(),
-        }))
-      );
+        }));
+        const cacheKey = getCacheKey(user?.uid, user?.role);
+        notificationsCache[cacheKey] = { data: next, timestamp: Date.now() };
+        return next;
+      });
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
       setOperationError(
@@ -334,7 +410,7 @@ const NotificationsPage = () => {
             <img src="/icons/bell.svg" alt="" className="h-12 w-12 mb-4" />
             <p>{error}</p>
             <button
-              onClick={fetchUserNotifications}
+              onClick={() => fetchUserNotifications()}
               className="mt-4 px-4 py-2 bg-primary dark:text-black text-sm text-white rounded-md hover:bg-primary/90"
             >
               Retry
@@ -360,7 +436,7 @@ const NotificationsPage = () => {
         </Alert>
       )}
 
-      <Tabs defaultValue="unread" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4 bg-black/5 border dark:border-white/5 border-black/5 dark:bg-white/5 w-max md:min-w-fit">
           <TabsTrigger
             value="unread"
