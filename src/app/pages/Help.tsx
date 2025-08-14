@@ -70,7 +70,7 @@ const Help = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
+                <img src="/icons/user.svg" alt="User" className="h-5 w-5" />
                 Account Management
               </CardTitle>
             </CardHeader>
@@ -118,7 +118,7 @@ const Help = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Home className="h-5 w-5" />
+                <img src="/icons/house.svg" alt="House" className="h-5 w-5" />
                 Listings & Properties
               </CardTitle>
             </CardHeader>
@@ -172,7 +172,7 @@ const Help = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
+                <img src="/icons/msgs.svg" alt="Messages" className="h-5 w-5" />
                 Communication & Bookings
               </CardTitle>
             </CardHeader>
@@ -213,7 +213,7 @@ const Help = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
+                <img src="/icons/lock.svg" alt="Lock" className="h-5 w-5" />
                 Safety & Security
               </CardTitle>
             </CardHeader>
