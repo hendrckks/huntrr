@@ -269,7 +269,11 @@ const ListingView = () => {
                       className="w-full sm:w-auto"
                       variant="default"
                     >
-                      <img src="/icons/msgs.svg" alt="" className="h-5 w-5 mr-2" />
+                      <img
+                        src="/icons/msgs.svg"
+                        alt=""
+                        className="h-5 w-5 mr-2"
+                      />
                       Chat with Owner
                     </Button>
                   )}
@@ -282,8 +286,15 @@ const ListingView = () => {
           <div className="space-y-6">
             <div className="flex flex-col gap-2">
               <h1 className="text-3xl font-semibold">{listing.title}</h1>
-              <p className="text-gray-500 text-sm">
-                Listed on {listing.createdAt.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              <p className="dark:text-white/70 text-sm">
+                Listed on{" "}
+                {listing.createdAt
+                  .toDate()
+                  .toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
               </p>
               {listing.status !== "published" && (
                 <Badge
@@ -299,6 +310,9 @@ const ListingView = () => {
                   {listing.status.replace("_", " ").toUpperCase()}
                 </Badge>
               )}
+              <p className="text-3xl md:mt-5 font-semibold">
+                KES {listing.price.toLocaleString()}<span className="text-base text-black/60 dark:text-white/60"> per month</span>
+              </p>
             </div>
 
             <section className="border-t pt-6">

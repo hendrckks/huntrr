@@ -148,21 +148,21 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             title="Total Views" 
             value={totalStats.views} 
             last24h={last24h.views}
-            last24hLabel="in the last 24 hours"
+            last24hLabel="In the last 24 hours"
             storageKey="analytics_views"
           />
           <MetricCard 
             title="Total Bookmarks" 
             value={totalStats.bookmarks} 
             last24h={last24h.bookmarks}
-            last24hLabel="in the last 24 hours"
+            last24hLabel="In the last 24 hours"
             storageKey="analytics_bookmarks"
           />
           <MetricCard 
             title="Total Flags" 
             value={totalStats.flags} 
             last24h={last24h.flags}
-            last24hLabel="in the last 24 hours"
+            last24hLabel="In the last 24 hours"
             storageKey="analytics_flags"
           />
         </div>
@@ -181,21 +181,21 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                   views: {
                     label: "Views",
                     theme: {
-                      light: "#1f2937",
+                      light: "#121212",
                       dark: "#ffffff",
                     },
                   },
                   bookmarks: {
                     label: "Bookmarks",
                     theme: {
-                      light: "#6b7280",
+                      light: "#121212",
                       dark: "#ffffff",
                     },
                   },
                   flags: {
                     label: "Flags",
                     theme: {
-                      light: "#9ca3af",
+                      light: "#121212",
                       dark: "#ffffff",
                     },
                   },

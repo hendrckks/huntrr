@@ -35,22 +35,25 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, growth, storageKe
   return (
     <Card className="border">
       <CardContent className="p-4">
-        <div className="text-base font-medium text-gray-600 dark:text-white">
+        <div className="text-base font-medium text-black dark:text-white">
           {title}
         </div>
-        <div className="flex items-center gap-8">
-          <div className="text-2xl font-bold font-sans text-gray-900 dark:text-white">
+        <div className="flex items-center mt-4 gap-6">
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">
             <NumberFlow value={value} />
           </div>
           {show24h ? (
-            <div className="flex items-center text-xs shadow-sm font-medium rounded-lg px-2.5 py-0.5 text-black/80 bg-black/5 dark:bg-white/5 backdrop-blur-3xl border dark:border-white/5 border-black/5  dark:text-white">
-              <span className="whitespace-nowrap font-semibold">
-                <NumberFlow value={last24h as number} className='text-xs'/> {last24hLabel || 'in the last 24 hours'}
+            <div className={`flex items-center text-xs shadow-sm font-medium rounded-lg px-2.5 py-0.5 backdrop-blur-3xl border ${(last24h as number) >= 0 ? 'bg-green-100/30 dark:bg-green-500/10 border-green-200/50 dark:border-green-500/50' : 'bg-red-100/30 dark:bg-red-500/10 border-red-200/30 dark:border-red-500/20'}`}>
+              <span className={`whitespace-nowrap gap-1.5 flex items-center font-semibold ${(last24h as number) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                <NumberFlow 
+                  value={last24h as number} 
+                  className="text-xs"
+                /> {last24hLabel || 'In the last 24 hours'}
               </span>
             </div>
           ) : (
             growth !== undefined && (
-              <div className={`flex items-center text-[10px] font-medium rounded-md px-2  py-1 cursor-pointer ${isPositive ? 'text-green-600 bg-green-100/70 dark:bg-green-100/10' : 'text-red-600 bg-red-100/70'}`}>
+              <div className={`flex items-center text-[10px] font-medium rounded-md px-2 py-1 cursor-pointer ${isPositive ? 'text-green-600 bg-green-100/70 dark:bg-green-100/10' : 'text-red-600 bg-red-100/70'}`}>
                 {isPositive ? (
                   <ArrowUpIcon className="h-3 w-3" />
                 ) : (
