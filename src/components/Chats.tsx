@@ -7,7 +7,6 @@ import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Send,
   Check,
   CheckCheck,
   ArrowLeft,
@@ -947,13 +946,13 @@ const Chats = () => {
                   <div className="absolute bottom-0 rounded-xl left-0 right-0 p-2 bg-gradient-to-t from-background via-background/95 to-transparent">
                     <form
                       onSubmit={handleSendMessage}
-                      className="flex items-center space-x-3 p-2.5 bg-background/80 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-2xl shadow-xl"
+                      className="flex items-center space-x-3 p-2.5 bg-background/10 backdrop-blur-3xl border border-black/15 dark:border-white/15 rounded-2xl shadow-xl"
                     >
                       <Input
                         placeholder="Type a message..."
                         value={newMessage}
                         onChange={handleInputChange}
-                        className="flex-1 border bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60"
+                        className="flex-1 border rounded-lg dark:border-white/10 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60"
                         disabled={!selectedChatData}
                       />
                       <Popover>
@@ -965,7 +964,7 @@ const Chats = () => {
                             className="h-8 w-8 rounded-full hover:bg-muted/50"
                             disabled={!selectedChatData}
                           >
-                            <Smile className="h-4 w-4 text-muted-foreground" />
+                            <Smile className="h-10 w-10 text-muted-foreground" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent
@@ -987,9 +986,9 @@ const Chats = () => {
                         type="submit"
                         size="icon"
                         disabled={!newMessage.trim()}
-                        className="h-8 w-8 rounded-full bg-primary hover:bg-primary/90 shadow-sm"
+                        className="h-10 w-10 rounded-full bg-transparent border border-black/20 dark:border-white/15 hover:bg-black/15 duration-200 dark:hover:bg-white/15 transition-all shadow-sm"
                       >
-                        <Send className="h-4 w-4" />
+                        <img src="/paper-plane.svg" alt="Send message" className="h-5 w-5" />
                       </Button>
                     </form>
                   </div>

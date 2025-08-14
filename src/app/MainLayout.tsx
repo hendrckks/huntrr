@@ -33,7 +33,7 @@ const MainLayout: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <div className="flex fixed inset-0 tracking-normal word-spacing-sm bg-black/5 dark:bg-black/50 font-noto overflow-hidden">
+    <div className="flex fixed inset-0 tracking-normal word-spacing-sm bg-black/5 dark:bg-black/40 font-noto overflow-hidden">
       <CookieBanner />
       {isAuthenticated && <PresenceHandler />}
       <ScrollToTop />
