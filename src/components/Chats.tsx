@@ -434,6 +434,14 @@ const Chats = () => {
   // Memoize chat selection function
   const handleChatSelection = useCallback(
     (chatId: string) => {
+      // If clicking the already selected chat, do nothing to prevent clearing messages
+      if (chatId === selectedChat) {
+        if (window.innerWidth < 768) {
+          setShowMessages(true);
+        }
+        return;
+      }
+
       setSelectedChat(chatId);
       const chat = chats.find(
         (c) => c && typeof c === "object" && c.chatId === chatId
@@ -453,7 +461,7 @@ const Chats = () => {
       if (window.innerWidth < 768) {
         setShowMessages(true);
       }
-      // Reset messages to ensure clean state for new chat
+      // Reset messages only when switching to a different chat
       setMessages([]);
       // Scroll to bottom after messages load
       setTimeout(() => {
@@ -462,7 +470,7 @@ const Chats = () => {
         }
       }, 200); // Increased delay to ensure messages are loaded
     },
-    [chats]
+    [chats, selectedChat]
   );
 
   // Memoize filtered and sorted chats
