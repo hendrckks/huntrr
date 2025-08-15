@@ -739,15 +739,15 @@ const Chats = () => {
                   {sortedChats.map((chat) => (
                     <div
                       key={chat.chatId}
-                      className={`flex items-center space-x-4 p-3 bg-black/5 dark:bg-white/5 mb-3 border border-black/5 dark:border-white/5 shadow-sm backdrop-blur-3xl rounded-xl cursor-pointer transition-colors ${
+                      className={`flex items-center space-x-4 p-3 bg-black/80 shadow-md dark:bg-white/80 mb-3 border border-black/5 dark:border-white/5 backdrop-blur-3xl rounded-xl cursor-pointer transition-colors ${
                         selectedChat === chat.chatId
-                          ? "bg-black/10 dark:bg-white/10"
-                          : "hover:bg-black/10 dark:hover:bg-white/10"
+                          ? "bg-black/80 dark:bg-white/90"
+                          : "hover:bg-black/75 dark:hover:bg-white/75"
                       }`}
                       onClick={() => handleChatSelection(chat.chatId)}
                     >
                       <div className="relative">
-                        <Avatar className="h-14 w-14 border border-black/20 dark:border-white/20">
+                        <Avatar className="h-14 w-14 border border-white/30 dark:border-black/30">
                           {chat.photoURL ? (
                             <AvatarImage src={chat.photoURL} alt={chat.displayName || "User"} />
                           ) : null}
@@ -756,12 +756,12 @@ const Chats = () => {
                           </AvatarFallback>
                         </Avatar>
                         {chat.status === "online" && (
-                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 animate-pulse border-white" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center">
-                          <div className="md:text-base text-[15px] tracking-tight flex items-center font-medium truncate">
+                          <div className="md:text-base text-[15px] text-white dark:text-black tracking-tight flex items-center font-medium truncate">
                             {chat.displayName}
 
                             {chat.role === "landlord_verified" && (
@@ -800,14 +800,14 @@ const Chats = () => {
                             </Badge> */}
                             </div>
                           </div>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-white/80 dark:text-black">
                             {chat.lastMessageTime &&
                               formatMessageTime(chat.lastMessageTime)}
                           </span>
                         </div>
 
                         {chat.lastMessage && (
-                          <p className="text-xs text-muted-foreground truncate mt-1">
+                          <p className="text-xs text-white/90 dark:text-black text-muted-foreground truncate mt-1">
                             {chat.senderId === user?.uid ? "You: " : ""}
                             {chat.lastMessage}
                           </p>
