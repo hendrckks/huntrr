@@ -468,12 +468,42 @@ export const deleteMessageForEveryone = async (
 ): Promise<boolean> => {
   try {
     const messageRef = doc(db, "messages", messageId);
+    const messageSnap = await getDoc(messageRef);
+
+    if (!messageSnap.exists()) {
+      return false;
+    }
+
+    const messageData = messageSnap.data();
+    const chatId = messageData.chatId as string;
+
+    // Soft-delete the message
     await updateDoc(messageRef, {
       deleted: true,
       deletedBy: userId,
       deletedAt: serverTimestamp(),
     });
-    // No need to mutate caches here; snapshot listeners will propagate
+
+    // If this was the latest message in the chat, update the chat preview
+    if (chatId) {
+      const latestQuery = query(
+        collection(db, "messages"),
+        where("chatId", "==", chatId),
+        orderBy("timestamp", "desc"),
+        limit(1)
+      );
+      const latestSnap = await getDocs(latestQuery);
+      if (!latestSnap.empty) {
+        const latestDoc = latestSnap.docs[0];
+        if (latestDoc.id === messageId) {
+          const chatRef = doc(db, "chats", chatId);
+          await updateDoc(chatRef, {
+            lastMessage: "Message deleted",
+          });
+        }
+      }
+    }
+
     return true;
   } catch (error) {
     console.error("Error deleting message:", error);

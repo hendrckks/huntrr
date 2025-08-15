@@ -694,7 +694,22 @@ const Chats = () => {
                 <DropdownMenuItem
                   onClick={async () => {
                     if (!user?.uid) return;
-                    await deleteMessageForEveryone(message.id, user.uid);
+                    const wasLastMessage =
+                      messages.length > 0 &&
+                      messages[messages.length - 1].id === message.id;
+                    const success = await deleteMessageForEveryone(
+                      message.id,
+                      user.uid
+                    );
+                    if (success && wasLastMessage && selectedChat) {
+                      setChats((prevChats) =>
+                        prevChats.map((c) =>
+                          c && c.chatId === selectedChat
+                            ? { ...c, lastMessage: "Message deleted" }
+                            : c
+                        )
+                      );
+                    }
                   }}
                   className="cursor-pointer rounded-lg text-xs text-red-600 focus:text-red-600"
                 >
@@ -849,10 +864,10 @@ const Chats = () => {
                   {sortedChats.map((chat) => (
                     <div
                       key={chat.chatId}
-                      className={`flex items-center space-x-4 p-3 bg-white shadow-md dark:bg-white/10 mb-3 border border-black/10 dark:border-white/5 backdrop-blur-3xl rounded-lg cursor-pointer transition-colors ${
+                      className={`flex items-center space-x-4 p-3 mb-3 border border-black/10 dark:border-white/5 backdrop-blur-3xl rounded-lg cursor-pointer transition-colors ${
                         selectedChat === chat.chatId
-                          ? "bg-gray-400/15 shadow-xl dark:bg-white/10"
-                          : "hover:bg-black/10 dark:hover:bg-white/15"
+                          ? "bg-black/10 shadow-xl dark:bg-white/15"
+                          : "bg-white shadow-md dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10"
                       }`}
                       onClick={() => handleChatSelection(chat.chatId)}
                     >
@@ -874,7 +889,7 @@ const Chats = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center">
-                          <div className="text-[15px] text-black/80 dark:text-white tracking-tight flex items-center font-medium truncate">
+                          <div className="text-[15px] text-black dark:text-white tracking-tight flex items-center font-medium truncate">
                             {chat.displayName}
 
                             {chat.role === "landlord_verified" && (
@@ -920,9 +935,15 @@ const Chats = () => {
                         </div>
 
                         {chat.lastMessage && (
-                          <p className="text-xs text-black/90 dark:text-white truncate mt-1">
-                            {chat.senderId === user?.uid ? "You: " : ""}
-                            {chat.lastMessage}
+                          <p className="text-xs text-black/60 dark:text-white/60 font-medium truncate mt-1">
+                            {chat.lastMessage === "Message deleted" ? (
+                              <span className="italic opacity-80">Message deleted</span>
+                            ) : (
+                              <>
+                                {chat.senderId === user?.uid ? "You: " : ""}
+                                {chat.lastMessage}
+                              </>
+                            )}
                           </p>
                         )}
                       </div>
