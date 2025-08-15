@@ -631,7 +631,7 @@ const Chats = () => {
                 )}
                 <div className="text-sm flex justify-between items-center mb-0.5">
                   <span>{message.content}</span>
-                  <span className="text-xs text-opacity-80 ml-2 mt-0.5">
+                  <span className="text-xs font-medium opacity-85 ml-2 mt-0.5">
                     {formatMessageTime(message.timestamp)}
                   </span>
                 </div>
