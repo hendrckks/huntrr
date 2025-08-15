@@ -15,7 +15,7 @@ import {
   ArrowUp,
   Smile,
   MoreVertical,
-  Reply as ReplyIcon,
+  // Reply as ReplyIcon,
   X,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
@@ -39,6 +39,7 @@ import {
   type Chat,
   checkForExistingChat,
 } from "../lib/firebase/chat";
+import { deleteMessageForEveryone } from "../lib/firebase/chat";
 import { MESSAGE_PAGE_SIZE } from "../lib/cache/messageCache";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/clientApp";
@@ -596,39 +597,47 @@ const Chats = () => {
         }`}
       >
         <div className="flex flex-col space-y-1 max-w-[80%] w-fit">
-          <div
-            className={`py-2 md:px-4 px-4 flex items-center relative ${
-              message.senderId === user?.uid
-                ? "bg-black/80 dark:bg-white/90 dark:text-white text-white border-black/10 shadow-md border dark:border-white/10 rounded-t-2xl rounded-bl-2xl"
-                : "bg-black/80 dark:bg-white/90 border-white/10 border dark:border-black/10 dark:text-black shadow-md text-white rounded-t-2xl rounded-br-2xl"
-            } ${replyingTo?.id === message.id ? "opacity-50" : ""} ${
-              highlightedMessageId === message.id ? "ring-1 ring-[#8752f3]/30" : ""
-            }`}
-          >
-            <div className="flex flex-col">
-              {message.replyTo && (
-                <div
-                  className="mr-3 cursor-pointer max-w-[220px] text-xs opacity-90 border px-4 py-2 shadow-md mb-2 border-white/15 backdrop-blur-3xl bg-white/10 dark:bg-black/10 rounded-lg dark:border-black/20 dark:text-black"
-                  onClick={() => scrollToMessage(message.replyTo!.messageId)}
-                >
-                  <div className="font-medium truncate">
-                    {message.replyTo.senderId === user?.uid
-                      ? "You"
-                      : message.replyTo.senderName}
-                  </div>
-                  <div className="truncate opacity-90 border-l-2 pl-2 mt-1 border-[#8752f3]">
-                    {message.replyTo.content}
-                  </div>
-                </div>
-              )}
-              <div className="text-sm flex justify-between items-center ml-2 dark:text-black text-opacity-85 mb-0.5">
-                <span>{message.content}</span>
-                <span className="text-xs text-opacity-80 ml-2 mt-0.5">
-                  {formatMessageTime(message.timestamp)}
-                </span>
+          {message.deleted ? (
+            <div className="py-2 w-full">
+              <div className="w-full flex py-2 px-4 bg-black/10 dark:bg-white/10 cursor-pointer rounded-lg justify-center">
+                <span className="text-xs italic text-muted-foreground">Message deleted</span>
               </div>
             </div>
-          </div>
+          ) : (
+            <div
+              className={`py-2 md:px-4 px-4 flex items-center relative ${
+                message.senderId === user?.uid
+                  ? "bg-purple-600 dark:text-white text-white border-black/10 shadow-md border dark:border-white/10 rounded-t-2xl rounded-bl-2xl"
+                  : "bg-black/80 dark:bg-white/90 border-white/10 border dark:border-black/10 dark:text-black shadow-md text-white rounded-t-2xl rounded-br-2xl"
+              } ${replyingTo?.id === message.id ? "opacity-50" : ""} ${
+                highlightedMessageId === message.id ? "ring-1 ring-[#8752f3]/30" : ""
+              }`}
+            >
+              <div className="flex flex-col">
+                {message.replyTo && (
+                  <div
+                    className="mr-3 cursor-pointer max-w-[220px] text-xs opacity-90 border px-4 py-2 shadow-md mb-2 border-black/40 backdrop-blur-3xl bg-white/90 rounded-lg dark:border-black/40 text-black"
+                    onClick={() => scrollToMessage(message.replyTo!.messageId)}
+                  >
+                    <div className="font-medium truncate">
+                      {message.replyTo.senderId === user?.uid
+                        ? "You"
+                        : message.replyTo.senderName}
+                    </div>
+                    <div className="truncate opacity-90 border-l-2 pl-2 mt-1 border-black">
+                      {message.replyTo.content}
+                    </div>
+                  </div>
+                )}
+                <div className="text-sm flex justify-between items-center mb-0.5">
+                  <span>{message.content}</span>
+                  <span className="text-xs text-opacity-80 ml-2 mt-0.5">
+                    {formatMessageTime(message.timestamp)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <div
           className={`flex items-center space-x-2 mt-1 text-xs text-muted-foreground ${
@@ -663,6 +672,7 @@ const Chats = () => {
             </span>
           )}
           {/* 3-dot actions to the right of checks */}
+          {!message.deleted && selectedChatData && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -677,10 +687,23 @@ const Chats = () => {
                 onClick={() => setReplyingTo(message)}
                 className="cursor-pointer rounded-lg text-xs"
               >
-                <ReplyIcon className="h-4 w-4" /> Reply
+                {/* <ReplyIcon className="h-4 w-4" />  */}
+                Reply
               </DropdownMenuItem>
+              {message.senderId === user?.uid && !message.deleted && (
+                <DropdownMenuItem
+                  onClick={async () => {
+                    if (!user?.uid) return;
+                    await deleteMessageForEveryone(message.id, user.uid);
+                  }}
+                  className="cursor-pointer rounded-lg text-xs text-red-600 focus:text-red-600"
+                >
+                  Delete
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
         </div>
       </div>
     ));
@@ -766,7 +789,7 @@ const Chats = () => {
                 <span>Conversations</span>
                 <Badge
                   variant="secondary"
-                  className="ml-2 py-2 px-4 dark:bg-white dark:text-black shadow-lg backdrop-blur-xl rounded-lg"
+                  className="ml-2 py-2 px-4 dark:bg-white border border-black/5 dark:border-white/5 dark:text-black shadow-lg backdrop-blur-xl rounded-lg"
                 >
                   {chats.length}
                 </Badge>
@@ -826,10 +849,10 @@ const Chats = () => {
                   {sortedChats.map((chat) => (
                     <div
                       key={chat.chatId}
-                      className={`flex items-center space-x-4 p-3 bg-black/80 shadow-md dark:bg-white/90 mb-3 border border-black/5 dark:border-white/5 backdrop-blur-3xl rounded-xl cursor-pointer transition-colors ${
+                      className={`flex items-center space-x-4 p-3 bg-white shadow-md dark:bg-white/10 mb-3 border border-black/10 dark:border-white/5 backdrop-blur-3xl rounded-lg cursor-pointer transition-colors ${
                         selectedChat === chat.chatId
-                          ? "bg-black/80 dark:bg-white/90"
-                          : "hover:bg-black/75 dark:hover:bg-white/75"
+                          ? "bg-gray-400/15 shadow-xl dark:bg-white/10"
+                          : "hover:bg-black/10 dark:hover:bg-white/15"
                       }`}
                       onClick={() => handleChatSelection(chat.chatId)}
                     >
@@ -851,7 +874,7 @@ const Chats = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center">
-                          <div className="md:text-base text-[15px] text-white dark:text-black tracking-tight flex items-center font-medium truncate">
+                          <div className="text-[15px] text-black/80 dark:text-white tracking-tight flex items-center font-medium truncate">
                             {chat.displayName}
 
                             {chat.role === "landlord_verified" && (
@@ -890,14 +913,14 @@ const Chats = () => {
                             </Badge> */}
                             </div>
                           </div>
-                          <span className="text-xs text-white/80 dark:text-black">
+                          <span className="text-xs text-black/70 font-medium dark:text-white">
                             {chat.lastMessageTime &&
                               formatMessageTime(chat.lastMessageTime)}
                           </span>
                         </div>
 
                         {chat.lastMessage && (
-                          <p className="text-xs text-white/90 dark:text-black truncate mt-1">
+                          <p className="text-xs text-black/90 dark:text-white truncate mt-1">
                             {chat.senderId === user?.uid ? "You: " : ""}
                             {chat.lastMessage}
                           </p>
@@ -913,8 +936,8 @@ const Chats = () => {
 
         {(showMessages || window.innerWidth >= 768) && (
           <Card className="md:col-span-2 p-1 max-h-[88vh] md:h-full flex flex-col">
-            <CardHeader className="border border-black/10 dark:border-white/10 shadow-xl rounded-lg p-4">
-              {selectedChatData ? (
+            {selectedChatData && (
+              <CardHeader className="border border-black/10 dark:border-white/5 backdrop-blur-3xl bg-gray-400/10 dark:bg-white/10 shadow-lg rounded-lg p-4">
                 <div className="flex items-center justify-between ">
                   <div className="flex items-center gap-4">
                     <Button
@@ -937,7 +960,7 @@ const Chats = () => {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <CardTitle className="flex items-center">
+                      <CardTitle className="flex dark:text-white items-center">
                         {selectedChatData?.displayName}
 
                         {selectedChatData?.role === "landlord_verified" && (
@@ -963,7 +986,7 @@ const Chats = () => {
                           </svg>
                         )}
                       </CardTitle>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs dark:text-white/80 text-muted-foreground">
                         {selectedChatData?.status === "online"
                           ? "Online"
                           : selectedChatData?.lastSeen
@@ -975,12 +998,8 @@ const Chats = () => {
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="flex items-center justify-center h-10">
-                  <p className="text-muted-foreground">{loading ? "" : ""}</p>
-                </div>
-              )}
-            </CardHeader>
+              </CardHeader>
+            )}
             <CardContent className="p-0 flex-1 flex flex-col relative">
               {selectedChatData ? (
                 <div className="flex-1 overflow-y-auto h-full md:h-[450px] relative">
@@ -1133,7 +1152,7 @@ const Chats = () => {
                   </div>
                 </div>
               ) : (
-                <div className="h-full md:h-[400px] flex items-center justify-center text-muted-foreground">
+                <div className="h-full md:h-[400px] my-auto flex items-center justify-center text-muted-foreground">
                   <div className="text-center flex flex-col items-center w-1/2 justify-center gap-3 p-8 backdrop-blur-3xl bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5 shadow-md">
                     <p className="text-base text-black/90 font-medium dark:text-[#fafafa]">
                       {loading

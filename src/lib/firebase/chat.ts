@@ -35,6 +35,10 @@ export interface Message {
     senderId: string;
     senderName: string;
   };
+  // Soft-delete fields
+  deleted?: boolean;
+  deletedBy?: string;
+  deletedAt?: any;
 }
 
 export interface Chat {
@@ -449,6 +453,30 @@ export const sendMessage = async ({
     return true;
   } catch (error) {
     console.error("Error sending message:", error);
+    return false;
+  }
+};
+
+
+/**
+ * Soft-delete a message for everyone (kept in DB but hidden content in UI)
+ * Marks message with deleted flags so all participants see a placeholder
+ */
+export const deleteMessageForEveryone = async (
+  messageId: string,
+  userId: string
+): Promise<boolean> => {
+  try {
+    const messageRef = doc(db, "messages", messageId);
+    await updateDoc(messageRef, {
+      deleted: true,
+      deletedBy: userId,
+      deletedAt: serverTimestamp(),
+    });
+    // No need to mutate caches here; snapshot listeners will propagate
+    return true;
+  } catch (error) {
+    console.error("Error deleting message:", error);
     return false;
   }
 };
