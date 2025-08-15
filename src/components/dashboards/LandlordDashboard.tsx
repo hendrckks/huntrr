@@ -431,7 +431,7 @@ const LandlordDashboard: React.FC = () => {
         <div className="w-full overflow-x-auto pb-4">
           <TabsList className="bg-black/5 border border-black/5 dark:border-white/5 dark:bg-white/10 w-max md:min-w-fit overflow-auto inline-flex p-1 gap-2">
             <TabsTrigger
-              className="flex items-center gap-2 whitespace-nowrap px-4 py-1 data-[state=active]:bg-black/80 dark:data-[state=active]:bg-[#fafafa] dark:data-[state=active]:text-black data-[state=active]:text-white [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
+              className="group flex items-center gap-2 whitespace-nowrap px-4 py-1 data-[state=active]:bg-black/80 dark:data-[state=active]:bg-[#fafafa] dark:data-[state=active]:text-black data-[state=active]:text-white [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
               value="published"
             >
               <img src="/icons/tasks.svg" alt="" className="h-5 w-5" />
@@ -439,7 +439,7 @@ const LandlordDashboard: React.FC = () => {
               {publishedListings.length > 0 && (
                 <Badge
                   variant="secondary"
-                  className="ml-2 bg-white/80 text-black dark:bg-black/90 dark:text-white"
+                  className="ml-2 bg-white/80 text-black dark:bg-black/90 dark:text-white dark:group-data-[state=inactive]:bg-white dark:group-data-[state=inactive]:text-black"
                 >
                   {publishedListings.length}
                 </Badge>
@@ -487,7 +487,7 @@ const LandlordDashboard: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger
               value="archived"
-              className="flex items-center gap-2 whitespace-nowrap px-4 py-1 data-[state=active]:bg-black/80 dark:data-[state=active]:bg-[#fafafa] data-[state=active]:text-white dark:data-[state=active]:text-black [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
+              className="group flex items-center gap-2 whitespace-nowrap px-4 py-1 data-[state=active]:bg-black/80 dark:data-[state=active]:bg-[#fafafa] data-[state=active]:text-white dark:data-[state=active]:text-black [&[data-state=active]_svg]:text-white dark:[&[data-state=active]_svg]:text-black"
             >
               <span>
                 <img src="/icons/inbox.svg" alt="" className="h-5 w-5" />
@@ -496,7 +496,7 @@ const LandlordDashboard: React.FC = () => {
               {archivedListings.length > 0 && (
                 <Badge
                   variant="secondary"
-                  className="ml-2 bg-white/70 text-black dark:bg-black/70 dark:text-white"
+                  className="ml-2 bg-white/70 text-black dark:bg-black/70 dark:text-white dark:group-data-[state=inactive]:bg-white dark:group-data-[state=inactive]:text-black"
                 >
                   {archivedListings.length}
                 </Badge>

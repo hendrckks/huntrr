@@ -29,6 +29,12 @@ export interface Message {
   timestamp: any;
   senderName: string;
   read?: boolean;
+  replyTo?: {
+    messageId: string;
+    content: string;
+    senderId: string;
+    senderName: string;
+  };
 }
 
 export interface Chat {
@@ -400,12 +406,19 @@ export const sendMessage = async ({
   senderId,
   senderName,
   receiverId,
+  replyTo,
 }: {
   chatId: string;
   content: string;
   senderId: string;
   senderName: string;
   receiverId: string;
+  replyTo?: {
+    messageId: string;
+    content: string;
+    senderId: string;
+    senderName: string;
+  };
 }) => {
   try {
     const batch = writeBatch(db);
@@ -420,6 +433,7 @@ export const sendMessage = async ({
       receiverId,
       timestamp: serverTimestamp(),
       read: false,
+      replyTo: replyTo || null,
     });
 
     // Update chat with last message details

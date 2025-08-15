@@ -44,10 +44,10 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, growth, storageKe
           </div>
           {show24h ? (
             <div className={`flex items-center text-xs shadow-sm font-medium rounded-lg px-2.5 py-0.5 backdrop-blur-3xl border ${(last24h as number) >= 0 ? 'bg-green-100/30 dark:bg-green-500/10 border-green-200/50 dark:border-green-500/50' : 'bg-red-100/30 dark:bg-red-500/10 border-red-200/30 dark:border-red-500/20'}`}>
-              <span className={`whitespace-nowrap gap-1.5 flex items-center font-semibold ${(last24h as number) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              <span className={` flex items-center font-semibold ${(last24h as number) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 <NumberFlow 
                   value={last24h as number} 
-                  className="text-xs"
+                  className="text-xs mr-1.5"
                 /> {last24hLabel || 'In the last 24 hours'}
               </span>
             </div>

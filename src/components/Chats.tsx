@@ -14,11 +14,20 @@ import {
   ArrowDown,
   ArrowUp,
   Smile,
+  MoreVertical,
+  Reply as ReplyIcon,
+  X,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Badge } from "./ui/badge";
 import { format } from "date-fns";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import {
   subscribeToChats,
   subscribeToMessages,
@@ -41,7 +50,8 @@ type ChatCacheEntry = {
 };
 const CHATS_CACHE_TTL_MS = 30_000; // 30 seconds (shorter than notifications since chats are more dynamic)
 const chatsCache: Record<string, ChatCacheEntry> = {};
-const getChatCacheKey = (userId?: string, role?: string) => `${userId || "anon"}:${role || "guest"}`;
+const getChatCacheKey = (userId?: string, role?: string) =>
+  `${userId || "anon"}:${role || "guest"}`;
 
 const Chats = () => {
   const { user } = useAuth();
@@ -50,6 +60,7 @@ const Chats = () => {
   const [selectedChatData, setSelectedChatData] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   // typing feature removed
   const [loading, setLoading] = useState(true);
   const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
@@ -59,6 +70,7 @@ const Chats = () => {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const location = useLocation();
   const navigate = useNavigate();
   const processingLandlordIdRef = useRef(false);
@@ -74,6 +86,7 @@ const Chats = () => {
 
   // Add a ref to track if we just sent a message
   const justSentMessageRef = useRef(false);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
 
   // use shared helper from firebase/chat
 
@@ -86,19 +99,21 @@ const Chats = () => {
     const cacheKey = getChatCacheKey(user.uid, user.role);
     const cached = chatsCache[cacheKey];
     if (cached) {
-      const safeChats: Chat[] = cached.data.filter(
-        (c): c is Chat => Boolean(c && typeof c === "object" && (c as any).chatId)
+      const safeChats: Chat[] = cached.data.filter((c): c is Chat =>
+        Boolean(c && typeof c === "object" && (c as any).chatId)
       );
       setChats(safeChats);
-      
+
       // Update selected chat data if we have a selected chat
       if (selectedChat) {
-        const matchingChat = safeChats.find((chat) => chat && chat.chatId === selectedChat);
+        const matchingChat = safeChats.find(
+          (chat) => chat && chat.chatId === selectedChat
+        );
         if (matchingChat) {
           setSelectedChatData(matchingChat);
         }
       }
-      
+
       // Don't set loading to true if we have cached data
       if (!creatingNewChat && !selectedChatData) {
         setLoading(false);
@@ -112,20 +127,22 @@ const Chats = () => {
 
     const unsubscribe = subscribeToChats(user.uid, user.role, (chatsList) => {
       // Keep original photoURL intact (signed URLs require their full query string)
-      const safeChats: Chat[] = chatsList.filter(
-        (c): c is Chat => Boolean(c && typeof c === "object" && (c as any).chatId)
+      const safeChats: Chat[] = chatsList.filter((c): c is Chat =>
+        Boolean(c && typeof c === "object" && (c as any).chatId)
       );
-      
+
       // Update cache
       chatsCache[cacheKey] = {
         data: safeChats,
         timestamp: Date.now(),
       };
-      
+
       setChats(safeChats);
 
       if (selectedChat) {
-        const matchingChat = safeChats.find((chat) => chat && chat.chatId === selectedChat);
+        const matchingChat = safeChats.find(
+          (chat) => chat && chat.chatId === selectedChat
+        );
 
         if (matchingChat) {
           setSelectedChatData(matchingChat);
@@ -156,7 +173,8 @@ const Chats = () => {
       const cacheKey = getChatCacheKey(user.uid, user.role);
       const cached = chatsCache[cacheKey];
       // Check if cache is stale - if so, the subscription will handle refresh
-      const isStale = !cached || Date.now() - cached.timestamp > CHATS_CACHE_TTL_MS;
+      const isStale =
+        !cached || Date.now() - cached.timestamp > CHATS_CACHE_TTL_MS;
       if (isStale) {
         // Cache is stale, but we don't need to do anything here
         // The subscription will automatically update the cache and state
@@ -172,7 +190,9 @@ const Chats = () => {
     const params = new URLSearchParams(location.search);
     const directChatId = params.get("chatId");
     const landlordId = params.get("landlordId");
-    const navState = (location as any).state as { preselectedChat?: Chat } | undefined;
+    const navState = (location as any).state as
+      | { preselectedChat?: Chat }
+      | undefined;
 
     if (
       directChatId &&
@@ -420,6 +440,8 @@ const Chats = () => {
     if (selectedChat && window.innerWidth < 768) {
       setShowMessages(true);
     }
+    // Clear reply state when switching chats
+    setReplyingTo(null);
   }, [selectedChat]);
 
   // typing effect removed
@@ -430,6 +452,15 @@ const Chats = () => {
 
     // typing feature removed
   };
+
+  const scrollToMessage = useCallback((messageId: string) => {
+    const el = messageRefs.current[messageId];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedMessageId(messageId);
+      setTimeout(() => setHighlightedMessageId(null), 1500);
+    }
+  }, []);
 
   // Memoize chat selection function
   const handleChatSelection = useCallback(
@@ -512,10 +543,19 @@ const Chats = () => {
           senderId: user.uid,
           senderName: user.displayName,
           receiverId: selectedChatData?.userId || "",
+          replyTo: replyingTo
+            ? {
+                messageId: replyingTo.id,
+                content: replyingTo.content,
+                senderId: replyingTo.senderId,
+                senderName: replyingTo.senderName,
+              }
+            : undefined,
         });
 
         if (success) {
           setNewMessage("");
+          setReplyingTo(null);
           // Clear justSentMessage flag after a short delay
           setTimeout(() => {
             justSentMessageRef.current = false;
@@ -527,7 +567,7 @@ const Chats = () => {
         // typing feature removed
       }
     },
-    [newMessage, selectedChat, user, selectedChatData]
+    [newMessage, selectedChat, user, selectedChatData, replyingTo]
   );
 
   const formatMessageTime = (timestamp: any) => {
@@ -548,31 +588,46 @@ const Chats = () => {
     return messages.map((message) => (
       <div
         key={message.id}
+        ref={(el) => {
+          messageRefs.current[message.id] = el;
+        }}
         className={`flex flex-col ${
           message.senderId === user?.uid ? "items-end" : "items-start"
         }`}
       >
         <div className="flex flex-col space-y-1 max-w-[80%] w-fit">
           <div
-            className={`py-2 md:px-4 px-4 flex items-center ${
+            className={`py-2 md:px-4 px-4 flex items-center relative ${
               message.senderId === user?.uid
-                ? "bg-black/20 dark:bg-white/20 dark:text-white text-black border-black/10 shadow-sm border dark:border-white/10 rounded-t-full rounded-bl-full"
-                : "bg-black/80 dark:bg-white border-white/10 border dark:border-black/10 dark:text-black shadow-sm text-white rounded-t-full rounded-br-full"
+                ? "bg-black/80 dark:bg-white/90 dark:text-white text-white border-black/10 shadow-md border dark:border-white/10 rounded-t-2xl rounded-bl-2xl"
+                : "bg-black/80 dark:bg-white/90 border-white/10 border dark:border-black/10 dark:text-black shadow-md text-white rounded-t-2xl rounded-br-2xl"
+            } ${replyingTo?.id === message.id ? "opacity-50" : ""} ${
+              highlightedMessageId === message.id ? "ring-1 ring-[#8752f3]/30" : ""
             }`}
           >
-            {message.senderId !== user?.uid && (
-              <span className="text-[10px] text-opacity-80 mr-4">
-                {formatMessageTime(message.timestamp)}
-              </span>
-            )}
-            <div className="text-sm text-opacity-85 mb-0.5">
-              {message.content}
+            <div className="flex flex-col">
+              {message.replyTo && (
+                <div
+                  className="mr-3 cursor-pointer max-w-[220px] text-xs opacity-90 border px-4 py-2 shadow-md mb-2 border-white/15 backdrop-blur-3xl bg-white/10 dark:bg-black/10 rounded-lg dark:border-black/20 dark:text-black"
+                  onClick={() => scrollToMessage(message.replyTo!.messageId)}
+                >
+                  <div className="font-medium truncate">
+                    {message.replyTo.senderId === user?.uid
+                      ? "You"
+                      : message.replyTo.senderName}
+                  </div>
+                  <div className="truncate opacity-90 border-l-2 pl-2 mt-1 border-[#8752f3]">
+                    {message.replyTo.content}
+                  </div>
+                </div>
+              )}
+              <div className="text-sm flex justify-between items-center ml-2 dark:text-black text-opacity-85 mb-0.5">
+                <span>{message.content}</span>
+                <span className="text-xs text-opacity-80 ml-2 mt-0.5">
+                  {formatMessageTime(message.timestamp)}
+                </span>
+              </div>
             </div>
-            {message.senderId === user?.uid && (
-              <span className="text-[10px] text-opacity-80 ml-4">
-                {formatMessageTime(message.timestamp)}
-              </span>
-            )}
           </div>
         </div>
         <div
@@ -606,11 +661,30 @@ const Chats = () => {
                 </div>
               )}
             </span>
-          )} 
+          )}
+          {/* 3-dot actions to the right of checks */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label="Message actions"
+                className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="font-inter border border-black/30 backdrop-blur-3xl shadow-lg dark:border-white/30 rounded-xl text-black/80 dark:text-white/80" align="end" side="bottom">
+              <DropdownMenuItem
+                onClick={() => setReplyingTo(message)}
+                className="cursor-pointer rounded-lg text-xs"
+              >
+                <ReplyIcon className="h-4 w-4" /> Reply
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     ));
-  }, [messages, user?.uid]);
+  }, [messages, user?.uid, replyingTo?.id, highlightedMessageId, scrollToMessage]);
 
   const formatLastSeen = (timestamp: any) => {
     if (!timestamp) return "";
@@ -710,7 +784,9 @@ const Chats = () => {
                 </div>
               ) : chats.length === 0 && !selectedChatData ? (
                 <div className="flex flex-col items-center -mt-4 justify-center h-full text-center text-muted-foreground">
-                  <div className="text-xl dark:text-white text-black font-medium">No conversations yet</div>
+                  <div className="text-xl dark:text-white text-black font-medium">
+                    No conversations yet
+                  </div>
                   <div className="text-sm mt-2">
                     Your chats will appear here
                   </div>
@@ -722,7 +798,10 @@ const Chats = () => {
                       <div className="flex items-center gap-4">
                         <Avatar className="h-12 w-12">
                           {selectedChatData.photoURL ? (
-                            <AvatarImage src={selectedChatData.photoURL} alt={selectedChatData.displayName || "User"} />
+                            <AvatarImage
+                              src={selectedChatData.photoURL}
+                              alt={selectedChatData.displayName || "User"}
+                            />
                           ) : null}
                           <AvatarFallback>
                             {selectedChatData.displayName
@@ -747,7 +826,7 @@ const Chats = () => {
                   {sortedChats.map((chat) => (
                     <div
                       key={chat.chatId}
-                      className={`flex items-center space-x-4 p-3 bg-black/80 shadow-md dark:bg-white/80 mb-3 border border-black/5 dark:border-white/5 backdrop-blur-3xl rounded-xl cursor-pointer transition-colors ${
+                      className={`flex items-center space-x-4 p-3 bg-black/80 shadow-md dark:bg-white/90 mb-3 border border-black/5 dark:border-white/5 backdrop-blur-3xl rounded-xl cursor-pointer transition-colors ${
                         selectedChat === chat.chatId
                           ? "bg-black/80 dark:bg-white/90"
                           : "hover:bg-black/75 dark:hover:bg-white/75"
@@ -757,7 +836,10 @@ const Chats = () => {
                       <div className="relative">
                         <Avatar className="h-14 w-14 border border-white/30 dark:border-black/30">
                           {chat.photoURL ? (
-                            <AvatarImage src={chat.photoURL} alt={chat.displayName || "User"} />
+                            <AvatarImage
+                              src={chat.photoURL}
+                              alt={chat.displayName || "User"}
+                            />
                           ) : null}
                           <AvatarFallback>
                             {chat.displayName?.charAt(0).toUpperCase()}
@@ -815,7 +897,7 @@ const Chats = () => {
                         </div>
 
                         {chat.lastMessage && (
-                          <p className="text-xs text-white/90 dark:text-black text-muted-foreground truncate mt-1">
+                          <p className="text-xs text-white/90 dark:text-black truncate mt-1">
                             {chat.senderId === user?.uid ? "You: " : ""}
                             {chat.lastMessage}
                           </p>
@@ -830,8 +912,8 @@ const Chats = () => {
         )}
 
         {(showMessages || window.innerWidth >= 768) && (
-          <Card className="md:col-span-2 max-h-[88vh] md:h-full flex flex-col">
-            <CardHeader className="border-b p-4">
+          <Card className="md:col-span-2 p-1 max-h-[88vh] md:h-full flex flex-col">
+            <CardHeader className="border border-black/10 dark:border-white/10 shadow-xl rounded-lg p-4">
               {selectedChatData ? (
                 <div className="flex items-center justify-between ">
                   <div className="flex items-center gap-4">
@@ -845,7 +927,10 @@ const Chats = () => {
                     </Button>
                     <Avatar className="h-12 w-12 border border-black/20 dark:border-white/20">
                       {selectedChatData?.photoURL ? (
-                        <AvatarImage src={selectedChatData.photoURL} alt={selectedChatData.displayName || "User"} />
+                        <AvatarImage
+                          src={selectedChatData.photoURL}
+                          alt={selectedChatData.displayName || "User"}
+                        />
                       ) : null}
                       <AvatarFallback>
                         {selectedChatData?.displayName?.charAt(0).toUpperCase()}
@@ -970,13 +1055,34 @@ const Chats = () => {
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  
+
                   {/* Floating message input form */}
                   <div className="absolute bottom-0 rounded-xl left-0 right-0 p-2 bg-gradient-to-t from-background via-background/95 to-transparent">
                     <form
                       onSubmit={handleSendMessage}
                       className="flex items-center space-x-3 p-2.5 bg-background/10 backdrop-blur-3xl border border-black/15 dark:border-white/15 rounded-2xl shadow-xl"
                     >
+                      {replyingTo && (
+                        <div className="absolute -top-16 left-2 right-2 p-2 rounded-xl border bg-white border-black/15 dark:border-white/15 bg-background/60 backdrop-blur-xl flex items-start gap-2">
+                          <div className="border-l-2 border-[#8752f3] pl-2 text-xs">
+                            <div className="font-medium">
+                              {replyingTo.senderId === user?.uid
+                                ? "You"
+                                : replyingTo.senderName}
+                            </div>
+                            <div className="truncate max-w-[60vw] md:max-w-[40vw] opacity-80">
+                              {replyingTo.content}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="ml-auto p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                            onClick={() => setReplyingTo(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
                       <Input
                         placeholder="Type a message..."
                         value={newMessage}
@@ -1017,7 +1123,11 @@ const Chats = () => {
                         disabled={!newMessage.trim()}
                         className="h-10 w-10 rounded-full bg-transparent border border-black/20 dark:border-white/15 hover:bg-black/15 duration-200 dark:hover:bg-white/15 transition-all shadow-sm"
                       >
-                        <img src="/paper-plane.svg" alt="Send message" className="h-5 w-5" />
+                        <img
+                          src="/paper-plane.svg"
+                          alt="Send message"
+                          className="h-5 w-5"
+                        />
                       </Button>
                     </form>
                   </div>
