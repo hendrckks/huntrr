@@ -19,8 +19,6 @@ import {
   HelpCircle,
   FileText,
   Shield,
-  Home,
-  User,
   AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";

@@ -212,7 +212,7 @@ const KYCVerification = () => {
 
   if (isLoading) {
     return (
-      <Card className="w-full max-w-2xl mx-auto">
+      <Card className="w-full max-w-7xl mx-auto">
         <CardContent className="flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-4">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
@@ -226,9 +226,10 @@ const KYCVerification = () => {
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-7xl mx-auto">
       <CardHeader>
-        <CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <img src="/icons/file.svg" alt="" className="w-6 h-6" />
           {isSubmitted ? "Verification In Progress" : "Verify Your Identity"}
         </CardTitle>
         <CardDescription>

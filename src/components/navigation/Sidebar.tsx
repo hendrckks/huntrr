@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LogOut, MoreHorizontal, FileCheck, LogIn } from "lucide-react";
+import { LogOut, MoreHorizontal, LogIn } from "lucide-react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../lib/firebase/clientApp";
 import { normalizeNotificationDate } from "../../lib/utils/NotificationUtils";
@@ -185,7 +185,7 @@ const Sidebar = () => {
       : null,
     user?.role === "landlord_unverified"
       ? {
-          icon: FileCheck,
+          icon: "/icons/file.svg",
           label: "Verify Documents",
           path: "/verify-documents",
           color: "text-orange-400/70",

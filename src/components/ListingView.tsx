@@ -12,6 +12,7 @@ import { Eye, EyeOff } from "lucide-react";
 import PropertyLocationMap from "./PropertyLocationMap";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "../hooks/useToast";
+import { checkForExistingChat, createChat } from "../lib/firebase/chat";
 
 const ListingView = () => {
   const { slug } = useParams<{ slug: string }>(); // Change from id to slug
@@ -20,6 +21,7 @@ const ListingView = () => {
   const [showContact, setShowContact] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const [startingChat, setStartingChat] = useState(false);
 
   const handleContactToggle = () => {
     if (!isAuthenticated) {
@@ -253,28 +255,89 @@ const ListingView = () => {
                   {/* Hide chat button if user is the landlord of this listing */}
                   {(!user || user.uid !== listing.landlordId) && (
                     <Button
-                      onClick={() => {
-                        if (!isAuthenticated) {
-                          navigate("/login");
+                      onClick={async () => {
+                        try {
+                          if (!isAuthenticated) {
+                            navigate("/login");
+                            toast({
+                              title: "Error",
+                              variant: "warning",
+                              description: "Please login to chat with the owners",
+                              duration: 5000,
+                            });
+                            return;
+                          }
+
+                          if (!user?.uid) return;
+                          if (startingChat) return;
+                          setStartingChat(true);
+
+                          // 1) Find or create chat
+                          let chatId = await checkForExistingChat(
+                            user.uid,
+                            listing.landlordId
+                          );
+
+                          if (!chatId) {
+                            chatId = await createChat(user.uid, listing.landlordId);
+                          }
+
+                          if (!chatId) {
+                            throw new Error("Unable to start chat. Please try again.");
+                          }
+
+                          // 2) Hydrate some immediate UI data for the chats page
+                          const preselectedChat = {
+                            chatId,
+                            userId: listing.landlordId,
+                            displayName: listing.landlordName || "Landlord",
+                            lastMessage: "",
+                            role: "landlord_verified",
+                            status: "offline",
+                            photoURL: "",
+                            unreadCount: 0,
+                          } as any;
+
+                          // 3) Navigate to chats with the chatId so it selects immediately
+                          navigate(`/chats?chatId=${chatId}`, {
+                            replace: true,
+                            state: { preselectedChat },
+                          });
+                        } catch (err: any) {
+                          console.error(err);
                           toast({
-                            title: "Error",
-                            variant: "warning",
-                            description: "Please login to chat with the owners",
+                            title: "Could not start chat",
+                            description: err?.message || "Please try again shortly.",
+                            variant: "error",
                             duration: 5000,
                           });
-                          return;
+                        } finally {
+                          setStartingChat(false);
                         }
-                        navigate(`/chats?landlordId=${listing.landlordId}`);
                       }}
                       className="w-full sm:w-auto"
                       variant="default"
+                      disabled={startingChat}
                     >
-                      <img
-                        src="/icons/msgs.svg"
-                        alt=""
-                        className="h-5 w-5 mr-2"
-                      />
-                      Chat with Owner
+                      {startingChat ? (
+                        <>
+                          <img
+                            src="/icons/msgs.svg"
+                            alt=""
+                            className="h-5 w-5 mr-2 animate-pulse"
+                          />
+                          Starting chat...
+                        </>
+                      ) : (
+                        <>
+                          <img
+                            src="/icons/msgs.svg"
+                            alt=""
+                            className="h-5 w-5 mr-2"
+                          />
+                          Chat with Owner
+                        </>
+                      )}
                     </Button>
                   )}
                 </div>

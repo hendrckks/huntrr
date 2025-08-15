@@ -167,10 +167,31 @@ const Chats = () => {
     return () => window.removeEventListener("focus", handleFocus);
   }, [user?.uid, user?.role]);
 
-  // Also modify the landlordId effect to ensure loading state is properly maintained
+  // Accept direct chatId for immediate selection to avoid placeholder/extra card
   useEffect(() => {
     const params = new URLSearchParams(location.search);
+    const directChatId = params.get("chatId");
     const landlordId = params.get("landlordId");
+    const navState = (location as any).state as { preselectedChat?: Chat } | undefined;
+
+    if (
+      directChatId &&
+      user?.uid &&
+      user?.role &&
+      !processingLandlordIdRef.current
+    ) {
+      // If chatId provided, immediately select it and show messages
+      processingLandlordIdRef.current = true;
+      setSelectedChat(directChatId);
+      if (navState?.preselectedChat) {
+        setSelectedChatData(navState.preselectedChat);
+      }
+      setShowMessages(true);
+      setLoading(false);
+      setCreatingNewChat(false);
+      processingLandlordIdRef.current = false;
+      return;
+    }
 
     if (
       landlordId &&
@@ -190,7 +211,7 @@ const Chats = () => {
           );
 
           if (existingChatId) {
-            navigate("/chats", { replace: true });
+            navigate(`/chats?chatId=${existingChatId}`, { replace: true });
             setSelectedChat(existingChatId);
             setShowMessages(true);
 
@@ -213,7 +234,7 @@ const Chats = () => {
               const chatId = await createChat(user.uid, landlordId);
 
               if (chatId) {
-                navigate("/chats", { replace: true });
+                navigate(`/chats?chatId=${chatId}`, { replace: true });
                 setSelectedChat(chatId);
                 setShowMessages(true);
 
@@ -547,7 +568,7 @@ const Chats = () => {
           </div>
         </div>
         <div
-          className={`flex items-center space-x-2 text-xs text-muted-foreground ${
+          className={`flex items-center space-x-2 mt-1 text-xs text-muted-foreground ${
             message.senderId === user?.uid ? "justify-end" : "justify-start"
           }`}
         >
