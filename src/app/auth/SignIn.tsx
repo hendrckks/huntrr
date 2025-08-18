@@ -89,6 +89,30 @@ const SignIn = () => {
     } catch (error: any) {
       console.error(error);
 
+      // Handle Firebase too-many-requests with a friendly wait message
+      if (error?.code === "auth/too-many-requests") {
+        const newRetryCount = retryCount + 1;
+        setRetryCount(newRetryCount);
+
+        // Base wait time of 2 minutes; increase for subsequent attempts up to 1 hour
+        const waitTime =
+          newRetryCount > 1
+            ? Math.min(120000 * Math.pow(2, newRetryCount - 2), 3600000)
+            : 120000;
+
+        const nextRetry = Date.now() + waitTime;
+        setNextRetryTime(nextRetry);
+
+        const waitTimeMinutes = Math.ceil(waitTime / 60000);
+        toast({
+          title: "Please Wait",
+          variant: "warning",
+          description: `Please wait ${waitTimeMinutes} minute(s) before trying again.`,
+          duration: 5000,
+        });
+        return;
+      }
+
       if (error.code === "auth/invalid-login-credentials") {
         toast({
           title: "Error",

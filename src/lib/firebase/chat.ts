@@ -16,7 +16,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { ref, onValue, set, onDisconnect, get } from "firebase/database";
-import { db, rtdb } from "./clientApp";
+import { db, rtdb, auth } from "./clientApp";
 import { globalCache } from "../cache/cacheManager";
 import { messageCache, MESSAGE_PAGE_SIZE } from "../cache/messageCache";
 
@@ -749,7 +749,9 @@ export const setupOnlineStatusTracking = (userId: string) => {
     set(userStatusRef, { status: "offline", lastSeen: Date.now() });
 
     // Update all chat participants with offline status
-    updateUserStatus(userId, "offline");
+    if (auth.currentUser && auth.currentUser.uid === userId) {
+      updateUserStatus(userId, "offline");
+    }
   };
 };
 
@@ -758,49 +760,57 @@ export const updateUserStatus = async (
   status: "online" | "offline"
 ) => {
   try {
-    const chatsQuery = query(
-      collection(db, "chats"),
-      where("userId", "==", userId)
-    );
-
-    const landlordChatsQuery = query(
-      collection(db, "chats"),
-      where("landlordId", "==", userId)
-    );
-
-    const batch = writeBatch(db);
-
-    // Also update the user's status in RTDB
+    // Update the user's status in RTDB
     const userStatusRef = ref(rtdb, `status/${userId}`);
-    set(userStatusRef, {
+    await set(userStatusRef, {
       status,
       lastSeen: status === "offline" ? Date.now() : null,
     });
 
+    // If the user is not authenticated (e.g., during sign-out), skip Firestore writes
+    if (!auth.currentUser || auth.currentUser.uid !== userId) {
+      return true;
+    }
+
+    const [snapshot, landlordSnapshot] = await Promise.all([
+      getDocs(query(collection(db, "chats"), where("userId", "==", userId))),
+      getDocs(
+        query(collection(db, "chats"), where("landlordId", "==", userId))
+      ),
+    ]);
+
+    const batch = writeBatch(db);
+
     // Update as tenant
-    const snapshot = await getDocs(chatsQuery);
     snapshot.forEach((docSnapshot) => {
       const participantRef = doc(
         collection(docSnapshot.ref, "participants"),
         userId
       );
-      batch.update(participantRef, {
-        status,
-        lastSeen: status === "offline" ? serverTimestamp() : null,
-      });
+      batch.set(
+        participantRef,
+        {
+          status,
+          lastSeen: status === "offline" ? serverTimestamp() : null,
+        },
+        { merge: true }
+      );
     });
 
     // Update as landlord
-    const landlordSnapshot = await getDocs(landlordChatsQuery);
     landlordSnapshot.forEach((docSnapshot) => {
       const participantRef = doc(
         collection(docSnapshot.ref, "participants"),
         userId
       );
-      batch.update(participantRef, {
-        status,
-        lastSeen: status === "offline" ? serverTimestamp() : null,
-      });
+      batch.set(
+        participantRef,
+        {
+          status,
+          lastSeen: status === "offline" ? serverTimestamp() : null,
+        },
+        { merge: true }
+      );
     });
 
     await batch.commit();
